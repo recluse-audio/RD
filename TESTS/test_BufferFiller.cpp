@@ -51,3 +51,4 @@ TEST_CASE("Can make an incremental buffer")
     }
 
 }
+
