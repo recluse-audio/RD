@@ -53,3 +53,24 @@ void Window::_update()
         BufferFiller::fillWithAllOnes(mBuffer);
 }
 
+//==================
+//
+void Window::setPeriod(int numSamples)
+{
+    mPhaseIncrement = (double)numSamples / (double)mBuffer.getNumSamples();
+}
+
+//=================
+//
+const float Window::getNextSample()
+{
+    // Either you've read to the end of the window, or went backwards... uh oh
+    if(mReadPos >= mBuffer.getNumSamples() || mReadPos < 0)
+        return -1.f;
+
+    auto sample = mBuffer.getSample(0, mReadPos);
+
+    mReadPos += mPhaseIncrement;
+
+    return sample;
+}

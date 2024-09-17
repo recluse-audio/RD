@@ -1,9 +1,7 @@
 #include "../SOURCE/CircularBuffer.h"
 #include <catch2/catch_test_macros.hpp>
 #include <catch2/matchers/catch_matchers_string.hpp>
-#include "TEST_UTILS/TestUtils.h"
-#include "TEST_UTILS/BufferGenerator.h"
-
+#include "../SOURCE/BufferFiller.h"
 // README: While I normally don't use really short abbreviations, I may use "cb" to mean CircularBuffer in this file
 
 // friend class that retrieves private variables for testing purposes.
@@ -119,7 +117,7 @@ TEST_CASE("Can read from buffer.")
 
     int testBufferSize = 1024;
     juce::AudioBuffer<float> testBuffer(2, testBufferSize);
-    BufferGenerator::fillWithAllOnes(testBuffer);
+    BufferFiller::fillWithAllOnes(testBuffer);
 
     // make sure testBuffer filled properly
     for(int sampleIndex = 0; sampleIndex < testBuffer.getNumSamples(); sampleIndex++)

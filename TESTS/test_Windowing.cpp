@@ -1,9 +1,8 @@
 #include <catch2/catch_test_macros.hpp>
 #include <catch2/matchers/catch_matchers_string.hpp>
-#include "TEST_UTILS/TestUtils.h"
-#include "TEST_UTILS/BufferGenerator.h"
 
 #include "../SOURCE/Window.h"
+#include "../SOURCE/BufferFiller.h"
 
 /**
  * @brief Helps check stuff under the hood, especially really fundamental stuff like buffer resizing with sample rate
@@ -19,7 +18,7 @@ public:
 
     int getWindowSize() { return mWindow.mBuffer.getNumSamples(); }
     // int getWindowShape() { return mWindow.mCurrentShape; } // hack testing I know
-
+    juce::AudioBuffer<float>& getBuffer() { return mWindow.mBuffer; }
 private:
     Window& mWindow;
 };
@@ -54,10 +53,26 @@ TEST_CASE("Window can handle sample rate change")
 }
 
 
+
 //=====================
-//
+// Testing read position updating by passing in a buffer who's samples are equal to their index
 TEST_CASE("Can get sample from window")
 {
+    Window w;
+    WindowTester wt(w);
+
+    int bufferSize = 100;
+    w.setSize((double)bufferSize);
+    BufferFiller::fillIncremental(wt.getBuffer()); // fill the underlying buffer incrementally
+
+    for(int sampleIndex = 0; sampleIndex < bufferSize; sampleIndex++ )
+    {
+        auto sample = w.getNextSample();
+        CHECK( sample == (float)sampleIndex );
+    }
+
+    // At this point the Window's read pos is past the length of the buffer
+    CHECK (w.getNextSample() == -1.f );
 
 }
 

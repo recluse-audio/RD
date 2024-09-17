@@ -44,6 +44,12 @@ public:
     Window();
     ~Window();
 
+    // This does not resize the underlying buffer
+    // This affects the rate at which we read the buffer
+    // we will read the entirety of the window in 'numSamples'
+    // interpolating as necessary
+    void setPeriod(int numSamples);
+
     // sets the numSamples of the underlying buffer.
     // always 1 channel until I find a reason otherwise
     void setSize(double newSize);
@@ -56,6 +62,8 @@ public:
     // Does not resize but does clear 
     void setShape (Window::Shape newShape);
 
+    // returns the sample at the internally incremented mReadPos
+    const float getNextSample();
 
 
 private:
@@ -63,6 +71,15 @@ private:
     juce::AudioBuffer<float> mBuffer; // using juce buffer for some helpful functions, but could be a simple array
 
     Window::Shape mCurrentShape;
+
+    // rate at which we read from buffer of samples.
+    // Goes up with higher pitch, down with lower
+    double mPhaseIncrement = 1.0;  
+
+    // Fractional read index that might require some interpolation!
+    // Incremented by mPhaseIncrement
+    // Wraps at buffer size, or perhaps hits a "finished" flag
+    double mReadPos = 0.0; 
 
     void _update();
 };
