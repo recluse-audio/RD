@@ -3,7 +3,7 @@
 #include "TEST_UTILS/TestUtils.h"
 #include "TEST_UTILS/BufferGenerator.h"
 
-#include "Window.h"
+#include "../SOURCE/Window.h"
 
 /**
  * @brief Helps check stuff under the hood, especially really fundamental stuff like buffer resizing with sample rate
