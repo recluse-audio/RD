@@ -28,6 +28,31 @@ public:
         }
     }
 
+    /////////////////////////
+    // Indices alternate values 0.f and 1.f (starting on 0.f)
+    // static void fillAlternatingZeroOne(juce::AudioBuffer<float>& bufferToFill)
+    // {
+    //     bufferToFill.clear();
+    //     auto writePtr = bufferToFill.getArrayOfWritePointers();
+
+    //     // when to write a zero at an index, this will flip with each sample
+    //     bool shouldWriteZero = true;
+
+    //     for(int sampleIndex = 0; sampleIndex < bufferToFill.getNumSamples(); sampleIndex++)
+    //     {
+    //         float sampleValue = 1.f;
+    //         if(shouldWriteZero)
+    //             sampleValue = 0.f;
+
+    //         for(int ch = 0; ch < bufferToFill.getNumChannels(); ch++)
+    //         {
+    //             writePtr[ch][sampleIndex] = sampleValue;
+    //         }
+
+    //         shouldWriteZero = !shouldWriteZero;
+    //     }
+    // }
+
     //=======================
     // Value stored is equal to its index. Useful in testing
     static void fillIncremental(juce::AudioBuffer<float>& bufferToFill)
