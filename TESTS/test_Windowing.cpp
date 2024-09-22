@@ -72,7 +72,48 @@ TEST_CASE("Can get sample from window")
     }
 
     // At this point the Window's read pos is past the length of the buffer
-    CHECK (w.getNextSample() == -1.f );
+    CHECK (w.getNextSample() == 0.f );
+
+}
+
+//=======================
+// Test that we can adjust the period of the window properly
+TEST_CASE("Can set and reset period of window")
+{
+    Window w;
+    WindowTester wt(w);
+
+    int bufferSize = 100;
+    w.setSize((double)bufferSize);
+    BufferFiller::fillIncremental(wt.getBuffer()); // fill the underlying buffer incrementally
+
+    // Set period to 1/2 the size of underlying buffer in window
+    // So mPhaseIncrement should double, and mReadPos increment 2x as fast
+    w.setPeriod(bufferSize / 2);
+
+    for(int sampleIndex = 0; sampleIndex < bufferSize / 2; sampleIndex++ )
+    {
+        auto sample = w.getNextSample();
+        CHECK( sample == (float)sampleIndex * 2.f );
+    }
+
+    // This should reset the read pos and phase increment
+    w.reset();
+    // now the sample should not be double of sampleIndex
+    for(int sampleIndex = 0; sampleIndex < bufferSize / 2; sampleIndex++ )
+    {
+        auto sample = w.getNextSample();
+        CHECK( sample == (float)sampleIndex );
+    }
+
+
+    w.reset();
+    w.setPeriod(bufferSize * 2);
+    for(int sampleIndex = 0; sampleIndex < bufferSize / 2; sampleIndex++ )
+    {
+        auto sample = w.getNextSample();
+        CHECK( sample == (float)sampleIndex * 0.5f );
+    }
 
 }
 

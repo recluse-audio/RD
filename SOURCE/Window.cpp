@@ -57,7 +57,9 @@ void Window::_update()
 //
 void Window::setPeriod(int numSamples)
 {
-    mPhaseIncrement = (double)numSamples / (double)mBuffer.getNumSamples();
+    // don't do that
+    
+    mPhaseIncrement = (double)mBuffer.getNumSamples() / (double)numSamples;
 }
 
 //=================
@@ -66,11 +68,20 @@ const float Window::getNextSample()
 {
     // Either you've read to the end of the window, or went backwards... uh oh
     if(mReadPos >= mBuffer.getNumSamples() || mReadPos < 0)
-        return -1.f;
+        return 0.f;
 
     auto sample = mBuffer.getSample(0, mReadPos);
 
     mReadPos += mPhaseIncrement;
 
     return sample;
+}
+
+
+//====================
+// 
+void Window::reset()
+{
+    mReadPos = 0.0;
+    mPhaseIncrement = 1.0;
 }

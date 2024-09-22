@@ -51,3 +51,16 @@ TEST_CASE("Can make an incremental buffer")
 
 }
 
+//=========================
+TEST_CASE("Can fill with alternating zeroes and ones")
+{
+    int numSamples = 100;
+    juce::AudioBuffer<float> buffer(1, numSamples);
+
+    BufferFiller::fillAlternatingZeroOne(buffer);
+
+    CHECK(buffer.getSample(0, 0) == 0.f);
+    CHECK(buffer.getSample(0, 1) == 1.f);
+    CHECK(buffer.getSample(0, 98) == 0.f);
+    CHECK(buffer.getSample(0, 99) == 1.f);
+}
