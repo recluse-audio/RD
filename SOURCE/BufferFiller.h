@@ -125,14 +125,16 @@ public:
         }
 
         juce::Array<juce::var> jsonArray = *jsonParsed.getArray();
-        buffer.setSize(1, jsonArray.size()); // Assuming mono channel for JSON data
+        int numSamples = jsonArray.size();
+        buffer.setSize(1, numSamples); // Assuming mono channel for JSON data
         buffer.clear();
 
         for (int i = 0; i < jsonArray.size(); ++i)
         {
-            if (jsonArray[i].isDouble() || jsonArray[i].isInt())
+            if (jsonArray[i].isDouble())
             {
-                buffer.setSample(0, i, static_cast<float>(jsonArray[i]));
+                float sample = jsonArray[i];
+                buffer.setSample(0, i, sample);
             }
             else
             {

@@ -1,4 +1,5 @@
 import unittest
+# import wave
 import numpy as np
 from scipy.signal import find_peaks
 # Import the sine wave generation function
@@ -51,6 +52,38 @@ class TestSineWave(unittest.TestCase):
         wave = gen_incremental(100)
         for i in range(len(wave)):
             self.assertAlmostEqual(wave[i], float(i))
+
+
+    # def test_wave(self):
+    #     # Define the path to the .wav file that was written
+    #     self.wav_file_path = 'WAVEFORMS/incremental_wave.wav'  # Replace with your actual file path
+        
+    #     # Define the expected properties and data
+    #     self.expected_sample_rate = 44100
+    #     self.expected_channels = 1
+    #     self.expected_num_samples = self.expected_sample_rate  # Example, 1 second of audio
+        
+    #     # Verify that each sample value is equal to its index
+    #     for index, value in enumerate(data):
+    #         self.assertEqual(value, index, f"Sample value at index {index} does not match the expected value.")
+
+
+    # def test_wav_file_data(self):
+    #     # Read and check the audio data
+    #     with wave.open(self.wav_file_path, 'rb') as wav_file:
+    #         # Read all frames
+    #         frames = wav_file.readframes(wav_file.getnframes())
+            
+    #         # Convert frames to numpy array of int16 values
+    #         data = np.frombuffer(frames, dtype=np.int16)
+
+    #         # Check that data length matches the number of frames
+    #         self.assertEqual(len(data), wav_file.getnframes(), "Data length does not match the expected number of frames.")
+            
+    #         # Verify that each sample value is equal to its index
+    #         for index, value in enumerate(data):
+    #             self.assertEqual(value, index, f"Sample value at index {index} does not match the expected value.")
+
 
 if __name__ == "__main__":
     unittest.main()

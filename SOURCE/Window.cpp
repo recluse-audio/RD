@@ -93,8 +93,14 @@ void Window::reset()
 //
 float Window::_getInterpolatedSampleAtReadPos()
 {
+
+    int nextReadPos = (int)mReadPos + 1;
+    // keep it in range
+    if(nextReadPos >= mBuffer.getNumSamples())
+        nextReadPos = nextReadPos - mBuffer.getNumSamples();
+
     float sample1 = mBuffer.getSample(0, (int)mReadPos);
-    float sample2 = mBuffer.getSample(0, (int)mReadPos+1);
+    float sample2 = mBuffer.getSample(0, nextReadPos);
     float delta = mReadPos - (int)mReadPos;
 
     return Interpolator::linearInterp((double)sample1, (double)sample2, (double)delta);
