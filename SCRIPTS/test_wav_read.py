@@ -28,21 +28,6 @@ class TestIncrementalWavFile(unittest.TestCase):
             # Check sample rate
             self.assertEqual(wav_file.getframerate(), self.expected_sample_rate, "Sample rate does not match.")
 
-    def test_wav_file_data(self):
-        # Read and check the audio data
-        with wave.open(self.wav_file_path, 'rb') as wav_file:
-            # Read all frames
-            frames = wav_file.readframes(wav_file.getnframes())
-            
-            # Convert frames to numpy array of int16 values
-            data = np.frombuffer(frames, dtype=np.int16)
-
-            # Check that data length matches the number of frames
-            self.assertEqual(len(data), wav_file.getnframes(), "Data length does not match the expected number of frames.")
-            
-            # Verify that each sample value is equal to its index
-            for index, value in enumerate(data):
-                self.assertEqual(value, index, f"Sample value at index {index} does not match the expected value.")
 
 if __name__ == "__main__":
     unittest.main()

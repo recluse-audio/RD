@@ -3,6 +3,12 @@ import numpy as np
 from scipy.io import wavfile  # Correct import for wavfile
 import json
 
+# This is a general purpose set of functions with pytest coverage for generating .wav and .json files in the shape of waves or whatever
+# Still learning how to organize my python code.  Apologies.  
+# 
+# Workflow is this: Modify the variables and functions calls in the main function at the bottom.  
+# Maybe I'll make this accept args in the future, but for now not gonna
+
 def gen_sin_wave(cycles, frequency, sample_rate=44100, amplitude=0.5):
     duration = cycles / frequency
     t = np.linspace(0, duration, int(sample_rate * duration), endpoint=False)
