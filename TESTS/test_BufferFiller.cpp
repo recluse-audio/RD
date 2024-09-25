@@ -42,7 +42,7 @@ TEST_CASE("Can make an incremental buffer")
 
     BufferFiller::fillIncremental(buffer);
 
-        // checking values are normalized
+    // checking values are incremental
     for(int sampleIndex = 0; sampleIndex < numSamples; sampleIndex++)
     {
         int sample = (int)buffer.getSample(0, sampleIndex);
@@ -63,4 +63,82 @@ TEST_CASE("Can fill with alternating zeroes and ones")
     CHECK(buffer.getSample(0, 1) == 1.f);
     CHECK(buffer.getSample(0, 98) == 0.f);
     CHECK(buffer.getSample(0, 99) == 1.f);
+}
+
+
+//==========================
+TEST_CASE("Can load a wav file into a buffer")
+{
+    juce::AudioBuffer<float> buffer;
+
+    // Relative to Catch2 executable in BUILD folder
+    juce::String relativePath = "../SUBMODULES//RD/WAVEFORMS/incremental_wave.wav"; 
+
+    // Instantiate the juce::File using the relative path
+    juce::File file(relativePath);
+
+    // Check if the file exists
+    if (file.existsAsFile())
+    {
+        DBG("File exists at: " + file.getFullPathName());
+    }
+    else
+    {
+        DBG("File does not exist at: " + file.getFullPathName());
+    }
+
+    BufferFiller::loadFromWavFile(file.getFullPathName(), buffer);
+
+    // Test reading ability with incremental buffer
+    for(int ch = 0; ch < buffer.getNumChannels(); ch++)
+    {
+        for(int sampleIndex = 0; sampleIndex < buffer.getNumSamples(); sampleIndex++)
+        {
+            int sample = (int)buffer.getSample(ch, sampleIndex);
+            CHECK(sample == sampleIndex);
+        }
+    }
+
+}
+
+
+
+//==========================
+TEST_CASE("Can load a json file into a buffer")
+{
+    juce::AudioBuffer<float> buffer;
+
+    juce::File currentDir = juce::File::getCurrentWorkingDirectory();
+    DBG("Current Working Directory: " + currentDir.getFullPathName());
+
+    // Relative to Catch2 executable in BUILD folder
+    juce::String relativePath = "/SUBMODULES//RD/WAVEFORMS/incremental_wave.json"; 
+
+    // Instantiate the juce::File using the relative path
+    juce::File file(relativePath);
+
+    CHECK(file.existsAsFile());
+
+    // Check if the file exists
+    if (file.existsAsFile())
+    {
+        DBG("File exists at: " + file.getFullPathName());
+    }
+    else
+    {
+        DBG("File does not exist at: " + file.getFullPathName());
+    }
+
+    BufferFiller::loadFromJsonFile(file.getFullPathName(), buffer);
+
+    CHECK(buffer.getNumSamples() > 10);
+    // Test reading ability with incremental buffer
+    for(int ch = 0; ch < buffer.getNumChannels(); ch++)
+    {
+        for(int sampleIndex = 0; sampleIndex < buffer.getNumSamples(); sampleIndex++)
+        {
+            int sample = (int)buffer.getSample(ch, sampleIndex);
+            CHECK(sample == sampleIndex);
+        }
+    }
 }

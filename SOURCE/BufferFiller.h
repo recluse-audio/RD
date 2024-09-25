@@ -86,5 +86,66 @@ public:
         }
     }
 
+    //===========================================
+    /** Loads an AudioBuffer from a .wav file */
+    static bool loadFromWavFile(const juce::File& wavFile, juce::AudioBuffer<float>& buffer)
+    {
+        juce::AudioFormatManager formatManager;
+        formatManager.registerBasicFormats();
 
+        std::unique_ptr<juce::AudioFormatReader> reader(formatManager.createReaderFor(wavFile));
+        if (reader.get() == nullptr)
+        {
+            DBG("Failed to create reader for WAV file.");
+            return false;
+        }
+
+        buffer.setSize(static_cast<int>(reader->numChannels), static_cast<int>(reader->lengthInSamples));
+        reader->read(&buffer, 0, static_cast<int>(reader->lengthInSamples), 0, true, true);
+        DBG("Successfully loaded buffer from WAV file.");
+        return true;
+    }
+
+    //=================================
+    /** Loads an AudioBuffer from a .json file containing amplitude values */
+    static bool loadFromJsonFile(const juce::File& jsonFile, juce::AudioBuffer<float>& buffer)
+    {
+        juce::FileInputStream inputStream(jsonFile);
+        if (!inputStream.openedOk())
+        {
+            DBG("Failed to open JSON file.");
+            return false;
+        }
+
+        auto jsonParsed = juce::JSON::parse(inputStream);
+        if (jsonParsed.isVoid() || !jsonParsed.isArray())
+        {
+            DBG("Failed to parse JSON file or JSON is not an array.");
+            return false;
+        }
+
+        juce::Array<juce::var> jsonArray = *jsonParsed.getArray();
+        buffer.setSize(1, jsonArray.size()); // Assuming mono channel for JSON data
+        buffer.clear();
+
+        for (int i = 0; i < jsonArray.size(); ++i)
+        {
+            if (jsonArray[i].isDouble() || jsonArray[i].isInt())
+            {
+                buffer.setSample(0, i, static_cast<float>(jsonArray[i]));
+            }
+            else
+            {
+                DBG("Invalid amplitude value in JSON file at index " + juce::String(i));
+                return false;
+            }
+        }
+
+        DBG("Successfully loaded buffer from JSON file.");
+        return true;
+    }
 };
+
+
+
+

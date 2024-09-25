@@ -1,5 +1,6 @@
 #include "Window.h"
 #include "BufferFiller.h"
+#include "Interpolator.h"
 
 
 //===================
@@ -70,7 +71,8 @@ const float Window::getNextSample()
     if(mReadPos >= mBuffer.getNumSamples() || mReadPos < 0)
         return 0.f;
 
-    auto sample = mBuffer.getSample(0, mReadPos);
+
+    auto sample = _getInterpolatedSampleAtReadPos();
 
     mReadPos += mPhaseIncrement;
 
@@ -84,4 +86,17 @@ void Window::reset()
 {
     mReadPos = 0.0;
     mPhaseIncrement = 1.0;
+}
+
+
+//====================
+//
+float Window::_getInterpolatedSampleAtReadPos()
+{
+    float sample1 = mBuffer.getSample(0, (int)mReadPos);
+    float sample2 = mBuffer.getSample(0, (int)mReadPos+1);
+    float delta = mReadPos - (int)mReadPos;
+
+    return Interpolator::linearInterp((double)sample1, (double)sample2, (double)delta);
+
 }
