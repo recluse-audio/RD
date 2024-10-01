@@ -211,7 +211,8 @@ public:
             if (jsonArray[i].isDouble())
             {
                 double sample = jsonArray[i];
-                buffer.setSample(0, i, (float)sample);
+                for(int ch = 0; ch < buffer.getNumChannels(); ch++)
+                    buffer.setSample(ch, i, (float)sample);
             }
             else
             {

@@ -36,7 +36,7 @@ TEST_CASE("Difference function can be applied")
     juce::File jsonFile(jsonName);
     BufferWriter::writeToJson(ioBuffer, jsonFile);
 
-    auto diffJsonPath = BufferWriter::getTestOutputPath("failing_difference_buffer.json");
+    auto diffJsonPath = BufferWriter::getTestOutputPath("difference_buffer.json");
     juce::File diffJsonFile(diffJsonPath);
     BufferWriter::writeToJson(differenceBuffer, diffJsonFile);
 
@@ -49,21 +49,46 @@ TEST_CASE("Difference function can be applied")
     CHECK( differenceBuffer.getSample(0, sampleIndexOf180DegreePhase) == Catch::Approx((float)ioBufferSize).margin(1e-4f) );
 
 
+}
 
-    // // halfway through the period, aka diffBufferSize, this represents 180 through the phase of the sine wave.
-    // int quarterBufferSize = diffBufferSize / 2; 
-    // // This is 180 degrees out of phase, should be max difference
-    // float expectedMaxDifference = differenceBuffer.getSample(0, quarterBufferSize);
-    // // loop through differenceBuffer, make sure lag of 256 is max difference.  
-    // for(int diffIndex = 0; diffIndex < diffBufferSize; diffIndex++)
-    // {
-    //     // don't count the expected max.  No, '<=' won't work in the checks for the most hypothetical of situations
-    //     // what if some other index some how had exactly the same difference as the expectedMaxDifference and it shouldn't?
-    //     // this justifies the if() bailout method
-    //     if(diffIndex == quarterBufferSize)
-    //         continue;
 
-    //     float differenceToCompare = differenceBuffer.getSample(0, diffIndex);
-    //     CHECK(differenceToCompare < expectedMaxDifference);
-    // }
+//============================
+//
+TEST_CASE("Cumulative Mean Normalized Difference function can be applied")
+{
+    // int bufferSize = 2048; // keep power of two
+
+    // juce::AudioBuffer<float> ioBuffer(1, ioBufferSize);
+
+    // // passing cmndBufferSize as period to result in exactly two cycles
+    // BufferFiller::generateSineCycles(ioBuffer, bufferSize);
+
+    // // This buffer holds the calculated difference of the signal 
+    // // when compared with itself at different lag times aka 'tau'
+    // juce::AudioBuffer<float> differenceBuffer(1, diffBufferSize);
+    // differenceBuffer.clear();
+
+    // ////////////////////////
+    // // Finally the test at hand, yin_difference
+    // BufferMath::yin_difference(ioBuffer, differenceBuffer, diffBufferSize);
+
+
+
+    // auto jsonName = BufferWriter::getTestOutputPath("expect_2cycle_sine_wave.json");
+    // juce::File jsonFile(jsonName);
+    // BufferWriter::writeToJson(ioBuffer, jsonFile);
+
+    // auto cmndJsonPath = BufferWriter::getTestOutputPath("cmnd_buffer.json");
+    // juce::File diffJsonFile(diffJsonPath);
+    // BufferWriter::writeToJson(differenceBuffer, diffJsonFile);
+
+
+    // // minimal difference at half buffer size and 0 lag, aka perfectly in phase
+    // CHECK( differenceBuffer.getSample(0, 0) == Catch::Approx(0.0f).margin(1e-4f) );
+
+    // // this is the sample index 1/4 through difference buffer, aka pi radianos or 90 degree phase
+    // int sampleIndexOf180DegreePhase = (diffBufferSize / 2); // [255] in diffBuffer of size 512
+    // CHECK( differenceBuffer.getSample(0, sampleIndexOf180DegreePhase) == Catch::Approx((float)ioBufferSize).margin(1e-4f) );
+
+
 }

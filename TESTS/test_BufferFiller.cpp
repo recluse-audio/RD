@@ -108,45 +108,6 @@ TEST_CASE("Test generating sine wave cycles")
     }
 }
 
-//==========================
-TEST_CASE("Can load a wav file into a buffer")
-{
-    // juce::AudioBuffer<float> buffer;
-
-    // juce::File currentDir = juce::File::getCurrentWorkingDirectory();
-    // juce::String relativePath = "/SUBMODULES/RD/WAVEFORMS/incremental_wave.wav"; 
-
-    // juce::String fullPath = currentDir.getFullPathName() + relativePath;
-    // DBG(fullPath);
-
-
-    // // Instantiate the juce::File using the relative path
-    // juce::File file(fullPath);
-
-
-    // // Check if the file exists
-    // if (file.existsAsFile())
-    // {
-    //     DBG("File exists at: " + file.getFullPathName());
-    // }
-    // else
-    // {
-    //     DBG("File does not exist at: " + file.getFullPathName());
-    // }
-
-    // BufferFiller::loadFromWavFile(file.getFullPathName(), buffer);
-
-    // // Test reading ability with incremental buffer
-    // for(int ch = 0; ch < buffer.getNumChannels(); ch++)
-    // {
-    //     for(int sampleIndex = 0; sampleIndex < buffer.getNumSamples(); sampleIndex++)
-    //     {
-    //         float sample = buffer.getSample(ch, sampleIndex);
-    //         CHECK(sample == Catch::Approx((float)sampleIndex).epsilon(0.0001f));
-    //     }
-    // }
-
-}
 
 
 
@@ -191,4 +152,46 @@ TEST_CASE("Can load a json file into a buffer")
             CHECK(sample == sampleIndex);
         }
     }
+}
+
+
+
+//==========================
+TEST_CASE("Can load a wav file into a buffer")
+{
+    // juce::AudioBuffer<float> buffer;
+
+    // juce::File currentDir = juce::File::getCurrentWorkingDirectory();
+    // juce::String relativePath = "/SUBMODULES/RD/WAVEFORMS/incremental_wave.wav"; 
+
+    // juce::String fullPath = currentDir.getFullPathName() + relativePath;
+    // DBG(fullPath);
+
+
+    // // Instantiate the juce::File using the relative path
+    // juce::File file(fullPath);
+
+
+    // // Check if the file exists
+    // if (file.existsAsFile())
+    // {
+    //     DBG("File exists at: " + file.getFullPathName());
+    // }
+    // else
+    // {
+    //     DBG("File does not exist at: " + file.getFullPathName());
+    // }
+
+    // BufferFiller::loadFromWavFile(file.getFullPathName(), buffer);
+
+    // // Test reading ability with incremental buffer
+    // for(int ch = 0; ch < buffer.getNumChannels(); ch++)
+    // {
+    //     for(int sampleIndex = 0; sampleIndex < buffer.getNumSamples(); sampleIndex++)
+    //     {
+    //         float sample = buffer.getSample(ch, sampleIndex);
+    //         CHECK(sample == Catch::Approx((float)sampleIndex).epsilon(0.0001f));
+    //     }
+    // }
+
 }
