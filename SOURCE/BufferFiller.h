@@ -86,6 +86,83 @@ public:
         }
     }
 
+
+    //=======================
+    // 
+    static void generateSine(juce::AudioBuffer<float>& bufferToFill)
+	{
+		bufferToFill.clear();
+		auto numChannels = bufferToFill.getNumChannels();
+		float numSamples = bufferToFill.getNumSamples();
+		
+		auto writeBuff = bufferToFill.getArrayOfWritePointers();
+    	for(int sampleIndex = 0; sampleIndex < numSamples; sampleIndex++)
+		{
+            auto sample = std::sin( (sampleIndex * juce::MathConstants<float>::twoPi) / numSamples );
+            for(int channel = 0; channel < numChannels; channel++)
+            {
+				writeBuff[channel][sampleIndex] = sample;
+			}
+		}
+
+	}
+	
+    //=======================
+    // Fills buffer with multiple cycles of a sine wave. You figure out how many it will be at this period length
+    static void generateSineCycles(juce::AudioBuffer<float>& bufferToFill, int period)
+	{
+		bufferToFill.clear();
+		auto numChannels = bufferToFill.getNumChannels();
+		float numSamples = bufferToFill.getNumSamples();
+		
+		auto writeBuff = bufferToFill.getArrayOfWritePointers();
+
+        // this will iterate like the sampleIndex, except it will wrap around the period
+        // presumably some number other than 1, otherwise why bother with this function?  Use 'generateSine()'
+        int writePos = 0;
+    	for(int sampleIndex = 0; sampleIndex < numSamples; sampleIndex++)
+		{
+            float sample = std::sin( ((float)writePos * juce::MathConstants<float>::twoPi) / (float)period );
+
+            writePos++;
+            if(writePos >= period)
+                writePos = writePos - period;
+
+            for(int channel = 0; channel < numChannels; channel++)
+            {
+				writeBuff[channel][sampleIndex] = sample;
+			}
+		}
+
+	}
+
+    //=======================
+	// Generates a sine wave in a stereo buffer that has different phase in each channel
+	static void generateStereoSineWithPhaseVariance(juce::AudioBuffer<float>& bufferToFill)
+	{
+		bufferToFill.clear();
+		auto numChannels = bufferToFill.getNumChannels();
+		float numSamples = bufferToFill.getNumSamples();
+		
+		if(numChannels != 2)
+			return;
+		
+		auto writeBuff = bufferToFill.getArrayOfWritePointers();
+
+		for(int sampleIndex = 0; sampleIndex < numSamples; sampleIndex++)
+		{
+			auto leftSample = std::sin( (sampleIndex * juce::MathConstants<float>::twoPi) / numSamples );
+			auto rightSample = std::sin( (sampleIndex * juce::MathConstants<float>::twoPi * 2.f ) / numSamples );
+
+			writeBuff[0][sampleIndex] = leftSample;
+			writeBuff[1][sampleIndex] = rightSample;
+		}
+
+	}
+
+
+
+
     //===========================================
     /** Loads an AudioBuffer from a .wav file */
     static bool loadFromWavFile(const juce::File& wavFile, juce::AudioBuffer<float>& buffer)
@@ -133,8 +210,8 @@ public:
         {
             if (jsonArray[i].isDouble())
             {
-                float sample = jsonArray[i];
-                buffer.setSample(0, i, sample);
+                double sample = jsonArray[i];
+                buffer.setSample(0, i, (float)sample);
             }
             else
             {

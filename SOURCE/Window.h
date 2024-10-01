@@ -85,7 +85,7 @@ private:
 
     void _update();
 
-    // performs interpolation to handle float vals for mReadPos
+    // performs interpolation to handle double vals for mReadPos
     // doesn't increment mReadPos
     float _getInterpolatedSampleAtReadPos();
 };
