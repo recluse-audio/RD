@@ -117,33 +117,19 @@ TEST_CASE("Test generating sine wave cycles")
 TEST_CASE("Can load a json file into a buffer")
 {
     juce::AudioBuffer<float> buffer;
-
-
     juce::File currentDir = juce::File::getCurrentWorkingDirectory(); // this works when called from root dir of repo
-    juce::String relativePath = "/SUBMODULES//RD/WAVEFORMS/incremental_wave.json"; 
+    juce::String relativePath = "/SUBMODULES//RD/TESTS/GOLDEN/gold_incremental.json"; 
 
     juce::String fullPath = currentDir.getFullPathName() + relativePath;
-    DBG(fullPath);
-
-
     // Instantiate the juce::File using the relative path
     juce::File file(fullPath);
 
-
-    // Check if the file exists
-    if (file.existsAsFile())
-    {
-        DBG("File exists at: " + file.getFullPathName());
-    }
-    else
-    {
-        DBG("File does not exist at: " + file.getFullPathName());
-    }
-
-    BufferFiller::loadFromJsonFile(file.getFullPathName(), buffer);
+    BufferFiller::loadFromJsonFile(file, buffer);
 
     CHECK(buffer.getNumSamples() > 10);
-    // Test reading ability with incremental buffer
+
+
+    // Test reading ability with incremental buffer.  The int version of the stored sample value should match its sample index
     for(int ch = 0; ch < buffer.getNumChannels(); ch++)
     {
         for(int sampleIndex = 0; sampleIndex < buffer.getNumSamples(); sampleIndex++)

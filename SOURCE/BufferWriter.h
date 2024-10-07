@@ -22,7 +22,9 @@ class BufferWriter
 public:
 
     /**
-     * @brief Get the correct path to where files should be output to when testing
+     * @brief Get the correct path to where files should be output to when testing.
+     * 
+     * Not just helpful in automated testing, I've used this for debugging also
      * 
      * @param fileName 
      * @return juce::String, the proper filename for the resulting output file

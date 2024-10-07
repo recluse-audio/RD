@@ -25,6 +25,7 @@ class BufferMath
 public:
 
 
+    //================================================================
     /**
      * @brief Difference function, i.e. step 2 of YIN!
      * As I understand it, this tests 
@@ -65,18 +66,35 @@ public:
         }    
     }
 
+    //================================================================
     /**
      * @brief Performs the Cumulative Mean Normalized Difference function seen in yin #3
      * 
+     * The equation calls to sum 'j=1' to 'tau' for every difference index.  Instead we keep a runningSum to avoid re-addition of diff indices we previously applied
      * @param differenceBuffer // a buffer with each sample corresponding with a difference value at lag times equal to each index
      * @param normalizedDifferenceBuffer // 
      */
     static void yin_normalized_difference( juce::AudioBuffer<float>& differenceBuffer, juce::AudioBuffer<float>& normalizedDifferenceBuffer)
     {
+        normalizedDifferenceBuffer.setSample(0, 0, 1.f);
+        float runningSum = 0.f; // let's us cumulative sum of the differences up to each tau without recalculating
         for (int tau = 1; tau < differenceBuffer.getNumSamples(); tau++)
         {
-            auto difference = differenceBuffer.getSample(0, tau);
+            auto differenceValue = differenceBuffer.getSample(0, tau);
+            runningSum += differenceValue;
+            auto cmndValue = differenceValue * (tau / runningSum);
+            normalizedDifferenceBuffer.setSample(0, tau, cmndValue);
         }
+    }
+
+
+    /**
+     * @brief Returns the smallest value of tau that gives min of cumulative difference that is above the threshold.
+     * 
+     */
+    static int yin_absolute_threshold(juce::AudioBuffer<float>& normalizedDiffBuffer, float threshold)
+    {
+
     }
 
 private:

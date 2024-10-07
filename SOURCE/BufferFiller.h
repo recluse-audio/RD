@@ -10,6 +10,41 @@ class BufferFiller
 {
 public:
 
+    /**
+     * @brief You pass in the short name of the file you want in the SUBMODULES/RD/TESTS/GOLDEN/ directory 
+     * and this returns the full path with the correct CWD.
+     * 
+     * Seems silly, but I'm finding I use these alot for testing, but I am also test-driving
+     * 
+     * Not to mention, I'd like to build off of these "golden" files, so this convenience function will encourage that. 
+     * 
+     * @param fileName 
+     * @return juce::String, the proper filename for the resulting output file
+     * 
+     * This is kind of the inverse of 'getTestOutputPath()' in BufferWriter.  In many ways these two classes are mirrors
+     */
+    // 
+    static juce::String getGoldenFilePath(juce::String fileName)
+    {
+        // Define the directory and output file path
+        juce::File currentDir = juce::File::getCurrentWorkingDirectory(); // this works when called from root dir of repo
+        juce::String relativePath = "/SUBMODULES//RD/TESTS/GOLDEN/"; 
+
+        return currentDir.getFullPathName() + relativePath + fileName;
+    }
+
+    //======================
+    //
+    static void fillFromArray(juce::AudioBuffer<float>& buffer, const std::vector<float>& array)
+    {
+        buffer.setSize(1, static_cast<int>(array.size()));
+
+        // Fill the buffer with the input array values
+        for (int i = 0; i < array.size(); ++i)
+        {
+            buffer.setSample(0, i, array[i]);
+        }
+    }
 
     //////////////////////////
     // All indices set to 1.f
@@ -185,7 +220,7 @@ public:
 
     //=================================
     /** Loads an AudioBuffer from a .json file containing amplitude values */
-    static bool loadFromJsonFile(const juce::File& jsonFile, juce::AudioBuffer<float>& buffer)
+    static bool loadFromJsonFile(const juce::File& jsonFile, juce::AudioBuffer<float>& buffer, const juce::String& key = "Channel_0")
     {
         juce::FileInputStream inputStream(jsonFile);
         if (!inputStream.openedOk())
@@ -195,23 +230,42 @@ public:
         }
 
         auto jsonParsed = juce::JSON::parse(inputStream);
-        if (jsonParsed.isVoid() || !jsonParsed.isArray())
+        if (jsonParsed.isVoid() || !jsonParsed.isObject())
         {
             DBG("Failed to parse JSON file or JSON is not an array.");
             return false;
         }
 
-        juce::Array<juce::var> jsonArray = *jsonParsed.getArray();
+        auto keyID = juce::Identifier(key);
+        // Ensure the JSON root is an object and find the array by the given key
+        juce::var jsonObject = jsonParsed;
+        if (!jsonObject.hasProperty(keyID))
+        {
+            DBG("Key not found in JSON file: " + key);
+            return false;
+        }
+
+        // Check that the key contains an array
+        auto jsonValue = jsonObject[keyID];
+        if (!jsonValue.isArray())
+        {
+            DBG("Value associated with the key is not an array.");
+            return false;
+        }
+
+        // Get the array of values
+        juce::Array<juce::var> jsonArray = *jsonValue.getArray();
         int numSamples = jsonArray.size();
         buffer.setSize(1, numSamples); // Assuming mono channel for JSON data
         buffer.clear();
 
+        // Populate the buffer with data from the JSON array
         for (int i = 0; i < jsonArray.size(); ++i)
         {
             if (jsonArray[i].isDouble())
             {
                 double sample = jsonArray[i];
-                for(int ch = 0; ch < buffer.getNumChannels(); ch++)
+                for (int ch = 0; ch < buffer.getNumChannels(); ch++)
                     buffer.setSample(ch, i, (float)sample);
             }
             else
@@ -224,6 +278,7 @@ public:
         DBG("Successfully loaded buffer from JSON file.");
         return true;
     }
+
 };
 
 
