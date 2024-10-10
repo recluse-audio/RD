@@ -91,10 +91,64 @@ public:
     /**
      * @brief Returns the smallest value of tau that gives min of cumulative difference that is above the threshold.
      * 
+     * For the sake of matching the language of YIN paper as much as possible, please forgive me for abbreviating in ways I otherwise would not.
+     * God forgive this petty soul.
+     * 
+     * @param cmndBuffer:  The "Cumulative Mean Normalized Difference Buffer".  You should pass in the buffer that was filled doing 'yin_normalized_difference'
      */
-    static int yin_absolute_threshold(juce::AudioBuffer<float>& normalizedDiffBuffer, float threshold)
+    static int yin_absolute_threshold(juce::AudioBuffer<float>& cmndBuffer, float threshold)
     {
+        int cmndSize = cmndBuffer.getNumSamples();
 
+        /* Search through the vector of cumulative mean values, and look for ones that are over the threshold 
+        * The first two positions in vector are always 1 so start at the third (index 2) */
+        for (int tau = 2; tau < cmndSize ; tau++) 
+        {
+            // Tau is the sample index of the first normalized difference under threshold
+            if (cmndBuffer.getSample(0, tau) < threshold) 
+                return tau;
+        }
+
+        // Didn't find anything, Impl should handle 0 result
+        return 0;
+    }
+
+    /**
+     * @brief Parabolic interpolation of normalized difference at tau and its immediate neighbors.  
+     * This is in cases where the best tau is not a multiple of the period.
+     * 
+     * NOTE: I am passing in the RAW difference buffer, not cmndBuffer, per YIN paper recommendation
+     * This diverges from the 'pidato' implementation that first inspired the endeavor
+     */
+    static float yin_parabolic_interpolation(juce::AudioBuffer<float>& differenceBuffer, int tauEstimate)
+    {
+        if(tauEstimate <= 0)
+            return 0.f; // we aint doing negative estimates
+
+        int x0 = tauEstimate - 1;
+        int x2 = tauEstimate + 1;
+
+        // keep things in range
+        if(x0 < 0)
+            x0 = 0;
+        if(x2 > differenceBuffer.getNumSamples())
+            x2 = tauEstimate;
+
+        float y0 = differenceBuffer.getSample(0, x0);
+        float y1 = differenceBuffer.getSample(0, tauEstimate);
+        float y2 = differenceBuffer.getSample(0, x2);
+
+        // using common variables from quadratic function xmin = -b/2a;
+        float b = y2 - y0;
+        float a = (2 * y1) - y2 - y0;
+        if(a == 0.f) // don't divide by zero
+            return tauEstimate; 
+        
+        // this is not "-b" like you might guess, can't articulate why right now
+        return (float)tauEstimate + ( b / ( 2 * a));
+
+
+        // TODO: Write this interpolation in a math function abstracted from this
     }
 
 private:

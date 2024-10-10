@@ -26,4 +26,16 @@ public:
         return val1 + delta;
 
     }
+
+    /**
+     * @brief This does the parabolic interpolation between the three points
+     * 
+     * Taken from a YIN implementation, in which this is a way to find the x1 value (aka bestTau)
+     * when it might not be a 
+     * 
+    */
+   static double parabolicInterp(double y0, double y1, double y2)
+   {
+
+   }
 };

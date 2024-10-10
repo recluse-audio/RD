@@ -124,7 +124,7 @@ TEST_CASE("Can load a json file into a buffer")
     // Instantiate the juce::File using the relative path
     juce::File file(fullPath);
 
-    BufferFiller::loadFromJsonFile(file, buffer);
+    BufferFiller::loadFromJsonFile(file, buffer, "Incremental");
 
     CHECK(buffer.getNumSamples() > 10);
 

@@ -190,15 +190,45 @@ TEST_CASE("Can find shortest tau under threshold")
     juce::AudioBuffer<float> buffer(1, 10);
     buffer.clear();
 
+    float threshold = 0.11f;
     buffer.setSample(0, 0, 1.f);
-    buffer.setSample(0, 1, 0.1f);
-    buffer.setSample(0, 2, 0.1f);
+    buffer.setSample(0, 1, 1.f);
+    buffer.setSample(0, 2, 1.1f);
     buffer.setSample(0, 3, 0.2f);
-    buffer.setSample(0, 4, 0.1f);
+    buffer.setSample(0, 4, 0.1f); // first below threshold at time of writing
     buffer.setSample(0, 5, 0.1f);
     buffer.setSample(0, 6, 0.1f);
     buffer.setSample(0, 7, 0.1f);
     buffer.setSample(0, 8, 0.1f);
     buffer.setSample(0, 9, 0.1f);
 
+    int shortestTau = BufferMath::yin_absolute_threshold(buffer, threshold);
+    CHECK(shortestTau == 4);
+
+    // now test with strict threshold, nothing should pass and should return 0
+    threshold = 0.01f;
+    int noTau = BufferMath::yin_absolute_threshold(buffer, threshold);
+    CHECK(noTau == 0);
+
+}
+
+
+//=======================
+// This test will be more "by hand" involving known results calculated the old fashioned way
+TEST_CASE("Can interpolate parabolically with hypothetical tauEstimate(s)")
+{
+    juce::AudioBuffer<float> buffer(1, 10);
+    buffer.clear();
+
+    buffer.setSample(0, 0, 0.f);
+    buffer.setSample(0, 1, 0.01f);
+    buffer.setSample(0, 2, 0.02f); // first three don't really matter, just getting into range to do interpolation
+    buffer.setSample(0, 3, 0.3f); // y0 in interpolation
+    buffer.setSample(0, 4, 0.1f); // y1 in interpolation.  4 is tauEstimate
+    buffer.setSample(0, 5, 0.2f); // y2 in interpolation
+
+    float bestTau = BufferMath::yin_parabolic_interpolation(buffer, 4);
+    CHECK(bestTau == Catch::Approx(4.16667).margin(1e-4));
+    
+    
 }
