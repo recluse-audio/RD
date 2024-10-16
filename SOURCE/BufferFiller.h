@@ -63,6 +63,23 @@ public:
         }
     }
 
+    //=======================
+    // fills buffer with "value" argument
+    static void fillWithValue(juce::AudioBuffer<float>& bufferToFill, float value)
+    {
+        bufferToFill.clear();
+        auto writePtr = bufferToFill.getArrayOfWritePointers();
+
+        for(int sampleIndex = 0; sampleIndex < bufferToFill.getNumSamples(); sampleIndex++)
+        {
+            for(int ch = 0; ch < bufferToFill.getNumChannels(); ch++)
+            {
+                writePtr[ch][sampleIndex] = value;
+            }
+
+        }
+    }
+
     /////////////////////////
     // Indices alternate values 0.f and 1.f (starting on 0.f)
     static void fillAlternatingZeroOne(juce::AudioBuffer<float>& bufferToFill)

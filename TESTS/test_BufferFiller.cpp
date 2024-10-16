@@ -65,6 +65,21 @@ TEST_CASE("Can fill with alternating zeroes and ones")
     CHECK(buffer.getSample(0, 99) == 1.f);
 }
 
+
+//=========================
+TEST_CASE("Can fill with specified value")
+{
+    int numSamples = 100;
+    juce::AudioBuffer<float> buffer(1, numSamples);
+    float value = 2.f;
+    BufferFiller::fillWithValue(buffer, value);
+
+    CHECK(buffer.getSample(0, 0) == value);
+    CHECK(buffer.getSample(0, 1) == value);
+    CHECK(buffer.getSample(0, 98) == value);
+    CHECK(buffer.getSample(0, 99) == value);
+}
+
 //==========================
 TEST_CASE("Test generating sine wave")
 {

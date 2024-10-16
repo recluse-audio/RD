@@ -38,7 +38,8 @@ public:
      * 
      * @param ioBuffer // audio buffer that is being 
      * @param differenceBuffer // gets cleared, then filled with the difference values at lag times equal to each index
-     * @param max_lag // This better be less than or ideally equal to 1/2 your ioBuffer or you get nothing
+     * @param max_lag // This better be less than or ideally equal to 1/2 your ioBuffer or you get nothing.  
+     * The loop inside does " < " not " <= " so no need to do max_lag - 1.  You can pass in diffBuffer.getNumSamples() and not overrun 
      */
     // 
     static void yin_difference(juce::AudioBuffer<float>& ioBuffer, juce::AudioBuffer<float>& differenceBuffer, int max_lag)
@@ -48,22 +49,54 @@ public:
         // if( (max_lag + max_lag) != ioBuffer.getNumSamples() )
         //     return;
         
+        bool useVersionOne = true;
+
+        //=====================================
+        // VERSION ONE
+        if(useVersionOne)
+        {
+            auto buffRead = ioBuffer.getArrayOfReadPointers();
+            auto buffWrite = differenceBuffer.getArrayOfWritePointers();
+
+            // using 'tau' in reference to YIN paper
+            for(int tau = 0; tau < max_lag; tau++)
+            {
+                for(int i = 0; i < max_lag; i++)
+                {
+                    float delta = buffRead[0][i] - buffRead[0][i+tau];
+                    buffWrite[0][tau] += (delta * delta);
+                }
+            }   
+        }
 
 
-        // using 'tau' in reference to YIN paper
-        for(int tau = 0; tau < max_lag; tau++)
+
+        //=====================================
+        // VERSION TWO
+        if(!useVersionOne)
         {
             float difference = 0.f;
-            for(int i = 0; i < max_lag; i++)
+            auto buffRead = ioBuffer.getArrayOfReadPointers();
+            auto buffWrite = differenceBuffer.getArrayOfWritePointers();
+
+            // using 'tau' in reference to YIN paper
+            for(int tau = 0; tau < max_lag; tau++)
             {
-                float sample = ioBuffer.getSample(0, i);
-                float shiftedSample = ioBuffer.getSample(0, i+tau);
-                float delta = sample - shiftedSample;
-                difference += (delta * delta);
-            }
-            
-            differenceBuffer.setSample(0, tau, difference);
-        }    
+                difference = 0.f; // reset to 0 each time
+                for(int i = 0; i < max_lag; i++)
+                {
+                    // float delta = buffRead[0][i] - buffRead[0][i+tau];
+                    float delta = ioBuffer.getSample(0, i) - ioBuffer.getSample(0, i+tau);
+                    difference += (delta * delta);
+
+                }
+                
+                // buffWrite[0][tau] = difference;
+                differenceBuffer.setSample(0, tau, difference);
+            }  
+        }
+
+  
     }
 
     //================================================================
@@ -81,9 +114,19 @@ public:
         for (int tau = 1; tau < differenceBuffer.getNumSamples(); tau++)
         {
             auto differenceValue = differenceBuffer.getSample(0, tau);
+
             runningSum += differenceValue;
-            auto cmndValue = differenceValue * (tau / runningSum);
-            normalizedDifferenceBuffer.setSample(0, tau, cmndValue);
+
+            // pretty niche that this could ever happen, but perhaps with zeroes passed into difference function
+            if(runningSum <= 0.f)
+                normalizedDifferenceBuffer.setSample(0, tau, 1.f); // set to 1
+            else
+            {
+
+                auto cmndValue = differenceValue * (tau / runningSum);
+                normalizedDifferenceBuffer.setSample(0, tau, cmndValue);
+            }
+
         }
     }
 
@@ -113,6 +156,7 @@ public:
         return 0;
     }
 
+    //=========================================
     /**
      * @brief Parabolic interpolation of normalized difference at tau and its immediate neighbors.  
      * This is in cases where the best tau is not a multiple of the period.
@@ -131,7 +175,7 @@ public:
         // keep things in range
         if(x0 < 0)
             x0 = 0;
-        if(x2 > differenceBuffer.getNumSamples())
+        if(x2 >= differenceBuffer.getNumSamples())
             x2 = tauEstimate;
 
         float y0 = differenceBuffer.getSample(0, x0);

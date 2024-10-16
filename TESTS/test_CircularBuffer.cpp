@@ -2,6 +2,8 @@
 #include <catch2/catch_test_macros.hpp>
 #include <catch2/matchers/catch_matchers_string.hpp>
 #include "../SOURCE/BufferFiller.h"
+#include <catch2/catch_approx.hpp>  // For Approx in Catch2 v3+
+
 // README: While I normally don't use really short abbreviations, I may use "cb" to mean CircularBuffer in this file
 
 // friend class that retrieves private variables for testing purposes.
@@ -105,7 +107,19 @@ TEST_CASE("test writing chunks of ring buffer")
 		CHECK(cbTest.getSample(0, j) == sourceBuffer.getSample(0, j));
 }
 
+//=================================
+//
+TEST_CASE("test writing blocks of a single value to circular buffer")
+{
+    CircularBuffer cb;
+    CircularBufferTest cbTest(cb); 
+	cb.setSize(1, 5);
 
+    cb.pushValue(5, 1.111f);
+	
+	for(int j = 0; j < 5; j++)
+		CHECK(cbTest.getSample(0, j) == Catch::Approx(1.111f).margin(1e-4));
+}
 
 
 //===============================

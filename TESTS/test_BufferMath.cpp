@@ -141,46 +141,46 @@ TEST_CASE("Cumulative Mean Normalized Difference function can be applied")
     }
 
 
-    // These are calculated by hand.  Some predictable resulting values, albeit unrealistic
-    // CHECK(cmndBuffer.getSample(0, 0) == Catch::Approx(1.f).margin(1e-4));
-    // CHECK(cmndBuffer.getSample(0, 1) == Catch::Approx(1.f).margin(1e-4));
-    // CHECK(cmndBuffer.getSample(0, 2) == Catch::Approx(0.75f).margin(1e-4));
-    // CHECK(cmndBuffer.getSample(0, 3) == Catch::Approx(0.6f).margin(1e-4));
-    // CHECK(cmndBuffer.getSample(0, 4) == Catch::Approx(0.525f).margin(1e-4));
-    // CHECK(cmndBuffer.getSample(0, 5) == Catch::Approx(0.475f).margin(1e-4));
+}
 
-    // // passing cmndBufferSize as period to result in exactly two cycle
-    // BufferFiller::generateSineCycles(ioBuffer, bufferSize);
+/**
+ * @brief The value at [tau=1] in the differenceBuffer might be 0 at some points, like if passed a bunch of zeroes in buffers 
+ *  There clearly is not a period, but also we don't want to be creating black holes by dividing by the goose egg aka zero
+ * 
+ * This addresses a situation where multiple blank buffers are passed into the difference function, 
+ * hypothetically filled with all zeroes, b/c there is no difference at any index between two buffers full of zeroes
+ */
+TEST_CASE("Cumulative Mean Normalized Difference function doesn't divide by zero")
+{
+    // Example input signal using JUCE AudioBuffer
+    juce::AudioBuffer<float> diffBuffer(1, 6);
+    diffBuffer.clear();
 
-    // // This buffer holds the calculated difference of the signal 
-    // // when compared with itself at different lag times aka 'tau'
-    // juce::AudioBuffer<float> differenceBuffer(1, diffBufferSize);
-    // differenceBuffer.clear();
+     // trying to make the fact they are all set to zero absolute and obvious
+    diffBuffer.setSample(0, 0, 0.0f);    // tau = 0 (always 0)
+    diffBuffer.setSample(0, 1, 0.f);   // tau = 1
+    diffBuffer.setSample(0, 2, 0.f);   // tau = 2
+    diffBuffer.setSample(0, 3, 0.f);   // tau = 3
+    diffBuffer.setSample(0, 4, 0.f);   // tau = 4
+    diffBuffer.setSample(0, 5, 0.f);   // tau = 5
 
-    // ////////////////////////
-    // // Finally the test at hand, yin_difference
-    // BufferMath::yin_difference(ioBuffer, differenceBuffer, diffBufferSize);
+        // this will be filled shortly.  MUST MATCH diffBuffer!!!
+    juce::AudioBuffer<float> cmndBuffer(diffBuffer.getNumChannels(), diffBuffer.getNumSamples());
+    cmndBuffer.clear();
 
+    // perform the cumulative mean normalized difference function on the diffBuffer.
+    // fills the cmndBuffer with results
+    BufferMath::yin_normalized_difference(diffBuffer, cmndBuffer);
 
-
-    // auto jsonName = BufferWriter::getTestOutputPath("expect_2cycle_sine_wave.json");
-    // juce::File jsonFile(jsonName);
-    // BufferWriter::writeToJson(ioBuffer, jsonFile);
-
-    // auto cmndJsonPath = BufferWriter::getTestOutputPath("cmnd_buffer.json");
-    // juce::File diffJsonFile(diffJsonPath);
-    // BufferWriter::writeToJson(differenceBuffer, diffJsonFile);
-
-
-    // // minimal difference at half buffer size and 0 lag, aka perfectly in phase
-    // CHECK( differenceBuffer.getSample(0, 0) == Catch::Approx(0.0f).margin(1e-4f) );
-
-    // // this is the sample index 1/4 through difference buffer, aka pi radianos or 90 degree phase
-    // int sampleIndexOf180DegreePhase = (diffBufferSize / 2); // [255] in diffBuffer of size 512
-    // CHECK( differenceBuffer.getSample(0, sampleIndexOf180DegreePhase) == Catch::Approx((float)ioBufferSize).margin(1e-4f) );
-
+    // this checks to make sure that the if(runningSum) <= 0 then we by default set the cmnd to 1
+    CHECK(cmndBuffer.getSample(0, 0) == Catch::Approx(1.f).margin(1e-4));
+    CHECK(cmndBuffer.getSample(0, 2) == Catch::Approx(1.f).margin(1e-4));
+    CHECK(cmndBuffer.getSample(0, 3) == Catch::Approx(1.f).margin(1e-4));
+    CHECK(cmndBuffer.getSample(0, 4) == Catch::Approx(1.f).margin(1e-4));
+    CHECK(cmndBuffer.getSample(0, 5) == Catch::Approx(1.f).margin(1e-4));
 
 }
+
 
 
 //=======================

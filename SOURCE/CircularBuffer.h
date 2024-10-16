@@ -9,10 +9,15 @@ public:
     ~CircularBuffer();
 
     // resizes when samplerate changes to make sure it is always sufficiently long enough
-    void setSize(int numChannels, int numSamples);
+    // child classes may override this so they can resize other buffers
+    virtual void setSize(int numChannels, int numSamples);
 
     // writes buffer to private mCircularBuffer.  Except if the channel nums don't align, in which case it returns false.  Get that in order first
     bool pushBuffer(juce::AudioBuffer<float>& buffer);
+
+    // writes a single value to a range in private mCircularBuffer.  Uses mWritePos and increments it
+    // TODO: should this allow channel arg?
+    bool pushValue(int length, float value);
 
     // reads buffer from private mCircularBuffer.  Except if the channel nums don't align, in which case it returns false.  Get that in order first
     // unlike readRange, this will update the local mReadPos
@@ -35,6 +40,8 @@ private:
     // Takes a reference to an incoming buffer, and writes it's audio data to the circular buffer
     // returns false if the channels aren't equal
     bool _writeToCircularBuffer(juce::AudioBuffer<float>& buffer);
+
+    bool _writeToCircularBuffer(int length, float value);
 
     bool _readFromCircularBuffer(juce::AudioBuffer<float>& buffer, int startingReadIndex);
 
