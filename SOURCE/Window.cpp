@@ -65,6 +65,20 @@ void Window::setPeriod(int numSamples)
 
 //=================
 //
+void Window::setReadPos(double readPos)
+{
+    mReadPos = readPos;
+}
+
+//=================
+//
+float Window::getAtReadPos(double readPos)
+{
+    
+}
+
+//=================
+//
 const float Window::getNextSample()
 {
     // Either you've read to the end of the window, or went backwards... uh oh

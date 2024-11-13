@@ -55,6 +55,46 @@ bool CircularBuffer::readRange(juce::AudioBuffer<float>& buffer, int startingRea
     return success;
 }
 
+//=======================
+//
+// juce::dsp::AudioBlock<float> CircularBuffer::getAudioBlock(juce::dsp::AudioBlock<float>& blockOne, 
+//                                                             juce::dsp::AudioBlock<float>& blockTwo,
+//                                                              int readPos, int length)
+// {
+//     juce::dsp::AudioBlock<float> audioBlock(mCircularBuffer);
+
+//     bool blockWillWrap = (readPos + length) >= (mCircularBuffer.getNumSamples() - 1) ? true : false;
+    
+//     if(blockWillWrap)
+//     {
+//         // how far we can read from before we need to wrap the readIndex.  '-1' b/c we start at [0]
+//         int blockOneLength = mCircularBuffer.getNumSamples() - 1 - readPos;
+//         // length left after blockOneLength.  Need '-1' ?
+//         int blockTwoLength = length - blockOneLength;
+
+//         auto subBlockOne = audioBlock.getSubBlock((size_t)readPos, (size_t)blockOneLength);
+//         auto subBlockTwo = audioBlock.getSubBlock(0, (size_t)blockTwoLength);
+
+//         // add sub-blocks to outblock
+//         destinationBlock.getSubBlock(0, (size_t)blockOneLength).copyFrom(subBlockOne);
+//         destinationBlock.getSubBlock((size_t)blockOneLength, blockTwoLength).copyFrom(subBlockTwo);
+//     }
+//     else
+//     {
+//         destinationBlock = audioBlock.getSubBlock((size_t)readPos, (size_t)length);
+//     }
+
+//     return destinationBlock;
+// }
+
+//=======================
+//
+juce::dsp::AudioBlock<float> CircularBuffer::popAudioBlock(int length)
+{
+    juce::dsp::AudioBlock<float> audioBlock(mCircularBuffer);
+    auto subBlock = audioBlock.getSubBlock((size_t)mReadPos, (size_t)length);
+}
+
 
 //=======================
 //

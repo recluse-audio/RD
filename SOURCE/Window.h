@@ -65,6 +65,10 @@ public:
     // returns the sample at the internally incremented mReadPos
     const float getNextSample();
 
+    void setReadPos(double readPos);
+
+    float getAtReadPos(double readPos);
+
     // Sets mReadPos to 0, and sets mPhaseIncrement to 1.0
     void reset();
 

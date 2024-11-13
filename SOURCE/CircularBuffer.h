@@ -28,6 +28,14 @@ public:
     // Does not increment local mReadPos.  This could be useful for a multi-tap delay or PSOLA (hopefully!!!)
     bool readRange(juce::AudioBuffer<float>& buffer, int startingReadIndex);
 
+    // Gets a chunk of the Circular Buffer without changing internal readPos
+    // blockTwo exists for wrapping, and will be empty if we aren't wrapping
+    juce::dsp::AudioBlock<float> getAudioBlock(juce::dsp::AudioBlock<float>& blockOne, 
+                                                juce::dsp::AudioBlock<float>& blockTwo,
+                                                int readPos, int length);
+
+    // increments read position
+    juce::dsp::AudioBlock<float> popAudioBlock(int length);
 
 private:
     friend class CircularBufferTest; // see test_CircularBuffer.cpp

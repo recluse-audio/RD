@@ -22,6 +22,7 @@ public:
     int getWritePos() { return mCircularBuffer.mWritePos; }
     int getReadPos() { return mCircularBuffer.mReadPos; }
     float getSample(int ch, int sampleIndex) { return mCircularBuffer.mCircularBuffer.getSample(ch, sampleIndex); }
+    juce::AudioBuffer<float>& getCircularBuffer() { return mCircularBuffer.mCircularBuffer; }
 
 private:
     CircularBuffer& mCircularBuffer;
@@ -168,3 +169,77 @@ TEST_CASE("Can read from buffer.")
 
 
 
+//===============================
+//
+TEST_CASE("Can read from buffer and return juce::AudioBlock.")
+{
+    // int bufferSize = 4096;
+    // int blockSize = 1024;
+
+    // CircularBuffer cb;
+    // cb.setSize(1, 4096);
+
+    // CircularBufferTest cbTest(cb); 
+
+    // // fill underlying juce::AudioBuffer incrementally so we can easily test read position
+    // BufferFiller::fillIncremental(cbTest.getCircularBuffer());
+
+
+    // auto testBlock_1 = cb.getAudioBlock(0, blockSize);
+    // for(int sampleIndex = 0; sampleIndex < blockSize; sampleIndex++)
+    // {
+    //     int testSample = testBlock_1.getSample(0, sampleIndex);
+    //     CHECK(testSample == sampleIndex);
+
+    // }
+
+    // /**
+    //  * @brief This section tests the AudioBlock retrieval when the
+    //  * block will wrap in the circular buffer
+    //  * 
+    //  * Doing it so 1/2 the readBlock is before wrapping, 1/2 after
+    //  */
+    // int halfBlockSize = blockSize / 2;
+    // int readStartIndex = bufferSize - halfBlockSize;
+    // auto testBlock_2 = cb.getAudioBlock(readStartIndex, blockSize);
+    // // this iterates right up to the last index before wrapping
+    // for(int sampleIndex = readStartIndex; sampleIndex < bufferSize; sampleIndex++ )
+    // {
+    //     int testSample = testBlock_2.getSample(0, sampleIndex);
+    //     CHECK(testSample == sampleIndex);
+    // }
+
+
+
+
+
+
+
+
+
+
+    // // going to read and pop from the circular buffer into this
+    // juce::AudioBuffer<float> readBuffer(2, testBufferSize);
+    // readBuffer.clear();
+
+
+
+    // read a buffer starting at 0 and reading the length of the input buffer
+    // cb.readRange(readBuffer, 0);
+    // for(int sampleIndex = 0; sampleIndex < readBuffer.getNumSamples(); sampleIndex++)
+    // {
+    //     CHECK(readBuffer.getSample(0, sampleIndex) == 1.f);
+    //     CHECK(cbTest.getReadPos() == 0); // read range should not update internal mReadPos, unlike popBuffer();
+    // }
+    // readBuffer.clear();
+
+    // // pop a buffer starting at 0 and reading the length of the input buffer.  should update readPos as well
+    // cb.popBuffer(readBuffer);
+    // for(int sampleIndex = 0; sampleIndex < readBuffer.getNumSamples(); sampleIndex++)
+    // {
+    //     CHECK(readBuffer.getSample(0, sampleIndex) == 1.f);
+    //     CHECK(cbTest.getReadPos() == testBufferSize);
+    // }
+
+    
+}
