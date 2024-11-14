@@ -30,10 +30,10 @@ bool CircularBuffer::pushBuffer(juce::AudioBuffer<float>& buffer)
 }
 
 //=======================
-bool CircularBuffer::pushValue(int length, float value)
+bool CircularBuffer::pushValue(int length, float value, int ch, bool incrementWritePos)
 {
     bool success = false;
-    success = _writeToCircularBuffer(length, value);
+    success = _writeToCircularBuffer(length, value, ch, incrementWritePos);
     return success;
 }
 
@@ -125,7 +125,7 @@ bool CircularBuffer::_writeToCircularBuffer(juce::AudioBuffer<float>& buffer)
 
 //=======================
 //
-bool CircularBuffer::_writeToCircularBuffer(int length, float value)
+bool CircularBuffer::_writeToCircularBuffer(int length, float value, int channel, bool incrementWritePos)
 {
     // attempting to write longer than the circular buffer won't blow up, but is pointless
     // if(length >= mCircularBuffer.getNumSamples())
@@ -133,12 +133,11 @@ bool CircularBuffer::_writeToCircularBuffer(int length, float value)
 
     for(int sampleIndex = 0; sampleIndex < length; sampleIndex++)
     {
-        for(int ch = 0; ch < mCircularBuffer.getNumChannels(); ch++)
-        {
-            mCircularBuffer.setSample(ch, mWritePos, value);
-        }
+        mCircularBuffer.setSample(channel, mWritePos, value);
 
-        mWritePos++;
+        if(incrementWritePos)
+            mWritePos++;
+
         if(mWritePos >= mCircularBuffer.getNumSamples())
             mWritePos = mWritePos - mCircularBuffer.getNumSamples();
     }

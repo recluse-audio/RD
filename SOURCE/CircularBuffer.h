@@ -15,9 +15,10 @@ public:
     // writes buffer to private mCircularBuffer.  Except if the channel nums don't align, in which case it returns false.  Get that in order first
     bool pushBuffer(juce::AudioBuffer<float>& buffer);
 
-    // writes a single value to a range in private mCircularBuffer.  Uses mWritePos and increments it
+    // writes a single value to a range in private mCircularBuffer.  Uses mWritePos and increments it optionally
+    // you'd want to have this control of the write pos to iterate correctly in all sorts of channel
     // TODO: should this allow channel arg?
-    bool pushValue(int length, float value);
+    bool pushValue(int length, float value, int ch=0, bool increment=true);
 
     // reads buffer from private mCircularBuffer.  Except if the channel nums don't align, in which case it returns false.  Get that in order first
     // unlike readRange, this will update the local mReadPos
@@ -49,7 +50,7 @@ private:
     // returns false if the channels aren't equal
     bool _writeToCircularBuffer(juce::AudioBuffer<float>& buffer);
 
-    bool _writeToCircularBuffer(int length, float value);
+    bool _writeToCircularBuffer(int length, float value, int channel=0, bool incrementWritePos=true);
 
     bool _readFromCircularBuffer(juce::AudioBuffer<float>& buffer, int startingReadIndex);
 
