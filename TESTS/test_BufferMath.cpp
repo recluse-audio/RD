@@ -7,6 +7,28 @@
 // Being Tested
 #include "../SOURCE/BufferMath.h"
 
+//============
+TEST_CASE("Max Value Index")
+{
+    juce::AudioBuffer<float> testBuffer(1, 32);
+    BufferFiller::fillWithValue(testBuffer, 0.f);
+    testBuffer.setSample(0, 4, 1.f); // simulate a peak sample at index 4
+    testBuffer.setSample(0, 20, 1.1f); // simulate a peak sample at index 17
+
+    juce::dsp::AudioBlock<float> testBlock(testBuffer);
+    auto subBlock1 = testBlock.getSubBlock(0, 16);
+    auto subBlock2 = testBlock.getSubBlock(16, 16);
+
+    int maxIndex1 = BufferMath::getMaxSampleIndex(subBlock1, 0);
+    int maxIndex2 = BufferMath::getMaxSampleIndex(subBlock2, 0);
+
+    CHECK(maxIndex1 == 4);
+    CHECK(maxIndex2 == 4);
+
+
+}
+
+//
 TEST_CASE("Yin By Hand")
 {
     //======================

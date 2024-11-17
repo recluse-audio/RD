@@ -24,6 +24,28 @@ class BufferMath
 {
 public:
 
+    //================================================================
+    /**
+     * @brief Returns the index of the highest absolute value sample
+     * 
+     */
+    //
+    static int getMaxSampleIndex(juce::dsp::AudioBlock<float> audioBlock, int channel)
+    {
+        auto maxSampleValue = 0.f;
+        auto maxSampleIndex = 0;
+
+        for(int sampleIndex = 0; sampleIndex < audioBlock.getNumSamples(); sampleIndex++)
+        {
+            auto sample = std::abs(audioBlock.getSample(channel, sampleIndex));
+            if(sample > maxSampleValue)
+            {
+                maxSampleValue = sample;
+                maxSampleIndex = sampleIndex;
+            }
+        }
+        return maxSampleIndex;
+    }
 
     //================================================================
     /**
