@@ -12,6 +12,11 @@ public:
     // child classes may override this so they can resize other buffers
     virtual void setSize(int numChannels, int numSamples);
 
+    const int getNumSamples();
+    const int getNumChannels();
+    const int getWritePos();
+
+
     // writes buffer to private mCircularBuffer.  Except if the channel nums don't align, in which case it returns false.  Get that in order first
     bool pushBuffer(juce::AudioBuffer<float>& buffer);
 
@@ -37,6 +42,7 @@ public:
 
     // increments read position
     juce::dsp::AudioBlock<float> popAudioBlock(int length);
+
 
 private:
     friend class CircularBufferTest; // see test_CircularBuffer.cpp

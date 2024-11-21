@@ -22,6 +22,23 @@ void CircularBuffer::setSize(int numChannels, int numSamples)
 }
 
 //=======================
+const int CircularBuffer::getNumSamples()
+{
+    return mCircularBuffer.getNumSamples();
+}
+
+//=======================
+const int CircularBuffer::getNumChannels()
+{
+    return mCircularBuffer.getNumChannels();
+}
+
+//=======================
+const int CircularBuffer::getWritePos()
+{
+    return mWritePos;
+}
+//=======================
 bool CircularBuffer::pushBuffer(juce::AudioBuffer<float>& buffer)
 {
     bool success = false;

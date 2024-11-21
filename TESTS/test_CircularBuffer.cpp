@@ -39,6 +39,12 @@ TEST_CASE("Can set size of CircularBuffer")
 
     cb.setSize(numChan, numSamples);
 
+    int returnedNumSamples = cb.getNumSamples();
+    int returnedNumChannels = cb.getNumChannels();
+
+    CHECK(returnedNumSamples == numSamples);
+    CHECK(returnedNumChannels == numChan);
+
     CHECK(cbTest.getNumSamples() == numSamples);
     CHECK(cbTest.getNumChannels() ==  numChan);
     CHECK(cbTest.getWritePos() == 0); // writePos should reset to 0 after resizing, which clears the whole buffer
@@ -82,7 +88,7 @@ TEST_CASE("Test writing and wrapping in ring buffer ")
 
 		juce::AudioBuffer<float> wrapBuffer(1, 5);
 		cb.pushBuffer(wrapBuffer);
-		CHECK(cbTest.getWritePos() == 2);
+		CHECK(cb.getWritePos() == 2);
 
 	}
 
@@ -167,7 +173,32 @@ TEST_CASE("Can read from buffer.")
     
 }
 
+TEST_CASE("Write Sine Cycles")
+{
+    CircularBuffer cb;
+    CircularBufferTest cbTest(cb); 
 
+    int circularBufferSize = 1024;
+    cb.setSize(2, circularBufferSize);
+
+    int periodLength = 128;
+    int numChannels = 2;
+    juce::AudioBuffer<float> sineBuffer(numChannels, periodLength);
+    BufferFiller::generateSineCycles(sineBuffer, periodLength);
+
+    // Sine cycle should fill 128 indices.
+    // [0]-[127]
+    for(int i = 0; i < 10; i++)
+    {
+        int expectedWritePos = (i+1) * periodLength;
+        expectedWritePos %= circularBufferSize;
+        cb.pushBuffer(sineBuffer);
+        CHECK(cb.getWritePos() == expectedWritePos);
+
+
+    }
+
+}
 
 //===============================
 //
