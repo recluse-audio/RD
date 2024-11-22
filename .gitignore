@@ -1,0 +1,2 @@
+# gitignore for RD
+TESTS/OUTPUT/*
