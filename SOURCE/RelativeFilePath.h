@@ -25,4 +25,10 @@ public:
         return file;
     } 
 
+    static juce::File getGoldenFileFromProjectRoot(juce::StringRef goldenFileName)
+    {
+        juce::String goldenPath = "/SUBMODULES/RD/TESTS/GOLDEN/" + goldenFileName;
+
+        return RelativeFilePath::getFileFromProjectRoot(goldenPath);
+    }
 };

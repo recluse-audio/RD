@@ -26,3 +26,25 @@ TEST_CASE("Can get file relative to project root directory.")
         }
     }
 }
+
+TEST_CASE("Can get golden file directly.")
+{
+    juce::String relativePath("gold_incremental.json");
+    auto file = RelativeFilePath::getGoldenFileFromProjectRoot(relativePath);
+
+    juce::AudioBuffer<float> buffer(1, 128);
+    BufferFiller::loadFromJsonFile(file, buffer, "Incremental");
+
+    CHECK(buffer.getNumSamples() > 10);
+
+
+    // Test reading ability with incremental buffer.  The int version of the stored sample value should match its sample index
+    for(int ch = 0; ch < buffer.getNumChannels(); ch++)
+    {
+        for(int sampleIndex = 0; sampleIndex < buffer.getNumSamples(); sampleIndex++)
+        {
+            int sample = (int)buffer.getSample(ch, sampleIndex);
+            CHECK(sample == sampleIndex);
+        }
+    }
+}
