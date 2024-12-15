@@ -25,10 +25,19 @@ public:
         return file;
     } 
 
+    //
     static juce::File getGoldenFileFromProjectRoot(juce::StringRef goldenFileName)
     {
         juce::String goldenPath = "/SUBMODULES/RD/TESTS/GOLDEN/" + goldenFileName;
 
         return RelativeFilePath::getFileFromProjectRoot(goldenPath);
+    }
+
+    //
+    static juce::File getOutputFileFromProjectRoot(juce::StringRef outputFileName)
+    {
+        juce::String outputPath = "/SUBMODULES/RD/TESTS/OUTPUT/" + outputFileName;
+
+        return RelativeFilePath::getFileFromProjectRoot(outputPath);
     }
 };

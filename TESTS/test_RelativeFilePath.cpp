@@ -48,3 +48,12 @@ TEST_CASE("Can get golden file directly.")
         }
     }
 }
+
+TEST_CASE("Can create empty output file")
+{
+    juce::String outputPath = "Test_Output.txt";
+    auto file = RelativeFilePath::getOutputFileFromProjectRoot(outputPath);
+    file.appendText("text for testing");
+    CHECK(file.existsAsFile());
+
+}

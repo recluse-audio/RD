@@ -21,6 +21,7 @@ public:
     bool read(juce::AudioBuffer<float>& readBuffer);
     bool write(juce::AudioBuffer<float>& writeBuffer);
     
+    const int getNumReadSamples();
 private:
     // juce::File& mInputFile;
     // juce::File& mOutputFile;
@@ -29,7 +30,7 @@ private:
     std::unique_ptr<juce::AudioFormatWriter> mWriter;
     std::unique_ptr<juce::FileOutputStream> mOutputStream;
 
-    juce::int64 mTotalSamples;
-    juce::int64 mSamplesRead;
+    juce::int64 mTotalSamples = 0;
+    juce::int64 mSamplesRead = 0;
 
 };
