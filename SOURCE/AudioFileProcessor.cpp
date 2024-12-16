@@ -24,7 +24,7 @@ bool AudioFileProcessor::init(juce::File& inputFile, juce::File& outputFile)
     if (mReader == nullptr)
         return false;
 
-    //
+    // update input file data
     mTotalSamples = mReader->lengthInSamples;
 
     // Create output file stream
@@ -49,7 +49,7 @@ bool AudioFileProcessor::init(juce::File& inputFile, juce::File& outputFile)
 //======================
 void AudioFileProcessor::reset()
 {
-    mOutputStream.release();
+    mOutputStream.release(); // MUST release before writer is reset
     mWriter.reset();
     mReader.reset();
     mTotalSamples = 0;
@@ -57,13 +57,13 @@ void AudioFileProcessor::reset()
 }
 
 //======================
-bool AudioFileProcessor::read(juce::AudioBuffer<float>& readBuffer)
+bool AudioFileProcessor::read(juce::AudioBuffer<float>& readBuffer, int startPos, int length)
 {
     
 }
 
 //======================
-bool AudioFileProcessor::write(juce::AudioBuffer<float>& writeBuffer)
+bool AudioFileProcessor::write(juce::AudioBuffer<float>& writeBuffer, int startPos, int length)
 {
     
 }
