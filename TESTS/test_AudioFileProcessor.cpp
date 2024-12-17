@@ -5,6 +5,9 @@
 #include "../SOURCE/AudioFileProcessor.h"
 #include "../SOURCE/RelativeFilePath.h"
 #include "../SOURCE/BufferFiller.h"
+#include "../SOURCE/BufferHelper.h"
+
+static const int kGoldenNumSamples = 1531887;
 
 TEST_CASE("Can read/write .wav without processing.")
 {
@@ -17,12 +20,10 @@ TEST_CASE("Can read/write .wav without processing.")
     CHECK(success);
 
     // Pre-known value for golden file "Somewhere_Mono_441k.wav"
-    // so we don't have to do a whole .wav file reader instantiation and such.
-    int inputFileNumSamples = 1531887;
     int numChannels = 1; // mono per name of golden file
 
     // AudioFileProcessor should update internal mTotalSamples correctly
-    CHECK(fileProcessor.getNumReadSamples() == inputFileNumSamples);
+    CHECK(fileProcessor.getNumReadSamples() == kGoldenNumSamples);
 
     int numSamples = 512;
     // buffer to read from inputFile and write to outputFile
@@ -36,20 +37,9 @@ TEST_CASE("Can read/write .wav without processing.")
     auto goldenJsonFile = RelativeFilePath::getGoldenFileFromProjectRoot("GOLDEN_Somewhere_Mono_441k_Two_Second_Mark.json");
     BufferFiller::loadFromJsonFile(goldenJsonFile, goldenBuffer);
 
-    for(int sampleIndex = 0; sampleIndex < numSamples; sampleIndex++)
-    {
+    // check reading a section of golden wav using read() method agains golden json of chunk of 512 samples in wav file
+    bool matchesGolden = BufferHelper::buffersAreIdentical(buffer, goldenBuffer);
+    CHECK(matchesGolden);
 
-        for(int ch = 0; ch < numChannels; ch++)
-        {
-            auto sampleToCheck = buffer.getSample(ch, sampleIndex);
-            auto goldenSample = goldenBuffer.getSample(ch, sampleIndex);
-            // CHECK(sampleToCheck != 0.f);
-            // CHECK(goldenSample != 0.f);
-            CHECK(sampleToCheck == goldenSample); // TODO: this is a temp test, sometimes it could be 0
-        }
-    }
-
-    // // do processing on buffer here
-    // fileProcessor.write(buffer);
 
 }

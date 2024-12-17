@@ -71,7 +71,7 @@ bool AudioFileProcessor::read(juce::AudioBuffer<float>& readBuffer, int startInF
 //======================
 bool AudioFileProcessor::write(juce::AudioBuffer<float>& writeBuffer, int startPos)
 {
-    
+    mWriter->writeFromAudioSampleBuffer(writeBuffer, startPos, writeBuffer.getNumSamples());
 }
 
 //=======================
