@@ -35,10 +35,10 @@ public:
     // I could do this generically to allow reading of a range from whatever file, 
     // and we'd just instantiate temp reader/writer/stream
 
-    bool read(juce::AudioBuffer<float>& readBuffer, int startPos, int length);
+    bool read(juce::AudioBuffer<float>& readBuffer, int startInFile);
 
 
-    bool write(juce::AudioBuffer<float>& writeBuffer, int startPos, int length);
+    bool write(juce::AudioBuffer<float>& writeBuffer, int startPos);
     
     const int getNumReadSamples();
 private:

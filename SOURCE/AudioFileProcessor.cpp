@@ -57,13 +57,19 @@ void AudioFileProcessor::reset()
 }
 
 //======================
-bool AudioFileProcessor::read(juce::AudioBuffer<float>& readBuffer, int startPos, int length)
+bool AudioFileProcessor::read(juce::AudioBuffer<float>& readBuffer, int startInFile)
 {
-    
+    // Read data into the output buffer
+    int numChannels = readBuffer.getNumChannels();
+    int numSamples = readBuffer.getNumSamples();
+
+    bool useRightChannel = numChannels >= 2 ? true : false;
+
+    mReader->read(&readBuffer, 0, numSamples, startInFile, true, useRightChannel);
 }
 
 //======================
-bool AudioFileProcessor::write(juce::AudioBuffer<float>& writeBuffer, int startPos, int length)
+bool AudioFileProcessor::write(juce::AudioBuffer<float>& writeBuffer, int startPos)
 {
     
 }
