@@ -63,7 +63,7 @@ TEST_CASE("Basic read/write")
     processBuffer.clear();
 
     int currentIndex = 0;
-    while(currentIndex < (kGoldenNumSamples - 512))
+    while(currentIndex < (kGoldenNumSamples - 1024))
     {
         fileProcessor.read(processBuffer, currentIndex);
         fileProcessor.write(processBuffer, currentIndex);

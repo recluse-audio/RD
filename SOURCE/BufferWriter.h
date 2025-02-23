@@ -78,7 +78,10 @@ public:
         outputFile.replaceWithText(jsonString);
     }
 
+    static void writeToCSV(juce::AudioBuffer<float>& buffer, const juce::File& outputFile)
+    {
 
+    }
 
 private:
 

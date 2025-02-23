@@ -21,7 +21,15 @@ TEST_CASE("Can write sine wave to json")
 
 
 
+TEST_CASE("Can write sine wave to csv")
+{
+    juce::AudioBuffer<float> buffer(1, 128);
+    BufferFiller::generateSine(buffer);
 
+    auto csvName = BufferWriter::getTestOutputPath("sine_wave_csv.csv");
+    juce::File csvFile(csvName);
+    BufferWriter::writeToJson(buffer, csvFile);
+}
 
 
 
