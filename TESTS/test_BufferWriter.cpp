@@ -4,6 +4,9 @@
 #include "../SOURCE/BufferFiller.h"
 
 #include "../SOURCE/BufferWriter.h"
+#include "../SOURCE/BufferHelper.h"
+
+#include "../SOURCE/RelativeFilePath.h"
 
 
 
@@ -47,4 +50,34 @@ TEST_CASE("Can write buffer to json")
     BufferWriter::writeToJson(buffer, jsonFile);
 }
 
+
+
+TEST_CASE("Can write buffer to csv")
+{
+    // See test_BufferFiller.cpp for more extensive coverage of this as I test
+    // filling a buffer from a csv file.
+    juce::AudioBuffer<float> buffer(2, 128);
+    BufferFiller::fillIncremental(buffer);
+
+    auto testOutputPath = RelativeFilePath::getTestOutputPath("OUTPUT_mono_incremental_buffer.csv");
+    auto result = BufferWriter::writeToCSV(buffer, testOutputPath);
+
+    CHECK(result == BufferWriter::Result::kSuccess);
+
+
+    juce::AudioBuffer<float> testBuffer;
+    juce::AudioBuffer<float> goldenBuffer;
+
+    testBuffer.clear(); goldenBuffer.clear();
+
+    // load test buffer from test output
+    BufferFiller::loadFromCSV(testBuffer, testOutputPath);
+
+    // load golden buffer from golden csv
+    auto goldenPath = RelativeFilePath::getGoldenFilePath("GOLDEN_mono_incremental_buffer.csv");
+    BufferFiller::loadFromCSV(goldenBuffer, goldenPath);
+
+    bool areIdentical = BufferHelper::buffersAreIdentical(testBuffer, goldenBuffer);
+    CHECK(areIdentical);
+}
 

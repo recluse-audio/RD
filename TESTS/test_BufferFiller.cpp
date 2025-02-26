@@ -4,6 +4,8 @@
 #include <catch2/matchers/catch_matchers_string.hpp>
 #include <catch2/catch_approx.hpp>  // For Approx in Catch2 v3+
 #include "../SOURCE/BufferFiller.h"
+#include "../SOURCE/BufferHelper.h"
+#include "../SOURCE/RelativeFilePath.h"
 
 
 TEST_CASE("Can make a Hanning Window")
@@ -158,41 +160,94 @@ TEST_CASE("Can load a json file into a buffer")
 
 
 //==========================
-TEST_CASE("Can load a wav file into a buffer")
+TEST_CASE("Load .wav into buffer")
 {
-    // juce::AudioBuffer<float> buffer;
-
-    // juce::File currentDir = juce::File::getCurrentWorkingDirectory();
-    // juce::String relativePath = "/SUBMODULES/RD/WAVEFORMS/incremental_wave.wav"; 
-
-    // juce::String fullPath = currentDir.getFullPathName() + relativePath;
-    // DBG(fullPath);
-
-
-    // // Instantiate the juce::File using the relative path
-    // juce::File file(fullPath);
+    /**
+     * @brief Load two different golden wav files into buffers, then compare them.
+     * Also, we expect them both to have an rms of more than 0
+     * 
+     */
+    juce::AudioBuffer<float> somewhereBuffer;
+    juce::AudioBuffer<float> graceBuffer;
 
 
-    // // Check if the file exists
-    // if (file.existsAsFile())
-    // {
-    //     DBG("File exists at: " + file.getFullPathName());
-    // }
-    // else
-    // {
-    //     DBG("File does not exist at: " + file.getFullPathName());
-    // }
+    auto somewhereFile = RelativeFilePath::getGoldenFileFromProjectRoot("GOLDEN_Somewhere_Mono_441k.wav");
+    auto graceFile = RelativeFilePath::getGoldenFileFromProjectRoot("GOLDEN_AmazingGrace_Mono_441k.wav");
 
-    // BufferFiller::loadFromWavFile(file.getFullPathName(), buffer);
+    BufferFiller::loadFromWavFile(somewhereFile, somewhereBuffer);
+    BufferFiller::loadFromWavFile(graceFile, graceBuffer);
 
-    // // Test reading ability with incremental buffer
-    // for(int ch = 0; ch < buffer.getNumChannels(); ch++)
-    // {
-    //     for(int sampleIndex = 0; sampleIndex < buffer.getNumSamples(); sampleIndex++)
-    //     {
-    //         float sample = buffer.getSample(ch, sampleIndex);
-    //         CHECK(sample == Catch::Approx((float)sampleIndex).epsilon(0.0001f));
-    //     }
-    // }
+    CHECK(somewhereBuffer.getRMSLevel(0, 0, somewhereBuffer.getNumSamples() - 1) > 0.0);
+    CHECK(graceBuffer.getRMSLevel(0, 0, somewhereBuffer.getNumSamples() - 1) > 0.0);
+
+    bool areIdentical = BufferHelper::buffersAreIdentical(somewhereBuffer, graceBuffer);
+    CHECK(!areIdentical);
+
+}
+
+
+
+
+//===============================
+TEST_CASE("Can load a csv file into a buffer")
+{
+    juce::AudioBuffer<float> buffer;
+    buffer.clear();
+    juce::File currentDir = juce::File::getCurrentWorkingDirectory(); // this works when called from root dir of repo
+    juce::String relativePath = "/SUBMODULES//RD/TESTS/GOLDEN/GOLDEN_stereo_incremental_buffer.csv"; 
+
+    juce::String fullPath = currentDir.getFullPathName() + relativePath;
+
+    buffer.setSize(1, 1); // this will be undone by the loading of the stereo csv with 6 samples
+    bool result = BufferFiller::loadFromCSV(buffer, fullPath);
+
+    // Should succeed in loading, and numChannels/numSamples should have changed from (1,1)
+    CHECK(result == true);
+    CHECK(buffer.getNumChannels() == 2);
+    CHECK(buffer.getNumSamples() == 6);
+
+
+    // Test reading ability with incremental buffer.  The int version of the stored sample value should match its sample index
+    for(int ch = 0; ch < buffer.getNumChannels(); ch++)
+    {
+        for(int sampleIndex = 0; sampleIndex < buffer.getNumSamples(); sampleIndex++)
+        {
+            int sample = (int)buffer.getSample(ch, sampleIndex);
+            CHECK(sample == sampleIndex);
+        }
+    }
+}
+
+
+
+
+//========================
+TEST_CASE("Load juce::Array into buffer")
+{
+    juce::Array<juce::Array<float>> array;
+
+    array.add(juce::Array<float>({0.1f, 0.2f, 0.3f, 0.4f, 0.5f}));
+    array.add(juce::Array<float>({0.1f, 0.2f, 0.3f, 0.4f, 0.5f}));
+
+
+    juce::AudioBuffer<float> buffer;
+    buffer.clear();
+    buffer.setSize(1, 20);  // this should get changed by the fill function
+
+    BufferFiller::fillWithJuceArray(buffer, array);
+
+    CHECK(buffer.getNumChannels() == 2);
+    CHECK(buffer.getNumSamples() == 5);
+
+    for(int ch = 0; ch < 2; ch++)
+    {
+        for(int sampleIndex = 0; sampleIndex < 5; sampleIndex++)
+        {
+            auto sampleVal = buffer.getSample(ch, sampleIndex);
+            float expectedVal = (float)(sampleIndex + 1) * 0.1f;
+            CHECK(sampleVal == expectedVal);
+        }
+    }
+
 
 }

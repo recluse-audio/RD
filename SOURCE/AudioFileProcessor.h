@@ -26,15 +26,15 @@ public:
     AudioFileProcessor();
     ~AudioFileProcessor();
 
+    // Fills internal juce::AudioBuffer with contents of wavFile
+    bool readFromFile(const juce::File& wavFile);
+
     bool init(juce::File& inputFile, juce::File& outputFile);
     void reset();
-
-
 
     // TODO: I want to be able to read from the outputFile as well for testing.  
     // I could do this generically to allow reading of a range from whatever file, 
     // and we'd just instantiate temp reader/writer/stream
-
     bool read(juce::AudioBuffer<float>& readBuffer, int startInFile);
 
 
@@ -44,6 +44,7 @@ public:
 private:
     // juce::File& mInputFile;
     // juce::File& mOutputFile;
+    juce::AudioBuffer<float> mBuffer;
 
     std::unique_ptr<juce::AudioFormatReader> mReader;
     std::unique_ptr<juce::AudioFormatWriter> mWriter;

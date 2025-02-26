@@ -33,6 +33,15 @@ public:
         return RelativeFilePath::getFileFromProjectRoot(goldenPath);
     }
 
+    static juce::String getGoldenFilePath(juce::String fileName)
+    {
+        // Define the directory and output file path
+        juce::File currentDir = juce::File::getCurrentWorkingDirectory(); // this works when called from root dir of repo
+        juce::String relativePath = "/SUBMODULES//RD/TESTS/GOLDEN/"; 
+
+        return currentDir.getFullPathName() + relativePath + fileName;
+    }
+
     //
     static juce::File getOutputFileFromProjectRoot(juce::StringRef outputFileName)
     {
@@ -40,4 +49,16 @@ public:
 
         return RelativeFilePath::getFileFromProjectRoot(outputPath);
     }
+
+
+    static juce::String getTestOutputPath(juce::String fileName)
+    {
+        // Define the directory and output file path
+        juce::File currentDir = juce::File::getCurrentWorkingDirectory(); // this works when called from root dir of repo
+        juce::String relativePath = "/SUBMODULES//RD/TESTS/OUTPUT/"; 
+
+        return currentDir.getFullPathName() + relativePath + fileName;
+    }
+
+
 };

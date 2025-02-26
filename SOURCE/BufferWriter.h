@@ -12,6 +12,14 @@
 #pragma once
 #include "Util/Juce_Header.h"
 
+enum class BufferWriterResult
+{
+    kSuccess,
+    kPathError,
+    kFileError,
+    kStreamError
+};
+
 /**
  * @brief Writing Buffers to various files and formats
  * 
@@ -20,6 +28,14 @@
 class BufferWriter
 {
 public:
+
+    enum class Result
+    {
+        kSuccess,
+        kPathError,
+        kFileError,
+        kStreamError
+    };
 
     /**
      * @brief Get the correct path to where files should be output to when testing.
@@ -78,8 +94,63 @@ public:
         outputFile.replaceWithText(jsonString);
     }
 
-    static void writeToCSV(juce::AudioBuffer<float>& buffer, const juce::File& outputFile)
+
+    //=====================
+    static BufferWriter::Result writeToCSV(juce::AudioBuffer<float>& buffer, const juce::String& csvPath)
     {
+        juce::Array<juce::StringArray> csvData;
+
+        // do channels first to get headers in csv
+        juce::StringArray channelHeaders;
+        channelHeaders.add("Sample Index");
+        for(int ch = 0; ch < buffer.getNumChannels(); ch++)
+        {
+            juce::String channelString = "Channel " + juce::String(ch);
+            channelHeaders.add(channelString);
+        }
+        csvData.add(channelHeaders);
+        //
+
+        // Write sample values, each sampleIndex is a row in the csv.
+        for(int sampleIndex = 0; sampleIndex < buffer.getNumSamples(); sampleIndex++)
+        {
+            juce::StringArray sampleRow;
+
+            juce::String indexString(sampleIndex);
+            sampleRow.add(indexString);
+
+            for(int ch = 0; ch < buffer.getNumChannels(); ch++)
+            {
+                auto sampleValue = buffer.getSample(ch, sampleIndex);
+                juce::String sampleValueString(sampleValue);
+                sampleRow.add(sampleValueString); 
+            }
+
+            csvData.add(sampleRow);
+
+        }
+
+        // Make file, start output stream
+        auto csvFile = std::make_unique<juce::File>(csvPath);
+        if(csvFile->exists())
+            csvFile->deleteFile();
+
+        csvFile->create();
+        if(!csvFile->exists())
+            return BufferWriter::Result::kFileError;
+            
+        auto fileStream = std::make_unique<juce::FileOutputStream>(*csvFile.get());
+        if(fileStream->failedToOpen())
+            return BufferWriter::Result::kStreamError;
+
+        for(const auto& row : csvData)
+        {
+            // Join the row's columns with commas
+            juce::String line = juce::StringArray(row).joinIntoString(",");
+            fileStream->writeText(line + "\n", false, false, "\n");
+        }
+        
+        return BufferWriter::Result::kSuccess;
 
     }
 

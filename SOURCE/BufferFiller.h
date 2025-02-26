@@ -235,6 +235,8 @@ public:
         return true;
     }
 
+    
+
     //=================================
     /** Loads an AudioBuffer from a .json file containing amplitude values */
     static bool loadFromJsonFile(const juce::File& jsonFile, juce::AudioBuffer<float>& buffer, const juce::String& key = "Channel_0")
@@ -293,6 +295,91 @@ public:
         }
 
         DBG("Successfully loaded buffer from JSON file.");
+        return true;
+    }
+
+
+        //==================================
+    static bool loadFromCSV(juce::AudioBuffer<float>& buffer, const juce::String& csvPath)
+    {
+        if(!csvPath.endsWith(".csv"))
+        {
+            DBG("BufferFiller::loadFromCSV() - ERROR ->> Not a csv path. <<--");
+            return false;
+        }
+
+        // Attempt to create input stream
+        auto csvFile = std::make_unique<juce::File>(csvPath);
+        if(!csvFile->exists())
+        {
+            DBG("BufferFiller::loadFromCSV() - ERROR ->>File at " + csvPath + " does not exist.<<-");
+            return false;
+        }
+
+        juce::FileInputStream inputStream(*csvFile.get());
+        if(!inputStream.openedOk())
+        {
+            DBG("Failed to create juce::FileInputStream.");
+            return false;
+        }
+        
+        if(inputStream.getTotalLength() <= 0)
+        {
+            DBG("FileInputStream is of zero length.");
+            return false;
+
+        }
+        
+     
+        juce::StringArray lines;
+        while (!inputStream.isExhausted())
+            lines.add(inputStream.readNextLine());
+    
+        if (lines.size() < 2) // Need at least one data row + header
+            return false;
+    
+        int numSamples = lines.size() - 1; // Exclude header
+        juce::StringArray firstRow = juce::StringArray::fromTokens(lines[1], ",", "");
+        int numChannels = firstRow.size() - 1; // Exclude sample index
+    
+        // Resize the buffer
+        buffer.setSize(numChannels, numSamples);
+    
+        // Fill buffer
+        for (int i = 1; i < lines.size(); ++i) // Skip header
+        {
+            juce::StringArray tokens = juce::StringArray::fromTokens(lines[i], ",", "");
+            if (tokens.size() != numChannels + 1)
+                continue; // Skip malformed rows
+    
+            for (int ch = 0; ch < numChannels; ++ch)
+            {
+                buffer.setSample(ch, i - 1, tokens[ch + 1].getFloatValue());
+            }
+        }
+
+
+        return true;
+
+    }
+
+
+    static bool fillWithJuceArray(juce::AudioBuffer<float>& buffer, const juce::Array<juce::Array<float>>& array)
+    {
+        int numChannels = array.size();
+        int numSamples = array.getReference(0).size(); // assumes all are same size...
+
+        buffer.setSize(numChannels, numSamples);
+        buffer.clear();
+        for(int ch = 0; ch < numChannels; ch++)
+        {
+            auto channelArray = array.getReference(ch);
+            for(int sampleIndex = 0; sampleIndex < numSamples; sampleIndex++)
+            {
+                auto arrayValue = channelArray.getReference(sampleIndex);
+                buffer.setSample(ch, sampleIndex, arrayValue);
+            }
+        }
         return true;
     }
 

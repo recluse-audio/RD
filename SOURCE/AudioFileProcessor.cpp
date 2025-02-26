@@ -13,6 +13,26 @@ AudioFileProcessor::~AudioFileProcessor()
 }
 
 //======================
+bool AudioFileProcessor::readFromFile(const juce::File& readFile)
+{
+    // Initialize the AudioFormatManager
+    juce::AudioFormatManager formatManager;
+    formatManager.registerBasicFormats();
+
+    // Create the reader for the input file
+    mReader.reset(formatManager.createReaderFor(readFile));
+    if (mReader == nullptr)
+        return false;
+
+    // update input file data
+    mTotalSamples = mReader->lengthInSamples;
+
+    mBuffer.clear();
+    mBuffer.setSize(2, mTotalSamples);
+}
+
+
+//======================
 bool AudioFileProcessor::init(juce::File& inputFile, juce::File& outputFile)
 {
     // Initialize the AudioFormatManager
