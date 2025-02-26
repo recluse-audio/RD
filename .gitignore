@@ -1,2 +1,3 @@
 # gitignore for RD
 TESTS/OUTPUT/*
+SCRIPTS/venv/*

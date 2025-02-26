@@ -81,3 +81,17 @@ TEST_CASE("Can write buffer to csv")
     CHECK(areIdentical);
 }
 
+
+TEST_CASE("Can load buffer from .wav and write to csv.")
+{
+    // See test_BufferFiller.cpp for more extensive coverage of this as I test
+    // filling a buffer from a csv file.
+    juce::AudioBuffer<float> buffer(2, 128);
+
+    auto goldenWavFile = RelativeFilePath::getGoldenFileFromProjectRoot("GOLDEN_SignalTone.wav");
+    BufferFiller::loadFromWavFile(goldenWavFile, buffer);
+
+    auto testOutputPath = RelativeFilePath::getTestOutputPath("OUTPUT_SignalTone.csv");
+    auto result = BufferWriter::writeToCSV(buffer, testOutputPath);
+
+}
