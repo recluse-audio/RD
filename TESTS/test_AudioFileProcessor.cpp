@@ -1,12 +1,14 @@
 #include <catch2/catch_test_macros.hpp>
 #include <catch2/matchers/catch_matchers_string.hpp>
 #include <catch2/catch_approx.hpp>  // For Approx in Catch2 v3+
+#include "TEST_UTILS/TestUtils.h"
 
 #include "../SOURCE/AudioFileProcessor.h"
 #include "../SOURCE/RelativeFilePath.h"
 #include "../SOURCE/BufferFiller.h"
 #include "../SOURCE/BufferHelper.h"
 #include "../SOURCE/AudioFileHelpers.h"
+#include "../SOURCE/EFFECTS/GainProcessor.h"
 
 
 static const int kGoldenNumSamples = 1531887;
@@ -50,34 +52,72 @@ TEST_CASE("Can read .wav")
 
 
 //
-TEST_CASE("Basic read/write")
+TEST_CASE("Read/Write with no processing.")
 {
-    // AudioFileProcessor fileProcessor;
+    TestUtils::SetupAndTeardown setupAndTeardown;
 
-    // auto inputFile = RelativeFilePath::getGoldenFileFromProjectRoot("GOLDEN_Somewhere_Mono_441k.wav");
-    // auto outputFile = RelativeFilePath::getOutputFileFromProjectRoot("AudioFileProcessor_Basic_Read_Write_Test_Output.wav");
-    // bool success = fileProcessor.init(inputFile, outputFile);
+    {
+        AudioFileProcessor fileProcessor;
+        GainProcessor processor;
+        processor.prepareToPlay(44100, 512);
+        processor.setGain(1.f);
+        
+        auto inputFile = RelativeFilePath::getGoldenFileFromProjectRoot("GOLDEN_Somewhere_Mono_441k.wav");
+        auto outputFile = RelativeFilePath::getOutputFileFromProjectRoot("AudioFileProcessor_Basic_Read_Write_Test_Output.wav");
+        
+        auto result = fileProcessor.processFile(inputFile, outputFile, processor, 44100, 512);
+        CHECK(result == AudioFileProcessor::Result::kSuccess);
+    
+        juce::AudioBuffer<float> goldenBuffer;
+        juce::AudioBuffer<float> testBuffer;
+    
+        goldenBuffer.clear(); testBuffer.clear();
+    
+        BufferFiller::loadFromWavFile(inputFile, goldenBuffer);
+        BufferFiller::loadFromWavFile(outputFile, testBuffer);
+    
+        CHECK(goldenBuffer.getRMSLevel(0, 0, goldenBuffer.getNumSamples()) > 0.0);
+        CHECK(testBuffer.getRMSLevel(0, 0, testBuffer.getNumSamples()) > 0.0);
+    
+        bool areIdentical = BufferHelper::buffersAreIdentical(goldenBuffer, testBuffer);
+        CHECK(areIdentical);
+    }
 
-    // // buffer to read from inputFile and write to outputFile
-    // juce::AudioBuffer<float> processBuffer(kGoldenNumChannels, kGoldenBufferNumSamples);
-    // processBuffer.clear();
+    juce::DeletedAtShutdown::deleteAll();
+}
 
-    // int currentIndex = 0;
-    // while(currentIndex < (kGoldenNumSamples - 1024))
+//
+TEST_CASE("Read/Write with gain processing.", "[Process Audio File]")
+{
+    // TestUtils::SetupAndTeardown setupAndTeardown;
+
     // {
-    //     fileProcessor.read(processBuffer, currentIndex);
-    //     fileProcessor.write(processBuffer, currentIndex);
-    //     currentIndex += processBuffer.getNumSamples();
+    //     AudioFileProcessor fileProcessor;
+    //     GainProcessor processor;
+    //     processor.prepareToPlay(44100, 512);
+    //     processor.setGain(0.1f);
+        
+    //     auto inputFile = RelativeFilePath::getGoldenFileFromProjectRoot("GOLDEN_Somewhere_Mono_441k.wav");
+    //     auto outputFile = RelativeFilePath::getOutputFileFromProjectRoot("AudioFileProcessor_Gain_Read_Write_Test_Output.wav");
+    //     CHECK(outputFile.exists());
+
+    //     auto result = fileProcessor.processFile(inputFile, outputFile, processor, 44100, 512);
+    //     CHECK(result == AudioFileProcessor::Result::kSuccess);
+    
+    //     juce::AudioBuffer<float> goldenBuffer;
+    //     juce::AudioBuffer<float> testBuffer;
+    
+    //     goldenBuffer.clear(); testBuffer.clear();
+    
+    //     BufferFiller::loadFromWavFile(inputFile, goldenBuffer);
+    //     BufferFiller::loadFromWavFile(outputFile, testBuffer);
+    
+    //     CHECK(goldenBuffer.getRMSLevel(0, 0, goldenBuffer.getNumSamples()) > 0.0);
+    //     CHECK(testBuffer.getRMSLevel(0, 0, testBuffer.getNumSamples()) > 0.0);
+    
+    //     bool areIdentical = BufferHelper::buffersAreIdentical(goldenBuffer, testBuffer);
+    //     CHECK(!areIdentical);
     // }
 
-
-    // // use this buffer to read from our new .wav file
-    // juce::AudioBuffer<float> testBuffer(kGoldenNumChannels, kGoldenBufferNumSamples);
-    // testBuffer.clear();
-
-    // AudioFileHelpers::readRange(outputFile, testBuffer, kFileStartIndex);
-
-    // CHECK(BufferHelper::buffersAreIdentical(processBuffer, testBuffer));
-
-
+    // juce::DeletedAtShutdown::deleteAll();
 }

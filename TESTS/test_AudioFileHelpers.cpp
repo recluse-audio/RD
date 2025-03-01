@@ -13,7 +13,7 @@
 //
 TEST_CASE("Read range from wav file")
 {
-        int numChannels = 1;
+    int numChannels = 1;
     int numSamples = 512;
 
     auto inputFile = RelativeFilePath::getGoldenFileFromProjectRoot("GOLDEN_Somewhere_Mono_441k.wav");
@@ -42,8 +42,25 @@ TEST_CASE("Read range from wav file")
 
 }
 
+//===============================
+// 
+TEST_CASE("Get length in samples of wav file.")
+{
+    auto inputFile = RelativeFilePath::getGoldenFileFromProjectRoot("GOLDEN_Somewhere_Mono_441k.wav");
+    int lengthInSamples = AudioFileHelpers::getFileLengthInSamples(inputFile);
 
+    CHECK(lengthInSamples == 1531887);
+}
 
+//===============================
+// 
+TEST_CASE("Get sampleRate of wav file.")
+{
+    auto inputFile = RelativeFilePath::getGoldenFileFromProjectRoot("GOLDEN_Somewhere_Mono_441k.wav");
+    int sampleRate = AudioFileHelpers::getFileSampleRate(inputFile);
+
+    CHECK(sampleRate == 44100);
+}
 //===============================
 //
 TEST_CASE("Create GOLDEN_Somewhere_Mono_441k_Two_Second_Mark.json for further testing")

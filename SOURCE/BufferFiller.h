@@ -46,6 +46,21 @@ public:
         }
     }
 
+    //===================
+    // Fills a single channel in the buffer entirely with a value
+    // you better hope you ask for an in range channel bud...
+    static void fillChannelWithValue(juce::AudioBuffer<float>& buffer, int ch, int val)
+    {
+        //stay in range
+        if(ch >= buffer.getNumChannels())
+            return;
+
+        for(int sampleIndex = 0; sampleIndex < buffer.getNumSamples(); sampleIndex++)
+        {
+            buffer.setSample(ch, sampleIndex, val);
+        }
+    }
+
     //////////////////////////
     // All indices set to 1.f
     static void fillWithAllOnes(juce::AudioBuffer<float>& bufferToFill)
@@ -383,6 +398,12 @@ public:
         return true;
     }
 
+
+    //==================
+    static bool fillFromBuffer(juce::AudioBuffer<float>& bufferToFill, juce::AudioBuffer<float>& bufferToRead, int startSampleIndex)
+    {
+        //int numSamples = bufferToFill
+    }
 };
 
 

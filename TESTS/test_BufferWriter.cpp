@@ -95,3 +95,35 @@ TEST_CASE("Can load buffer from .wav and write to csv.")
     auto result = BufferWriter::writeToCSV(buffer, testOutputPath);
 
 }
+
+
+TEST_CASE("Can write buffer to .wav.")
+{
+    juce::AudioBuffer<float> buffer;
+    juce::AudioBuffer<float> buffer2;
+
+    auto goldenWavFile = RelativeFilePath::getGoldenFileFromProjectRoot("GOLDEN_SignalTone.wav");
+    BufferFiller::loadFromWavFile(goldenWavFile, buffer);
+    BufferFiller::loadFromWavFile(goldenWavFile, buffer2);
+    bool testIdentical = BufferHelper::buffersAreIdentical(buffer, buffer2);
+    CHECK(testIdentical);
+
+    auto outputWavFile = RelativeFilePath::getOutputFileFromProjectRoot("OUTPUT_Write_SignalTone_Buffer_To_Wav.wav");
+    auto result = BufferWriter::writeToWav(buffer, outputWavFile, 44100, 24);
+
+    CHECK(result == BufferWriter::Result::kSuccess);
+
+    juce::AudioBuffer<float> outputBuffer;
+    outputBuffer.clear();
+    outputBuffer.setSize(buffer.getNumChannels(), buffer.getNumSamples());
+
+    // auto somewhereFile = RelativeFilePath::getGoldenFileFromProjectRoot("GOLDEN_Somewhere_Mono_441k.wav"); // used this to make test fail originally
+    BufferFiller::loadFromWavFile(outputWavFile, outputBuffer);
+
+    CHECK(!BufferHelper::isSilent(buffer));
+    CHECK(!BufferHelper::isSilent(outputBuffer));
+
+    bool areIdentical = BufferHelper::buffersAreIdentical(buffer, outputBuffer);
+    CHECK(areIdentical);
+
+}

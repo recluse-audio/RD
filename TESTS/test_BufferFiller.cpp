@@ -82,6 +82,29 @@ TEST_CASE("Can fill with specified value")
     CHECK(buffer.getSample(0, 99) == value);
 }
 
+
+//=========================
+TEST_CASE("Can fill channel with specified value")
+{
+    int numSamples = 100;
+    juce::AudioBuffer<float> buffer(2, numSamples);
+    float val1 = 1.f;
+    BufferFiller::fillChannelWithValue(buffer, 0, val1);
+    float val2 = 2.f;
+    BufferFiller::fillChannelWithValue(buffer, 1, val2);
+
+    CHECK(buffer.getSample(0, 0) == val1);
+    CHECK(buffer.getSample(0, 1) == val1);
+    CHECK(buffer.getSample(0, 98) == val1);
+    CHECK(buffer.getSample(0, 99) == val1);
+
+
+    CHECK(buffer.getSample(1, 0) == val2);
+    CHECK(buffer.getSample(1, 1) == val2);
+    CHECK(buffer.getSample(1, 98) == val2);
+    CHECK(buffer.getSample(1, 99) == val2);
+}
+
 //==========================
 TEST_CASE("Test generating sine wave")
 {

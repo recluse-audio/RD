@@ -154,6 +154,40 @@ public:
 
     }
 
+        //=====================
+        static BufferWriter::Result writeToWav(juce::AudioBuffer<float>& buffer, const juce::File& outputFile, double sampleRate, int bitDepth = 24)
+        {
+            if(outputFile.exists())
+                outputFile.deleteFile();
+
+            outputFile.create();
+            
+            //juce::File outputFile(path);
+            juce::WavAudioFormat wavFormat;
+            std::unique_ptr<juce::FileOutputStream> fileStream(outputFile.createOutputStream());
+        
+            if (!fileStream)
+            {
+                DBG("Error: Could not create output stream!");
+                return BufferWriter::Result::kStreamError;
+            }
+        
+            std::unique_ptr<juce::AudioFormatWriter> writer(
+                wavFormat.createWriterFor(fileStream.get(), sampleRate, buffer.getNumChannels(), bitDepth, {}, 0));
+        
+            if (!writer)
+            {
+                DBG("Error: Could not create WAV writer!");
+                return BufferWriter::Result::kStreamError;
+            }
+        
+            fileStream.release(); // The writer now owns the file stream
+        
+            writer->writeFromAudioSampleBuffer(buffer, 0, buffer.getNumSamples());
+            return BufferWriter::Result::kSuccess;
+
+        }
+
 private:
 
 };

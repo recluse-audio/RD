@@ -50,4 +50,31 @@ public:
 
     }
 
+    //
+    static const int getFileLengthInSamples(juce::File& inputFile)
+    {
+        // Initialize the AudioFormatManager
+        juce::AudioFormatManager formatManager;
+        formatManager.registerBasicFormats();
+
+        std::unique_ptr<juce::AudioFormatReader> fileReader(formatManager.createReaderFor(inputFile));
+        if(fileReader == nullptr)
+            return -1; // we've failed to provide a valid inputFile
+
+        return fileReader->lengthInSamples;
+    }
+
+    //
+    static const double getFileSampleRate(juce::File& inputFile)
+    {
+        // Initialize the AudioFormatManager
+        juce::AudioFormatManager formatManager;
+        formatManager.registerBasicFormats();
+
+        std::unique_ptr<juce::AudioFormatReader> fileReader(formatManager.createReaderFor(inputFile));
+        if(fileReader == nullptr)
+            return -1; // we've failed to provide a valid inputFile
+
+        return fileReader->sampleRate;
+    }
 };

@@ -10,6 +10,7 @@ struct FileData
 {
     int kNumSamples = 0;
     int kNumChannels = 0;
+
 };
  
 /**
@@ -23,13 +24,26 @@ struct FileData
 class AudioFileProcessor
 {
 public:
+    enum class Result
+    {
+        kSuccess = 0,
+        kInitFailure,
+        kFileReadError,
+        kFileWriteError,
+        kReadBufferError
+    };
+
     AudioFileProcessor();
     ~AudioFileProcessor();
 
     // Fills internal juce::AudioBuffer with contents of wavFile
     bool readFromFile(const juce::File& wavFile);
 
-    bool init(juce::File& inputFile, juce::File& outputFile);
+    bool writeToFile(juce::AudioBuffer<float>& writeBuffer, int startPos);
+
+    Result processFile(juce::File& inputFile, juce::File& outputFile, juce::AudioProcessor& processor, double sampleRate = 44100, int blockSize = 512);
+
+    bool init( juce::File& inputFile,  juce::File& outputFile);
     void reset();
 
     // TODO: I want to be able to read from the outputFile as well for testing.  
@@ -44,7 +58,9 @@ public:
 private:
     // juce::File& mInputFile;
     // juce::File& mOutputFile;
-    juce::AudioBuffer<float> mBuffer;
+    juce::AudioBuffer<float> mReadBuffer;
+    juce::AudioBuffer<float> mProcessedBuffer;
+
 
     std::unique_ptr<juce::AudioFormatReader> mReader;
     std::unique_ptr<juce::AudioFormatWriter> mWriter;
@@ -55,5 +71,9 @@ private:
 
     int mNumInputChannels = 0; 
     int mNumOutputChannels = 0;
+
+    Result _readFileIntoInternalBuffer(const juce::File& file, double& sampleRate, int& numChannels, int& numSamples);
+    Result _writeInternalBufferToFile(const juce::File& file, double sampleRate, int numChannels, int numSamples);
+    Result _processInternalBufferWithProcessor(juce::AudioProcessor& processor, int blockSize);
 
 };
