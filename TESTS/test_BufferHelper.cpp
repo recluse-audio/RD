@@ -155,3 +155,17 @@ TEST_CASE("Process buffer with gain processor")
     juce::DeletedAtShutdown::deleteAll();
 
 }
+
+
+//==========
+TEST_CASE("Get wrapped index of buffer.")
+{
+    juce::AudioBuffer<float> buffer(2, 20);
+
+    CHECK(BufferHelper::getWrappedIndex(buffer, 0) == 0);
+    CHECK(BufferHelper::getWrappedIndex(buffer, 20) == 0);
+
+    CHECK(BufferHelper::getWrappedIndex(buffer, 21) == 1);
+    CHECK(BufferHelper::getWrappedIndex(buffer, -1) == 19);
+
+}

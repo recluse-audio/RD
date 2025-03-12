@@ -43,13 +43,16 @@ public:
     // increments read position
     juce::dsp::AudioBlock<float> popAudioBlock(int length);
 
+    void setDelay(int newDelayInSamples);
 
+    const int getWrappedIndex(int index);
 private:
     friend class CircularBufferTest; // see test_CircularBuffer.cpp
     juce::AudioBuffer<float> mCircularBuffer;
 
     int mWritePos = 0;
     int mReadPos = 0;
+    int mDelayInSamples = 0;
 
 
     // Takes a reference to an incoming buffer, and writes it's audio data to the circular buffer

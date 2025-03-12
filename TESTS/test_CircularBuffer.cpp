@@ -200,6 +200,37 @@ TEST_CASE("Write Sine Cycles")
 
 }
 
+
+//===============================
+TEST_CASE("Set delay in circular buffer.")
+{
+    /** CONCEPT: Fill the circular buffer incrementally so each sample value is equal to it's index
+     * - push one buffer to fill the circular buffer (for convenience), but pop in smaller increments 
+     */
+    int circularBufferSize = 1024;
+    int numChannels = 2;
+    int popBufferSize = 128; // read cb with this one
+    int delay = 10;
+
+    CircularBuffer cb;
+    cb.setSize(numChannels, circularBufferSize); // don't need the default 96k for tests
+    cb.setDelay(delay);
+
+    juce::AudioBuffer<float> pushBuffer(numChannels, circularBufferSize);
+    pushBuffer.clear();
+    BufferFiller::fillIncremental(pushBuffer);
+    cb.pushBuffer(pushBuffer);
+
+    juce::AudioBuffer<float> popBuffer(numChannels, popBufferSize);
+    popBuffer.clear();
+    cb.popBuffer(popBuffer);
+
+
+    CHECK(popBuffer.getSample(0, 0) == 1014.f);
+    CHECK(popBuffer.getSample(0, 10) == 0.f);
+    
+}
+
 //===============================
 //
 TEST_CASE("Can read from buffer and return juce::AudioBlock.")

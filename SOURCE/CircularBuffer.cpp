@@ -1,4 +1,5 @@
 #include "CircularBuffer.h"
+#include "BufferHelper.h"
 
 CircularBuffer::CircularBuffer()
 {
@@ -58,7 +59,9 @@ bool CircularBuffer::pushValue(int length, float value, int ch, bool incrementWr
 bool CircularBuffer::popBuffer(juce::AudioBuffer<float>& buffer)
 {
     bool success = false;
-    success = _readFromCircularBuffer(buffer, mReadPos);
+    int delayedReadPos = mReadPos - mDelayInSamples;
+    int wrappedReadPos = BufferHelper::getWrappedIndex(mCircularBuffer, delayedReadPos);
+    success = _readFromCircularBuffer(buffer, wrappedReadPos);
     _incrementReadPosition(buffer.getNumSamples());
     return success;
 }
@@ -177,8 +180,9 @@ bool CircularBuffer::_readFromCircularBuffer(juce::AudioBuffer<float>& buffer, i
     {
         for(int ch = 0; ch < buffer.getNumChannels(); ch++)
         {
-            auto sample = mCircularBuffer.getSample(ch, readPos);
-            buffer.setSample(ch, sampleIndex, sample);
+            auto bufferSample = buffer.getSample(ch, sampleIndex);
+            auto readSample = mCircularBuffer.getSample(ch, readPos);
+            buffer.setSample(ch, sampleIndex, readSample + bufferSample);
 
         }
 
@@ -204,3 +208,9 @@ void CircularBuffer::_incrementReadPosition(int numSamples)
     mReadPos = newReadPos;
 }
 
+//========================
+//
+void CircularBuffer::setDelay(int newDelayInSamples)
+{
+    mDelayInSamples = newDelayInSamples;
+}

@@ -98,4 +98,22 @@ public:
         }
 
     }
+
+
+    //=======================
+    // gets a wrapped version of the 'indexToWrap' argument, according to size of buffer
+    static int getWrappedIndex(juce::AudioBuffer<float>& buffer, int indexToWrap)
+    {
+        int numSamples = buffer.getNumSamples();
+        int index = 0;
+
+        if(indexToWrap < 0)
+            index = indexToWrap + numSamples;
+        else if(indexToWrap >= numSamples)
+            index = indexToWrap - numSamples;
+        else
+            index = indexToWrap;
+
+        return index;
+    }
 };
