@@ -137,6 +137,28 @@ public:
         }
     }
 
+    //=======================
+    // Value stored is equal to its index. Useful in testing
+    static void fillIncrementalLooping(juce::AudioBuffer<float>& bufferToFill, int period)
+    {
+        bufferToFill.clear();
+        auto writePtr = bufferToFill.getArrayOfWritePointers();
+
+		int sampleInPeriod = 0;
+
+        for(int sampleIndex = 0; sampleIndex < bufferToFill.getNumSamples(); sampleIndex++)
+        {
+            for(int ch = 0; ch < bufferToFill.getNumChannels(); ch++)
+            {
+                writePtr[ch][sampleIndex] = (float)sampleInPeriod;
+            }
+
+			sampleInPeriod++;
+			if(sampleInPeriod >= period)
+				sampleInPeriod = sampleInPeriod - period;
+
+        }
+    }
 
     //====================
     //

@@ -53,6 +53,30 @@ TEST_CASE("Can make an incremental buffer")
 
 }
 
+//========================
+TEST_CASE("Can make an incremental buffer that loops at the period length arg")
+{
+    int numSamples = 100;
+	int periodLength = 10;
+    juce::AudioBuffer<float> buffer(1, numSamples);
+
+    BufferFiller::fillIncrementalLooping(buffer, periodLength);
+
+	int sampleInPeriod = 0;
+    // checking values are incremental
+    for(int sampleIndex = 0; sampleIndex < numSamples; sampleIndex++)
+    {
+        int sample = (int)buffer.getSample(0, sampleIndex);
+        CHECK(sample == sampleInPeriod );
+		CHECK(sample < periodLength);
+		
+		sampleInPeriod++;
+		if(sampleInPeriod >= periodLength)
+			sampleInPeriod = sampleInPeriod - periodLength;
+    }
+
+}
+
 //=========================
 TEST_CASE("Can fill with alternating zeroes and ones")
 {

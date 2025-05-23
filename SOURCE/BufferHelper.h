@@ -16,7 +16,7 @@ public:
      * @brief Compares two buffers to determine if they are identical.
      * Meaning they are same numSamples/numChannels and the sample values stored in them are identical.
      */
-    static bool buffersAreIdentical(juce::AudioBuffer<float>& buffer1, juce::AudioBuffer<float>& buffer2)
+    static bool buffersAreIdentical(juce::AudioBuffer<float>& buffer1, juce::AudioBuffer<float>& buffer2, float threshold = 0.001f)
     {
         if(buffer1.getNumChannels() != buffer2.getNumChannels())
             return false;
@@ -32,7 +32,8 @@ public:
                 auto sample1 = buffer1.getSample(ch, sampleIndex);
                 auto sample2 = buffer2.getSample(ch, sampleIndex);
 
-                if(sample1 != sample2)
+				float difference = std::abs(sample1 - sample2);
+                if(difference >= threshold)
                     return false;
             }
         }
