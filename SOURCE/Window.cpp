@@ -55,6 +55,13 @@ void Window::setShape(Window::Shape newShape)
 
 //==================
 //
+Window::Shape Window::getShape()
+{
+	return mCurrentShape;
+}
+
+//==================
+//
 void Window::_update()
 {
     if(mCurrentShape == Window::Shape::kHanning)
@@ -94,10 +101,18 @@ const float Window::getNextSample()
     if(mReadPos >= mBuffer.getNumSamples() || mReadPos < 0)
         return 0.f;
 
+	float sample = 0.f;
 
-    auto sample = _getInterpolatedSampleAtReadPos();
+	if(mCurrentShape == Window::Shape::kNone)
+		sample = 1.f;
+	else
+    	sample = _getInterpolatedSampleAtReadPos();
 
     mReadPos += mPhaseIncrement;
+
+	// wrap mReadPos around our total num samples, but only if we are set to loop
+	if(mReadPos >= mBuffer.getNumSamples() && mIsLooping)
+		mReadPos = mReadPos - mBuffer.getNumSamples();
 
     return sample;
 }
@@ -128,4 +143,18 @@ float Window::_getInterpolatedSampleAtReadPos()
 
     return (float)Interpolator::linearInterp(sample1, sample2, delta);
 
+}
+
+//============
+//
+void Window::setLooping(bool shouldLoop)
+{
+	mIsLooping = shouldLoop;
+}
+
+//=============
+//
+const bool Window::getIsLooping()
+{
+	return mIsLooping;
 }

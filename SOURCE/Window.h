@@ -63,6 +63,7 @@ public:
     // corresponding with various window shapes
     // Does not resize but does clear 
     void setShape (Window::Shape newShape);
+	Window::Shape getShape();
 
     // returns the sample at the internally incremented mReadPos
     const float getNextSample();
@@ -74,6 +75,8 @@ public:
     // Sets mReadPos to 0, and sets mPhaseIncrement to 1.0
     void reset();
 
+	void setLooping(bool shouldLoop);
+	const bool getIsLooping();
 private:
     friend class WindowTester;
     juce::AudioBuffer<float> mBuffer; // using juce buffer for some helpful functions, but could be a simple array
@@ -88,6 +91,8 @@ private:
     // Incremented by mPhaseIncrement
     // Wraps at buffer size, or perhaps hits a "finished" flag
     double mReadPos = 0.0; 
+
+	bool mIsLooping = false;
 
     void _update();
 
