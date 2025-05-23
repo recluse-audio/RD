@@ -21,6 +21,15 @@ Window::~Window()
 
 //====================
 //
+void Window::setSizeShapePeriod(int newSize, Window::Shape newShape, int newPeriod)
+{
+	this->setSize(newSize);
+	this->setShape(newShape);
+	this->setPeriod(newPeriod);
+}
+
+//====================
+//
 void Window::setSize(double newSize)
 {
     mBuffer.setSize(1, (int) newSize); // 1 second worth of samples by default

@@ -44,6 +44,8 @@ public:
     Window();
     ~Window();
 
+	void setSizeShapePeriod(int newSize, Window::Shape newShape, int newPeriod);
+
     // This does not resize the underlying buffer
     // This affects the rate at which we read the buffer
     // we will read the entirety of the window in 'numSamples'
