@@ -212,3 +212,57 @@ TEST_CASE("Can get range of buffer as AudioBlock")
 		}
 	}
 }
+
+//================
+TEST_CASE("Can write juce::dsp::AudioBlock to juce::AudioBuffer at specific juce::Range")
+{
+	juce::AudioBuffer<float> incBuffer(2, 10);
+	BufferFiller::fillIncremental(incBuffer);
+	juce::dsp::AudioBlock<float> incBlock(incBuffer);
+
+	// Technically testing the juce code here, or atleast that it works as we think it does
+	CHECK(incBlock.getNumChannels() == incBuffer.getNumChannels());
+	CHECK(incBlock.getNumSamples() == incBuffer.getNumSamples());
+
+	// our incBuffer is smaller than this one, so we can tell if it is written to the correct range
+	juce::AudioBuffer<float> outputBuffer(2, 30);
+	outputBuffer.clear();
+
+	// writing the incBlock values to the outputBuffer in this range
+	juce::Range<juce::int64> writeRange(10, 20);
+	// do the writing
+	BufferHelper::writeBlockToBuffer(outputBuffer, incBlock, writeRange);
+
+	// output indices 0-9, we can expect 0's
+	for(juce::int64 sampleIndex = 0; sampleIndex < writeRange.getStart(); sampleIndex++)
+	{		
+		for(int ch = 0; ch < outputBuffer.getNumChannels(); ch++)
+		{
+			float outputSample = outputBuffer.getSample(ch, sampleIndex);
+			CHECK(outputSample == 0.f);
+		}
+	}
+
+	// now in the range of the "writing" so we should see the incBlock vals appear
+	for(juce::int64 sampleIndex = writeRange.getStart(); sampleIndex < writeRange.getLength(); sampleIndex++)
+	{
+		int indexInBlock = (int)(sampleIndex - writeRange.getStart());
+
+		for(int ch = 0; ch < outputBuffer.getNumChannels(); ch++)
+		{
+			float outputSample = outputBuffer.getSample(ch, sampleIndex);
+			float blockSample = incBlock.getSample(ch, indexInBlock);
+			CHECK(outputSample == blockSample);
+		}
+	}
+
+	// back out of the writing portion
+	for(juce::int64 sampleIndex = writeRange.getEnd(); sampleIndex < (juce::int64)outputBuffer.getNumSamples(); sampleIndex++)
+	{
+		for(int ch = 0; ch < outputBuffer.getNumChannels(); ch++)
+		{
+			float outputSample = outputBuffer.getSample(ch, (int)sampleIndex);
+			CHECK(outputSample == 0.f);
+		}
+	}
+}

@@ -140,7 +140,7 @@ public:
 	// keep things in range before calling this
 	static juce::dsp::AudioBlock<float> getRangeAsBlock(juce::AudioBuffer<float>& buffer, juce::Range<juce::int64> range)
 	{
-		// sanity checks
+		// Keep this in range sample wise
 		jassert (range.getStart() >= 0 
 				&& range.getEnd() <= buffer.getNumSamples());
 
@@ -151,5 +151,36 @@ public:
 		juce::dsp::AudioBlock<float> subBlock = fullBlock.getSubBlock(startSample, numSamples);
 		// Wrap only the requested sample‐range and all channels
 		return subBlock;
+	}
+
+	// Does not do anything special if block/buffer have different numChannels, same with valid range
+	// only promises to not explode.
+	// this is an "add" not a "copy", so block values are added on top of buffer values at those indices
+	// read from block, 0 to range.length || write to buffer from range.start to range.end
+	static bool writeBlockToBuffer(juce::AudioBuffer<float>& buffer, juce::dsp::AudioBlock<float>& block, juce::Range<juce::int64> range)
+	{
+		// trying to read outside buffer's numSamples
+		if(range.getStart() < 0 || range.getEnd() >= buffer.getNumSamples())
+			return false;
+
+		// TODO: handle varied channel config
+		if(buffer.getNumChannels() != block.getNumChannels())
+			return false;
+
+		// range might be shorter than full block
+		juce::dsp::AudioBlock<float> subBlock = block.getSubBlock(0, range.getLength());
+
+		for(juce::int64 indexInRange = 0; indexInRange < range.getLength(); indexInRange++)
+		{
+			juce::int64 indexInBuffer = indexInRange + range.getStart();
+
+			for(int ch = 0; ch < block.getNumChannels(); ch++)
+			{
+				float blockSample = block.getSample(ch, indexInRange);
+				float bufferSample = buffer.getSample(ch, indexInBuffer);
+				float newBufferSample = blockSample + bufferSample;
+				buffer.setSample(ch, indexInBuffer, newBufferSample);
+			}
+		}
 	}
 };
