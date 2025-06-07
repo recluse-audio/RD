@@ -72,11 +72,17 @@ public:
 
     float getAtReadPos(double readPos);
 
+
+
     // Sets mReadPos to 0, and sets mPhaseIncrement to 1.0
     void reset();
 
 	void setLooping(bool shouldLoop);
 	const bool getIsLooping();
+
+	// returns read only version of underlying window buffer
+	// useful for tests and visualization
+	const juce::AudioBuffer<float>& getReadBuffer();
 private:
     friend class WindowTester;
     juce::AudioBuffer<float> mBuffer; // using juce buffer for some helpful functions, but could be a simple array
@@ -99,4 +105,6 @@ private:
     // performs interpolation to handle double vals for mReadPos
     // doesn't increment mReadPos
     float _getInterpolatedSampleAtReadPos();
+	float _getInterpolatedSampleAtReadPos(float readPos);
+
 };

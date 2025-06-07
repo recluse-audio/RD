@@ -6,6 +6,8 @@
  * 
  */
 
+ #pragma once
+ 
 class Interpolator
 {
 public:

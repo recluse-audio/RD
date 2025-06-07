@@ -169,3 +169,46 @@ TEST_CASE("Get wrapped index of buffer.")
     CHECK(BufferHelper::getWrappedIndex(buffer, -1) == 19);
 
 }
+
+//===========
+TEST_CASE("Get Interpolated Sample")
+{
+	juce::AudioBuffer<float> buffer(1, 10);
+	BufferFiller::fillIncremental(buffer);
+
+	float fractionalIndex_0to1 = 0.83f;
+	float interpolatedSample_0to1 = BufferHelper::getLinearInterpolatedSampleAtIndex(buffer, fractionalIndex_0to1);
+	CHECK(interpolatedSample_0to1 == Catch::Approx(fractionalIndex_0to1).margin(0.0001f));
+
+	float fractionalIndex_1to2 = 1.0f + juce::Random::getSystemRandom().nextFloat(); // range [1.0, 2.0)
+	float interpolatedSample_1to2 = BufferHelper::getLinearInterpolatedSampleAtIndex(buffer, fractionalIndex_1to2);
+
+	// Optional: If you want to test it against a known value (e.g., buffer is linearly increasing)
+	CHECK(interpolatedSample_1to2 == Catch::Approx(fractionalIndex_1to2).margin(0.0001f));
+
+}
+
+//================
+TEST_CASE("Can get range of buffer as AudioBlock")
+{
+	juce::AudioBuffer<float> incrementalBuffer(2, 100);
+	BufferFiller::fillIncremental(incrementalBuffer);
+	juce::Range<juce::int64> readRange(10, 20);
+	juce::dsp::AudioBlock<float> readBlock = BufferHelper::getRangeAsBlock(incrementalBuffer, readRange);
+
+	CHECK(readBlock.getNumChannels() == incrementalBuffer.getNumChannels());
+	CHECK(readBlock.getNumSamples() == readRange.getLength());
+
+	for(juce::int64 readIndex = 0; readIndex < readRange.getLength(); readIndex++)
+	{
+		for(int ch = 0; ch < incrementalBuffer.getNumChannels(); ch++)
+		{
+			juce::int64 bufferReadIndex = readIndex + readRange.getStart();
+			float bufferSample = incrementalBuffer.getSample(ch, (int)bufferReadIndex);
+			float blockSample = readBlock.getSample(ch, readIndex);
+
+			CHECK(bufferSample == blockSample);
+
+		}
+	}
+}

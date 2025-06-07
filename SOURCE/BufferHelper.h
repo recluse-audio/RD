@@ -1,6 +1,6 @@
 #pragma once
 #include "Util/Juce_Header.h"
-
+#include "Interpolator.h"
 
 /**
  * @brief An assortment of functions for comparing buffers in frequent ways.
@@ -117,4 +117,39 @@ public:
 
         return index;
     }
+
+	//=========================
+	// returns the value at given float position (between indices) and performs linear interpolation to return the approx val
+	static float getLinearInterpolatedSampleAtIndex(juce::AudioBuffer<float>& buffer, float floatIndex)
+	{
+		int startIntIndex = (int)floatIndex;
+		int nextIntIndex = startIntIndex + 1;
+		// keep it in range
+		if(nextIntIndex >= buffer.getNumSamples())
+			nextIntIndex = nextIntIndex - buffer.getNumSamples();
+
+		double sample1 = buffer.getSample(0, startIntIndex);
+		double sample2 = buffer.getSample(0, nextIntIndex);
+		double delta = floatIndex - (float)startIntIndex;
+
+		float interpolatedSample = (float)Interpolator::linearInterp(sample1, sample2, delta);
+		return interpolatedSample;
+	}
+
+	// throws assertion if range is... out of range.  Don't want hidden shortening going on
+	// keep things in range before calling this
+	static juce::dsp::AudioBlock<float> getRangeAsBlock(juce::AudioBuffer<float>& buffer, juce::Range<juce::int64> range)
+	{
+		// sanity checks
+		jassert (range.getStart() >= 0 
+				&& range.getEnd() <= buffer.getNumSamples());
+
+		auto startSample  = static_cast<size_t> (range.getStart());
+		auto numSamples   = static_cast<size_t> (range.getLength());
+
+		juce::dsp::AudioBlock<float> fullBlock(buffer);
+		juce::dsp::AudioBlock<float> subBlock = fullBlock.getSubBlock(startSample, numSamples);
+		// Wrap only the requested sample‐range and all channels
+		return subBlock;
+	}
 };

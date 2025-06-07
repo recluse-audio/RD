@@ -420,10 +420,10 @@ public:
         return true;
     }
 
-
     //==================
-    static bool fillFromBuffer(juce::AudioBuffer<float>& bufferToFill, juce::AudioBuffer<float>& bufferToRead, int startSampleIndex)
+    static bool readRangeFromBuffer(juce::AudioBuffer<float>& bufferToFill, juce::AudioBuffer<float>& bufferToRead, int startSampleIndex)
     {
+		return true;
         //int numSamples = bufferToFill
     }
 };

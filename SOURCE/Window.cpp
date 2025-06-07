@@ -1,6 +1,7 @@
 #include "Window.h"
 #include "BufferFiller.h"
 #include "Interpolator.h"
+#include "BufferHelper.h"
 
 
 //===================
@@ -88,10 +89,11 @@ void Window::setReadPos(double readPos)
 
 //=================
 //
-float Window::getAtReadPos(double readPos)
+float Window::getAtReadPos(double readPos) 
 {
-    
+    return _getInterpolatedSampleAtReadPos(readPos);
 }
+
 
 //=================
 //
@@ -132,16 +134,34 @@ void Window::reset()
 float Window::_getInterpolatedSampleAtReadPos()
 {
 
-    int nextReadPos = (int)mReadPos + 1;
-    // keep it in range
-    if(nextReadPos >= mBuffer.getNumSamples())
-        nextReadPos = nextReadPos - mBuffer.getNumSamples();
+    // int nextReadPos = (int)mReadPos + 1;
+    // // keep it in range
+    // if(nextReadPos >= mBuffer.getNumSamples())
+    //     nextReadPos = nextReadPos - mBuffer.getNumSamples();
 
-    double sample1 = mBuffer.getSample(0, (int)mReadPos);
-    double sample2 = mBuffer.getSample(0, nextReadPos);
-    double delta = mReadPos - (int)mReadPos;
+    // double sample1 = mBuffer.getSample(0, (int)mReadPos);
+    // double sample2 = mBuffer.getSample(0, nextReadPos);
+    // double delta = mReadPos - (int)mReadPos;
 
-    return (float)Interpolator::linearInterp(sample1, sample2, delta);
+    // return (float)Interpolator::linearInterp(sample1, sample2, delta);
+	return BufferHelper::getLinearInterpolatedSampleAtIndex(mBuffer, mReadPos);
+}
+
+//====================
+//
+float Window::_getInterpolatedSampleAtReadPos(float readPos)
+{
+
+    // int nextReadPos = (int)readPos + 1;
+    // // keep it in range
+    // if(nextReadPos >= mBuffer.getNumSamples())
+    //     nextReadPos = nextReadPos - mBuffer.getNumSamples();
+
+    // double sample1 = mBuffer.getSample(0, (int)readPos);
+    // double sample2 = mBuffer.getSample(0, nextReadPos);
+    // double delta = readPos - (int)readPos;
+
+    return BufferHelper::getLinearInterpolatedSampleAtIndex(mBuffer, readPos);
 
 }
 
@@ -157,4 +177,11 @@ void Window::setLooping(bool shouldLoop)
 const bool Window::getIsLooping()
 {
 	return mIsLooping;
+}
+
+//=============
+//
+const juce::AudioBuffer<float>& Window::getReadBuffer()
+{
+	return mBuffer;
 }

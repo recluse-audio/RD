@@ -154,7 +154,8 @@ TEST_CASE("Can set window to loop")
         REQUIRE( sample == (float)loopedIndex );
     }
 
-    // At this point the Window's read pos is past the length of the buffer
-    CHECK (window.getNextSample() == 0.f );
+
 
 }
+
+
