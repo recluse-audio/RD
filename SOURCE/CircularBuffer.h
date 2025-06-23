@@ -29,6 +29,9 @@ public:
     // unlike readRange, this will update the local mReadPos
     bool popBuffer(juce::AudioBuffer<float>& buffer);
 
+	// 
+	bool popBufferWithLookahead(juce::AudioBuffer<float>& lookaheadBuffer, juce::AudioBuffer<float> outputBuffer);
+
     // Reads audio data from circular buffer and writes it to the buffer passed in.
     // Starts at given readPos arg, fills entire buffer passed in - if circular buffer is smaller than buffer passed in, it will not clear or fill the remaining sample indices
     // Does not increment local mReadPos.  This could be useful for a multi-tap delay or PSOLA (hopefully!!!)

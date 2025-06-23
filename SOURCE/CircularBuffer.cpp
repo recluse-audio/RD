@@ -67,6 +67,19 @@ bool CircularBuffer::popBuffer(juce::AudioBuffer<float>& buffer)
 }
 
 //=======================
+bool CircularBuffer::popBufferWithLookahead(juce::AudioBuffer<float>& lookaheadBuffer, juce::AudioBuffer<float> outputBuffer)
+{
+    bool success = false;
+    int delayedReadPos = mReadPos - mDelayInSamples;
+    int wrappedReadPos = BufferHelper::getWrappedIndex(mCircularBuffer, delayedReadPos);
+	success = _readFromCircularBuffer(lookaheadBuffer, wrappedReadPos);
+
+    _incrementReadPosition(outputBuffer.getNumSamples());
+
+    return success;
+}
+
+//=======================
 //
 bool CircularBuffer::readRange(juce::AudioBuffer<float>& buffer, int startingReadIndex)
 {
@@ -183,7 +196,6 @@ bool CircularBuffer::_readFromCircularBuffer(juce::AudioBuffer<float>& buffer, i
             auto bufferSample = buffer.getSample(ch, sampleIndex);
             auto readSample = mCircularBuffer.getSample(ch, readPos);
             buffer.setSample(ch, sampleIndex, readSample + bufferSample);
-
         }
 
         readPos++; // note this is not mReadPos, don't call _incrementReadPosition()

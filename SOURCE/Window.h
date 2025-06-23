@@ -106,5 +106,5 @@ private:
     // doesn't increment mReadPos
     float _getInterpolatedSampleAtReadPos();
 	float _getInterpolatedSampleAtReadPos(float readPos);
-
+	
 };
