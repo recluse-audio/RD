@@ -174,9 +174,9 @@ public:
 		{
 			juce::int64 indexInBuffer = indexInRange + range.getStart();
 
-			for(int ch = 0; ch < block.getNumChannels(); ch++)
+			for(int ch = 0; ch < subBlock.getNumChannels(); ch++)
 			{
-				float blockSample = block.getSample(ch, indexInRange);
+				float blockSample = subBlock.getSample(ch, indexInRange);
 				float bufferSample = buffer.getSample(ch, indexInBuffer);
 				float newBufferSample = blockSample + bufferSample;
 				buffer.setSample(ch, indexInBuffer, newBufferSample);
