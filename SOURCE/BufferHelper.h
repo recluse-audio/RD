@@ -168,9 +168,9 @@ public:
 			return false;
 
 		// range might be shorter than full block
-		juce::dsp::AudioBlock<float> subBlock = block.getSubBlock(0, range.getLength());
+		juce::dsp::AudioBlock<float> subBlock = block.getSubBlock(0, range.getLength()+1);
 
-		for(juce::int64 indexInRange = 0; indexInRange < range.getLength(); indexInRange++)
+		for(juce::int64 indexInRange = 0; indexInRange < range.getLength()+1; indexInRange++)
 		{
 			juce::int64 indexInBuffer = indexInRange + range.getStart();
 

@@ -229,7 +229,7 @@ TEST_CASE("Can write juce::dsp::AudioBlock to juce::AudioBuffer at specific juce
 	outputBuffer.clear();
 
 	// writing the incBlock values to the outputBuffer in this range
-	juce::Range<juce::int64> writeRange(10, 20);
+	juce::Range<juce::int64> writeRange(10, 19);
 	// do the writing
 	BufferHelper::writeBlockToBuffer(outputBuffer, incBlock, writeRange);
 

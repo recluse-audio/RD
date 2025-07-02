@@ -231,6 +231,7 @@ TEST_CASE("Set delay in circular buffer.")
     
 }
 
+
 //===============================
 //
 TEST_CASE("Can read from buffer and return juce::AudioBlock.")
@@ -304,4 +305,78 @@ TEST_CASE("Can read from buffer and return juce::AudioBlock.")
     // }
 
     
+}
+
+
+TEST_CASE("Test pushing buffers smaller than the buffer we pop")
+{
+	CircularBuffer cb;
+    CircularBufferTest cbTest(cb); 
+
+    int circularBufferSize = 1024;
+    cb.setSize(1, circularBufferSize);
+
+	juce::AudioBuffer<float> lookaheadBuffer(1, 128);
+	lookaheadBuffer.clear();
+
+	juce::AudioBuffer<float> outputBuffer(1, 64);
+	outputBuffer.clear();
+
+	int lookaheadSamples = lookaheadBuffer.getNumSamples() - outputBuffer.getNumSamples();
+	cb.setDelay(lookaheadSamples);
+
+	BufferFiller::fillWithAllOnes(outputBuffer);
+
+	cb.pushBuffer(outputBuffer);
+	cb.popBufferWithLookahead(lookaheadBuffer, outputBuffer);
+
+	for(int sampleIndex = 0; sampleIndex < outputBuffer.getNumSamples(); sampleIndex++)
+	{
+		float lookaheadSample = lookaheadBuffer.getSample(0, sampleIndex);
+		CHECK(lookaheadSample == 0);
+	}
+
+	for(int sampleIndex = outputBuffer.getNumSamples(); sampleIndex < lookaheadBuffer.getNumSamples(); sampleIndex++)
+	{
+		float lookaheadSample = lookaheadBuffer.getSample(0, sampleIndex);
+		CHECK(lookaheadSample == 1);
+	}
+
+	lookaheadBuffer.clear();
+	cb.pushBuffer(outputBuffer);
+	cb.popBufferWithLookahead(lookaheadBuffer, outputBuffer);
+
+	for(int sampleIndex = 0; sampleIndex < lookaheadBuffer.getNumSamples(); sampleIndex++)
+	{
+		float lookaheadSample = lookaheadBuffer.getSample(0, sampleIndex);
+		CHECK(lookaheadSample == 1);
+	}
+
+	outputBuffer.clear();
+	lookaheadBuffer.clear();
+	cb.pushBuffer(outputBuffer);
+	cb.popBufferWithLookahead(lookaheadBuffer, outputBuffer);
+
+	for(int sampleIndex = 0; sampleIndex < outputBuffer.getNumSamples(); sampleIndex++)
+	{
+		float lookaheadSample = lookaheadBuffer.getSample(0, sampleIndex);
+		CHECK(lookaheadSample == 1);
+	}
+
+	for(int sampleIndex = outputBuffer.getNumSamples(); sampleIndex < lookaheadBuffer.getNumSamples(); sampleIndex++)
+	{
+		float lookaheadSample = lookaheadBuffer.getSample(0, sampleIndex);
+		CHECK(lookaheadSample == 0);
+	}
+
+	outputBuffer.clear();
+	lookaheadBuffer.clear();
+	cb.pushBuffer(outputBuffer);
+	cb.popBufferWithLookahead(lookaheadBuffer, outputBuffer);
+
+	for(int sampleIndex = 0; sampleIndex < lookaheadBuffer.getNumSamples(); sampleIndex++)
+	{
+		float lookaheadSample = lookaheadBuffer.getSample(0, sampleIndex);
+		CHECK(lookaheadSample == 0);
+	}
 }
