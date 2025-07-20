@@ -8,6 +8,7 @@
 #include "../SOURCE/RelativeFilePath.h"
 #include "../SOURCE/BufferFiller.h"
 #include "../SOURCE/BufferHelper.h"
+#include "../SOURCE/BufferRange.h"
 #include "../SOURCE/AudioFileHelpers.h"
 #include "../SOURCE/EFFECTS/GainProcessor.h"
 
@@ -193,17 +194,17 @@ TEST_CASE("Can get range of buffer as AudioBlock")
 {
 	juce::AudioBuffer<float> incrementalBuffer(2, 100);
 	BufferFiller::fillIncremental(incrementalBuffer);
-	juce::Range<juce::int64> readRange(10, 20);
+	RD::BufferRange readRange(10, 20);
 	juce::dsp::AudioBlock<float> readBlock = BufferHelper::getRangeAsBlock(incrementalBuffer, readRange);
 
 	CHECK(readBlock.getNumChannels() == incrementalBuffer.getNumChannels());
-	CHECK(readBlock.getNumSamples() == readRange.getLength());
+	CHECK(readBlock.getNumSamples() == readRange.getLengthInSamples());
 
-	for(juce::int64 readIndex = 0; readIndex < readRange.getLength(); readIndex++)
+	for(juce::int64 readIndex = 0; readIndex < readRange.getLengthInSamples(); readIndex++)
 	{
 		for(int ch = 0; ch < incrementalBuffer.getNumChannels(); ch++)
 		{
-			juce::int64 bufferReadIndex = readIndex + readRange.getStart();
+			juce::int64 bufferReadIndex = readIndex + readRange.getStartIndex();
 			float bufferSample = incrementalBuffer.getSample(ch, (int)bufferReadIndex);
 			float blockSample = readBlock.getSample(ch, readIndex);
 
@@ -229,12 +230,13 @@ TEST_CASE("Can write juce::dsp::AudioBlock to juce::AudioBuffer at specific juce
 	outputBuffer.clear();
 
 	// writing the incBlock values to the outputBuffer in this range
-	juce::Range<juce::int64> writeRange(10, 19);
+	RD::BufferRange writeRange(10, 19);
+	CHECK(writeRange.getLengthInSamples() == 10);
 	// do the writing
 	BufferHelper::writeBlockToBuffer(outputBuffer, incBlock, writeRange);
 
 	// output indices 0-9, we can expect 0's
-	for(juce::int64 sampleIndex = 0; sampleIndex < writeRange.getStart(); sampleIndex++)
+	for(juce::int64 sampleIndex = 0; sampleIndex < writeRange.getStartIndex(); sampleIndex++)
 	{		
 		for(int ch = 0; ch < outputBuffer.getNumChannels(); ch++)
 		{
@@ -244,9 +246,9 @@ TEST_CASE("Can write juce::dsp::AudioBlock to juce::AudioBuffer at specific juce
 	}
 
 	// now in the range of the "writing" so we should see the incBlock vals appear
-	for(juce::int64 sampleIndex = writeRange.getStart(); sampleIndex < writeRange.getLength(); sampleIndex++)
+	for(juce::int64 sampleIndex = writeRange.getStartIndex(); sampleIndex <= writeRange.getEndIndex(); sampleIndex++)
 	{
-		int indexInBlock = (int)(sampleIndex - writeRange.getStart());
+		int indexInBlock = (int)(sampleIndex - writeRange.getStartIndex());
 
 		for(int ch = 0; ch < outputBuffer.getNumChannels(); ch++)
 		{
@@ -257,7 +259,7 @@ TEST_CASE("Can write juce::dsp::AudioBlock to juce::AudioBuffer at specific juce
 	}
 
 	// back out of the writing portion
-	for(juce::int64 sampleIndex = writeRange.getEnd(); sampleIndex < (juce::int64)outputBuffer.getNumSamples(); sampleIndex++)
+	for(juce::int64 sampleIndex = writeRange.getEndIndex() + 1; sampleIndex < (juce::int64)outputBuffer.getNumSamples(); sampleIndex++)
 	{
 		for(int ch = 0; ch < outputBuffer.getNumChannels(); ch++)
 		{

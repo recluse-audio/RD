@@ -1,6 +1,7 @@
 #pragma once
 #include "Util/Juce_Header.h"
 #include "Interpolator.h"
+#include "BufferRange.h"
 
 /**
  * @brief An assortment of functions for comparing buffers in frequent ways.
@@ -138,14 +139,14 @@ public:
 
 	// throws assertion if range is... out of range.  Don't want hidden shortening going on
 	// keep things in range before calling this
-	static juce::dsp::AudioBlock<float> getRangeAsBlock(juce::AudioBuffer<float>& buffer, juce::Range<juce::int64> range)
+	static juce::dsp::AudioBlock<float> getRangeAsBlock(juce::AudioBuffer<float>& buffer, RD::BufferRange range)
 	{
 		// Keep this in range sample wise
-		jassert (range.getStart() >= 0 
-				&& range.getEnd() <= buffer.getNumSamples());
+		jassert (range.getStartIndex() >= 0 
+				&& range.getEndIndex() <= buffer.getNumSamples());
 
-		auto startSample  = static_cast<size_t> (range.getStart());
-		auto numSamples   = static_cast<size_t> (range.getLength());
+		auto startSample  = static_cast<size_t> (range.getStartIndex());
+		auto numSamples   = static_cast<size_t> (range.getLengthInSamples());
 
 		juce::dsp::AudioBlock<float> fullBlock(buffer);
 		juce::dsp::AudioBlock<float> subBlock = fullBlock.getSubBlock(startSample, numSamples);
@@ -157,10 +158,10 @@ public:
 	// only promises to not explode.
 	// this is an "add" not a "copy", so block values are added on top of buffer values at those indices
 	// read from block, 0 to range.length || write to buffer from range.start to range.end
-	static bool writeBlockToBuffer(juce::AudioBuffer<float>& buffer, juce::dsp::AudioBlock<float>& block, juce::Range<juce::int64> range)
+	static bool writeBlockToBuffer(juce::AudioBuffer<float>& buffer, juce::dsp::AudioBlock<float>& block, RD::BufferRange range)
 	{
 		// trying to read outside buffer's numSamples
-		if(range.getStart() < 0 || range.getEnd() >= buffer.getNumSamples())
+		if(range.getStartIndex() < 0 || range.getEndIndex() >= buffer.getNumSamples())
 			return false;
 
 		// TODO: handle varied channel config
@@ -168,11 +169,11 @@ public:
 			return false;
 
 		// range might be shorter than full block
-		juce::dsp::AudioBlock<float> subBlock = block.getSubBlock(0, range.getLength());
+		juce::dsp::AudioBlock<float> subBlock = block.getSubBlock(0, range.getLengthInSamples());
 
-		for(juce::int64 indexInRange = 0; indexInRange < range.getLength(); indexInRange++)
+		for(juce::int64 indexInRange = 0; indexInRange < range.getLengthInSamples(); indexInRange++)
 		{
-			juce::int64 indexInBuffer = indexInRange + range.getStart();
+			juce::int64 indexInBuffer = indexInRange + range.getStartIndex();
 
 			for(int ch = 0; ch < subBlock.getNumChannels(); ch++)
 			{

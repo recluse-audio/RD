@@ -43,34 +43,50 @@ public:
 
 	BufferRange()
 	{
+		// doing this to the underlying range to prevent catastrophe, but really in this case the range is empty
 		mRange.setStart(0);
 		mRange.setEnd(0);
+	}
+
+	BufferRange(juce::int64 start, juce::int64 end)
+	{
+		setStartIndex(start);
+		setEndIndex(end);
 	}
 
 	void setStartIndex(juce::int64 startIndex)
 	{
 		mRange.setStart(startIndex);
+		setIsEmpty(false);
 	}
 
 	void setEndIndex(juce::int64 endIndex)
 	{
 		mRange.setEnd(endIndex);
+		setIsEmpty(false);
 	}
 
 	
 	void setLengthInSamples(juce::int64 lengthInSamples)
 	{
 		mRange.setLength(lengthInSamples - (juce::int64)1);
+
+		lengthInSamples > 0 ? setIsEmpty(false) : setIsEmpty(true);
 	}
 
-	juce::int64 getStartIndex()	{	return mRange.getStart();	}
-	juce::int64 getEndIndex()	{	return mRange.getEnd();	}
-	juce::int64 getLengthInSamples()	{	return mRange.getLength() + (juce::int64)1;	}
+	juce::int64 getStartIndex() const {	return mRange.getStart();	}
+	juce::int64 getEndIndex() const	{	return mRange.getEnd();	}
+	juce::int64 getLengthInSamples() const	{	return mRange.getLength() + (juce::int64)1;	}
+	const juce::Range<juce::int64>& getRange() const { return mRange; }
 
-	const juce::Range<juce::int64>& getRange() { return mRange; }
+	// This exists to handle the fact that a range that starts and ends with [0] corresponds with a length of 1 sample
+	// Using negative is not deisreable either, because it may be used in lookahead situations and I don't want to prohibit that
+	void setIsEmpty(bool isEmpty) { mIsEmpty = isEmpty; }
+	bool isEmpty() { return mIsEmpty; }
+
 
 private:
-
+	bool mIsEmpty = true;
 	juce::Range<juce::int64> mRange;
 
 
