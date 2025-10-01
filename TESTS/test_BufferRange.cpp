@@ -35,6 +35,14 @@ TEST_CASE("RD::BufferRange updates its default isEmpty==true state automatically
 
 }
 
+TEST_CASE("Can set buffer range by passing a buffer", "test_BufferRange")
+{
+	RD::BufferRange bufferRange;
+	bufferRange.setStartIndex(20);
+	bufferRange.setEndIndex(40);
+	CHECK(bufferRange.getStartIndex() == 20);
+	CHECK(bufferRange.getEndIndex() == 40);
+}
 
 TEST_CASE("RD::BufferRange::setEmpty(); Can set BufferRange as empty")
 {

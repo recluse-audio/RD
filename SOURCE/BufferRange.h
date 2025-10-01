@@ -84,7 +84,12 @@ public:
 	void setIsEmpty(bool isEmpty) { mIsEmpty = isEmpty; }
 	bool isEmpty() { return mIsEmpty; }
 
-
+	// matches this range to the size of the given buffer
+	void setRangeAccordingToBuffer(const juce::AudioBuffer<float>& buffer)
+	{
+		mRange.setStart(0); // index 0 of buffer
+		mRange.setLength(buffer.getNumSamples());
+	}
 private:
 	bool mIsEmpty = true;
 	juce::Range<juce::int64> mRange;
