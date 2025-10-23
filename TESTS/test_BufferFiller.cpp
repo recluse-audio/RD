@@ -37,6 +37,45 @@ TEST_CASE("Can make a Hanning Window")
 }
 
 //========================
+TEST_CASE("Hanning window generation matches golden CSV values")
+{
+    // Load the golden Hanning window from CSV
+    juce::AudioBuffer<float> goldenBuffer;
+    goldenBuffer.clear();
+
+    juce::File currentDir = juce::File::getCurrentWorkingDirectory();
+    juce::String relativePath = "/SUBMODULES/RD/TESTS/GOLDEN/GOLDEN_HanningBuffer_1024.csv";
+    juce::String fullPath = currentDir.getFullPathName() + relativePath;
+
+    bool loadSuccess = BufferFiller::loadFromCSV(goldenBuffer, fullPath);
+    REQUIRE(loadSuccess == true);
+    REQUIRE(goldenBuffer.getNumSamples() == 1024);
+
+    // Generate a Hanning window using BufferFiller::generateHanning
+    juce::AudioBuffer<float> generatedBuffer(1, 1024);
+    BufferFiller::generateHanning(generatedBuffer);
+
+    // Compare the two buffers sample by sample
+    for(int sampleIndex = 0; sampleIndex < 1024; sampleIndex++)
+    {
+        float goldenValue = goldenBuffer.getSample(0, sampleIndex);
+        float generatedValue = generatedBuffer.getSample(0, sampleIndex);
+
+        INFO("Comparing sample at index " << sampleIndex);
+        CHECK(generatedValue == Catch::Approx(goldenValue).epsilon(0.0001f));
+    }
+
+    // Also verify key values every 128 samples
+    CHECK(generatedBuffer.getSample(0, 0) == Catch::Approx(0.0f).epsilon(0.0001f));
+    CHECK(generatedBuffer.getSample(0, 128) == Catch::Approx(goldenBuffer.getSample(0, 128)).epsilon(0.0001f));
+    CHECK(generatedBuffer.getSample(0, 256) == Catch::Approx(goldenBuffer.getSample(0, 256)).epsilon(0.0001f));
+    CHECK(generatedBuffer.getSample(0, 512) == Catch::Approx(goldenBuffer.getSample(0, 512)).epsilon(0.0001f));
+    CHECK(generatedBuffer.getSample(0, 768) == Catch::Approx(goldenBuffer.getSample(0, 768)).epsilon(0.0001f));
+    CHECK(generatedBuffer.getSample(0, 896) == Catch::Approx(goldenBuffer.getSample(0, 896)).epsilon(0.0001f));
+    CHECK(generatedBuffer.getSample(0, 1023) == Catch::Approx(0.0f).epsilon(0.0001f));
+}
+
+//========================
 TEST_CASE("Can make an incremental buffer")
 {
     int numSamples = 100;

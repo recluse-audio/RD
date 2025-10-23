@@ -69,10 +69,14 @@ public:
     const float getNextSample();
 
     void setReadPos(double readPos);
+    void resetReadPos();
 
     float getAtReadPos(double readPos);
 
-
+    // Returns the window value at a specific index within the current period
+    // @param index The sample index within the period (0 to period-1)
+    // @return The window value at that index
+    float getValueAtIndexInPeriod(int index);
 
     // Sets mReadPos to 0, and sets mPhaseIncrement to 1.0
     void reset();
@@ -89,6 +93,7 @@ private:
 
     Window::Shape mCurrentShape;
 
+	int mPeriod = 0;
     // rate at which we read from buffer of samples.
     // Goes up with higher pitch, down with lower
     double mPhaseIncrement = 1.0;  

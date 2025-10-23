@@ -153,9 +153,68 @@ TEST_CASE("Can set window to loop")
         auto sample = window.getNextSample();
         REQUIRE( sample == (float)loopedIndex );
     }
+}
+
+//=====================
+// Test that getValueAtIndexInPeriod returns the same values as getNextSample
+TEST_CASE("getValueAtIndexInPeriod matches getNextSample values")
+{
+    Window window;
+    WindowTester wt(window);
+
+    int bufferSize = 1024;
+    int period = 128;
+
+	window.setSizeShapePeriod((double)bufferSize, Window::Shape::kHanning, period);
 
 
 
+    // Iterate through all samples in the period
+    for(int i = 0; i < period; i++)
+    {
+        // Get value using getNextSample (which increments read position)
+        float nextSampleValue = window.getNextSample();
+
+        // Get value using getValueAtIndexInPeriod (should not increment position)
+        float indexValue = window.getValueAtIndexInPeriod(i);
+
+        INFO("Testing index " << i << " in period of " << period);
+        CHECK(indexValue == nextSampleValue);
+    }
+}
+
+//=====================
+// Test that resetReadPos sets read position back to 0
+TEST_CASE("resetReadPos sets read position to 0")
+{
+    Window window;
+    WindowTester wt(window);
+
+    int bufferSize = 100;
+    window.setSize((double)bufferSize);
+    BufferFiller::fillIncremental(wt.getBuffer()); // fill the underlying buffer incrementally
+    window.setPeriod(bufferSize);
+
+    // Read some samples to advance the read position
+    for(int i = 0; i < 50; i++)
+    {
+        window.getNextSample();
+    }
+
+    // At this point, the next sample should be 50
+    float sampleBeforeReset = window.getNextSample();
+    CHECK(sampleBeforeReset == 50.0f);
+
+    // Reset the read position
+    window.resetReadPos();
+
+    // Now the next sample should be 0 again
+    float sampleAfterReset = window.getNextSample();
+    CHECK(sampleAfterReset == 0.0f);
+
+    // Verify we can continue reading from the beginning
+    float secondSample = window.getNextSample();
+    CHECK(secondSample == 1.0f);
 }
 
 

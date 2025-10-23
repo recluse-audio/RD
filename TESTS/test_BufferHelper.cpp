@@ -3,8 +3,6 @@
 #include <catch2/catch_approx.hpp>  // For Approx in Catch2 v3+
 
 #include "TEST_UTILS/TestUtils.h"
-
-#include "../SOURCE/AudioFileProcessor.h"
 #include "../SOURCE/RelativeFilePath.h"
 #include "../SOURCE/BufferFiller.h"
 #include "../SOURCE/BufferHelper.h"
@@ -266,5 +264,89 @@ TEST_CASE("Can write juce::dsp::AudioBlock to juce::AudioBuffer at specific juce
 			float outputSample = outputBuffer.getSample(ch, (int)sampleIndex);
 			CHECK(outputSample == 0.f);
 		}
+	}
+}
+
+//================
+TEST_CASE("Apply window to audio block")
+{
+	TestUtils::SetupAndTeardown setupAndTeardown;
+
+	const int blockSize = 128;
+
+	// Create a buffer filled with all ones
+	juce::AudioBuffer<float> buffer(1, blockSize);
+	BufferFiller::fillWithAllOnes(buffer);
+
+	// Create an audio block from the buffer
+	juce::dsp::AudioBlock<float> block(buffer);
+
+	// Create and configure window with Hanning shape
+	Window window;
+	window.setSizeShapePeriod(1024, Window::Shape::kHanning, blockSize);
+
+	// Apply window to block
+	BufferHelper::applyWindowToBlock(block, window);
+
+	// known final value when interpolating 1024->128 (not zero)
+	const float knownFinalValue = 0.00046f;
+
+	// Verify that the block values are now windowed
+	// At index 0 and blockSize-1, Hanning should be ~0.0
+	CHECK(block.getSample(0, 0) == Catch::Approx(0.0f).margin(0.0001f));
+	CHECK(block.getSample(0, blockSize - 1) == Catch::Approx(knownFinalValue).margin(0.00001f));
+
+	// At the middle (index 64), Hanning should be ~1.0
+	CHECK(block.getSample(0, blockSize / 2) == Catch::Approx(1.0f).epsilon(0.01f));
+
+	// Verify all values are between 0 and 1
+	for (int i = 0; i < blockSize; ++i)
+	{
+		float sample = block.getSample(0, i);
+		CHECK(sample >= 0.0f);
+		CHECK(sample <= 1.0f);
+	}
+}
+
+//================
+TEST_CASE("Window with period 128 reads every 8th value from size 1024 buffer")
+{
+	TestUtils::SetupAndTeardown setupAndTeardown;
+
+	const int windowSize = 1024;
+	const int period = 128;
+	const int phaseIncrement = windowSize / period;  // Should be 8
+
+	// Load the full 1024-sample Hanning window from golden file
+	juce::AudioBuffer<float> goldenFullHanning;
+	goldenFullHanning.clear();
+
+	juce::File currentDir = juce::File::getCurrentWorkingDirectory();
+	juce::String relativePath = "/SUBMODULES/RD/TESTS/GOLDEN/GOLDEN_HanningBuffer_1024.csv";
+	juce::String fullPath = currentDir.getFullPathName() + relativePath;
+
+	bool loadSuccess = BufferFiller::loadFromCSV(goldenFullHanning, fullPath);
+	REQUIRE(loadSuccess == true);
+	REQUIRE(goldenFullHanning.getNumSamples() == windowSize);
+
+	INFO("Loaded " << goldenFullHanning.getNumSamples() << " samples from GOLDEN_HanningBuffer_1024.csv");
+	INFO("Window size: " << windowSize << ", Period: " << period << ", Phase increment: " << phaseIncrement);
+
+	// Create Window with size 1024 and period 128
+	Window window;
+	window.setSizeShapePeriod(windowSize, Window::Shape::kHanning, period);
+
+	// Read through the window for one period (128 samples)
+	// Each getNextSample() should advance by phase increment of 8
+	// So we should get: goldenFullHanning[0], goldenFullHanning[8], goldenFullHanning[16], ...
+	for (int i = 0; i < period; ++i)
+	{
+		float windowValue = window.getNextSample();
+		int expectedIndex = i * phaseIncrement;
+		float expectedValue = goldenFullHanning.getSample(0, expectedIndex);
+
+		INFO("Sample " << i << ": window value = " << windowValue
+			 << ", expected (golden[" << expectedIndex << "]) = " << expectedValue);
+		CHECK(windowValue == Catch::Approx(expectedValue).epsilon(0.0001f));
 	}
 }

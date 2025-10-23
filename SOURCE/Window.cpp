@@ -24,6 +24,7 @@ Window::~Window()
 //
 void Window::setSizeShapePeriod(int newSize, Window::Shape newShape, int newPeriod)
 {
+	this->reset();
 	this->setSize(newSize);
 	this->setShape(newShape);
 	this->setPeriod(newPeriod);
@@ -76,7 +77,7 @@ void Window::_update()
 void Window::setPeriod(int numSamples)
 {
     // don't do that
-    
+    mPeriod = numSamples;
     mPhaseIncrement = (double)mBuffer.getNumSamples() / (double)numSamples;
 }
 
@@ -85,6 +86,13 @@ void Window::setPeriod(int numSamples)
 void Window::setReadPos(double readPos)
 {
     mReadPos = readPos;
+}
+
+//=================
+//
+void Window::resetReadPos()
+{
+    mReadPos = 0.0;
 }
 
 //=================
@@ -184,4 +192,19 @@ const bool Window::getIsLooping()
 const juce::AudioBuffer<float>& Window::getReadBuffer()
 {
 	return mBuffer;
+}
+
+//=============
+//
+float Window::getValueAtIndexInPeriod(int indexInPeriod)
+{
+	// honestly don't even do this, but if you do we will handle it
+	// modulos are expensive or so they say, so I'm not gonna do it unless you mess up.
+	if(indexInPeriod >= mPeriod)
+		indexInPeriod = indexInPeriod % mPeriod;
+
+	float readPos = (float)indexInPeriod * mPhaseIncrement;
+	float valueAtIndexInPeriod = _getInterpolatedSampleAtReadPos(readPos);
+
+	return valueAtIndexInPeriod;
 }

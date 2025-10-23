@@ -2,6 +2,7 @@
 #include "Util/Juce_Header.h"
 #include "Interpolator.h"
 #include "BufferRange.h"
+#include "Window.h"
 
 /**
  * @brief An assortment of functions for comparing buffers in frequent ways.
@@ -181,6 +182,25 @@ public:
 				float bufferSample = buffer.getSample(ch, indexInBuffer);
 				float newBufferSample = blockSample + bufferSample;
 				buffer.setSample(ch, indexInBuffer, newBufferSample);
+			}
+		}
+	}
+
+	//
+	// Applies window to block of audio data. This assumes that the windows size/shape/period have been set and it is ready to go
+	// doesn't do any checks to make sure these align in size so do that before if it is important.
+	// You'll want to be sure the windows period is equal to the block length
+	static bool applyWindowToBlock(juce::dsp::AudioBlock<float>& block, Window& window)
+	{
+
+		for(int sampleIndex = 0; sampleIndex < block.getNumSamples(); sampleIndex++)
+		{
+			float windowValue = window.getNextSample();
+			for(int ch = 0; ch < block.getNumChannels(); ch++)
+			{
+				float blockSample = block.getSample(ch, sampleIndex);
+				float windowedSample = blockSample * windowValue;
+				block.setSample(ch, sampleIndex, windowedSample);
 			}
 		}
 	}
