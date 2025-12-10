@@ -190,9 +190,11 @@ public:
 	// Applies window to block of audio data. This assumes that the windows size/shape/period have been set and it is ready to go
 	// doesn't do any checks to make sure these align in size so do that before if it is important.
 	// You'll want to be sure the windows period is equal to the block length
+	// TODO: This needs to handle partial windows
 	static bool applyWindowToBlock(juce::dsp::AudioBlock<float>& block, Window& window)
 	{
 
+		// TODO: 
 		for(int sampleIndex = 0; sampleIndex < block.getNumSamples(); sampleIndex++)
 		{
 			float windowValue = window.getNextSample();
