@@ -206,4 +206,20 @@ public:
 			}
 		}
 	}
+
+	static bool applyWindowToBlock(juce::dsp::AudioBlock<float>& block, Window& window, float startingPhase)
+	{
+		
+		// TODO: 
+		for(int sampleIndex = 0; sampleIndex < block.getNumSamples(); sampleIndex++)
+		{
+			float windowValue = window.getNextSample();
+			for(int ch = 0; ch < block.getNumChannels(); ch++)
+			{
+				float blockSample = block.getSample(ch, sampleIndex);
+				float windowedSample = blockSample * windowValue;
+				block.setSample(ch, sampleIndex, windowedSample);
+			}
+		}
+	}
 };

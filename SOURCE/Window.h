@@ -51,6 +51,7 @@ public:
     // we will read the entirety of the window in 'numSamples'
     // interpolating as necessary
     void setPeriod(int numSamples);
+	int getPeriod() { return mPeriod; }
 
     // sets the numSamples of the underlying buffer.
     // always 1 channel until I find a reason otherwise
@@ -68,8 +69,12 @@ public:
     // returns the sample at the internally incremented mReadPos
     const float getNextSample();
 
+	// takes a 0 - 1 float value and updates current read pos such t
+	// void setCurrentReadPosWithNormalizedPhase(float normalizedPhase);
     void setReadPos(double readPos);
     void resetReadPos();
+	double getReadPos() const { return mReadPos; }
+	double getCurrentNormalizedPhase() { return mReadPos / (double)mBuffer.getNumSamples(); }
 
     float getAtReadPos(double readPos);
 

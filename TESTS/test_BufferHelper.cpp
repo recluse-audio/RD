@@ -308,6 +308,43 @@ TEST_CASE("Apply window to audio block")
 	}
 }
 
+
+//================
+TEST_CASE("Apply window with starting phase zero matches no-phase version")
+{
+	TestUtils::SetupAndTeardown setupAndTeardown;
+
+	const int blockSize = 64;
+
+	// Create two buffers filled with all ones
+	juce::AudioBuffer<float> buffer1(1, blockSize);
+	juce::AudioBuffer<float> buffer2(1, blockSize);
+	BufferFiller::fillWithAllOnes(buffer1);
+	BufferFiller::fillWithAllOnes(buffer2);
+
+	// Create audio blocks from the buffers
+	juce::dsp::AudioBlock<float> block1(buffer1);
+	juce::dsp::AudioBlock<float> block2(buffer2);
+
+	// Create two identical windows
+	Window window1;
+	Window window2;
+	window1.setSizeShapePeriod(1024, Window::Shape::kHanning, blockSize);
+	window2.setSizeShapePeriod(1024, Window::Shape::kHanning, blockSize);
+
+	// Apply window without phase to block1
+	BufferHelper::applyWindowToBlock(block1, window1);
+
+	// Apply window with starting phase 0.0 to block2 (should be equivalent)
+	BufferHelper::applyWindowToBlock(block2, window2, 0.0f);
+
+	// Both blocks should be identical
+	for (int i = 0; i < blockSize; ++i)
+	{
+		CHECK(block1.getSample(0, i) == Catch::Approx(block2.getSample(0, i)).margin(0.0001f));
+	}
+}
+
 //================
 TEST_CASE("Window with period 128 reads every 8th value from size 1024 buffer")
 {
@@ -335,7 +372,8 @@ TEST_CASE("Window with period 128 reads every 8th value from size 1024 buffer")
 	// Create Window with size 1024 and period 128
 	Window window;
 	window.setSizeShapePeriod(windowSize, Window::Shape::kHanning, period);
-
+	window.resetReadPos();
+	
 	// Read through the window for one period (128 samples)
 	// Each getNextSample() should advance by phase increment of 8
 	// So we should get: goldenFullHanning[0], goldenFullHanning[8], goldenFullHanning[16], ...
