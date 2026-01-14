@@ -126,6 +126,7 @@ juce::dsp::AudioBlock<float> CircularBuffer::popAudioBlock(int length)
 {
     juce::dsp::AudioBlock<float> audioBlock(mCircularBuffer);
     auto subBlock = audioBlock.getSubBlock((size_t)mReadPos, (size_t)length);
+    return subBlock;
 }
 
 

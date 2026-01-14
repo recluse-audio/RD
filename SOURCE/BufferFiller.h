@@ -9,7 +9,7 @@
 class BufferFiller
 {
 public:
-
+    inline static constexpr double M_PI = 3.141592653589793;
     /**
      * @brief You pass in the short name of the file you want in the SUBMODULES/RD/TESTS/GOLDEN/ directory 
      * and this returns the full path with the correct CWD.

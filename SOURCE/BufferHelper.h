@@ -205,6 +205,8 @@ public:
 				block.setSample(ch, sampleIndex, windowedSample);
 			}
 		}
+
+		return true; // TODO: this should be a void function
 	}
 
 	static bool applyWindowToBlock(juce::dsp::AudioBlock<float>& block, Window& window, float startingPhase)
@@ -221,5 +223,6 @@ public:
 				block.setSample(ch, sampleIndex, windowedSample);
 			}
 		}
+		return true;
 	}
 };

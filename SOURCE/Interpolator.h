@@ -36,8 +36,8 @@ public:
      * when it might not be a 
      * 
     */
-   static double parabolicInterp(double y0, double y1, double y2)
-   {
+//    static double parabolicInterp(double y0, double y1, double y2)
+//    {
 
-   }
+//    }
 };
