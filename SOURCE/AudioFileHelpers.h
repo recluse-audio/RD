@@ -61,7 +61,7 @@ public:
         if(fileReader == nullptr)
             return -1; // we've failed to provide a valid inputFile
 
-        return fileReader->lengthInSamples;
+        return static_cast<const int>(fileReader->lengthInSamples);
     }
 
     //

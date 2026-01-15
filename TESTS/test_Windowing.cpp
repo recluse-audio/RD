@@ -165,7 +165,7 @@ TEST_CASE("getValueAtIndexInPeriod matches getNextSample values")
     int bufferSize = 1024;
     int period = 128;
 
-	window.setSizeShapePeriod((double)bufferSize, Window::Shape::kHanning, period);
+	window.setSizeShapePeriod(bufferSize, Window::Shape::kHanning, period);
 
 
 

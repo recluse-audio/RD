@@ -98,8 +98,8 @@ public:
         if(!useVersionOne)
         {
             float difference = 0.f;
-            auto buffRead = ioBuffer.getArrayOfReadPointers();
-            auto buffWrite = differenceBuffer.getArrayOfWritePointers();
+            [[maybe_unused]] auto buffRead = ioBuffer.getArrayOfReadPointers();
+            [[maybe_unused]] auto buffWrite = differenceBuffer.getArrayOfWritePointers();
 
             // using 'tau' in reference to YIN paper
             for(int tau = 0; tau < max_lag; tau++)
@@ -208,10 +208,10 @@ public:
         float b = y2 - y0;
         float a = (2 * y1) - y2 - y0;
         if(a == 0.f) // don't divide by zero
-            return tauEstimate; 
-        
+            return static_cast<float>(tauEstimate);
+
         // this is not "-b" like you might guess, can't articulate why right now
-        return (float)tauEstimate + ( b / ( 2 * a));
+        return static_cast<float>(tauEstimate) + ( b / ( 2 * a));
 
 
         // TODO: Write this interpolation in a math function abstracted from this

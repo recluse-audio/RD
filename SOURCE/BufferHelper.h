@@ -46,7 +46,7 @@ public:
     // Cleaned up way to find the highest rms among the channels of audio data in a buffer
     static float getMaxRMS(juce::AudioBuffer<float>& buffer, double threshold = 0.0001)
     {
-
+        juce::ignoreUnused(threshold); // TODO: implement threshold functionality
         float highestRMS = 0.f;
         for(int ch = 0; ch < buffer.getNumChannels(); ch++)
         {
@@ -170,7 +170,7 @@ public:
 			return false;
 
 		// range might be shorter than full block
-		juce::dsp::AudioBlock<float> subBlock = block.getSubBlock(0, range.getLengthInSamples());
+		juce::dsp::AudioBlock<float> subBlock = block.getSubBlock(0, static_cast<size_t>(range.getLengthInSamples()));
 
 		for(juce::int64 indexInRange = 0; indexInRange < range.getLengthInSamples(); indexInRange++)
 		{
@@ -178,12 +178,14 @@ public:
 
 			for(int ch = 0; ch < subBlock.getNumChannels(); ch++)
 			{
-				float blockSample = subBlock.getSample(ch, indexInRange);
-				float bufferSample = buffer.getSample(ch, indexInBuffer);
+				float blockSample = subBlock.getSample(ch, static_cast<int>(indexInRange));
+				float bufferSample = buffer.getSample(ch, static_cast<int>(indexInBuffer));
 				float newBufferSample = blockSample + bufferSample;
-				buffer.setSample(ch, indexInBuffer, newBufferSample);
+				buffer.setSample(ch, static_cast<int>(indexInBuffer), newBufferSample);
 			}
 		}
+
+		return true;
 	}
 
 	//
@@ -211,8 +213,8 @@ public:
 
 	static bool applyWindowToBlock(juce::dsp::AudioBlock<float>& block, Window& window, float startingPhase)
 	{
-		
-		// TODO: 
+		juce::ignoreUnused(startingPhase); // TODO: implement phase offset functionality
+		// TODO:
 		for(int sampleIndex = 0; sampleIndex < block.getNumSamples(); sampleIndex++)
 		{
 			float windowValue = window.getNextSample();

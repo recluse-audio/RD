@@ -99,8 +99,8 @@ TEST_CASE("Get Max RMS")
 {
     juce::AudioBuffer<float> buffer(2, 20);
 
-    BufferFiller::fillChannelWithValue(buffer, 0, 1.f);
-    BufferFiller::fillChannelWithValue(buffer, 1, 2.f);
+    BufferFiller::fillChannelWithValue(buffer, 0, 1);
+    BufferFiller::fillChannelWithValue(buffer, 1, 2);
 
     float maxRMS = BufferHelper::getMaxRMS(buffer);
     CHECK(maxRMS == 2.f);
@@ -196,15 +196,15 @@ TEST_CASE("Can get range of buffer as AudioBlock")
 	juce::dsp::AudioBlock<float> readBlock = BufferHelper::getRangeAsBlock(incrementalBuffer, readRange);
 
 	CHECK(readBlock.getNumChannels() == incrementalBuffer.getNumChannels());
-	CHECK(readBlock.getNumSamples() == readRange.getLengthInSamples());
+	CHECK(readBlock.getNumSamples() == static_cast<size_t>(readRange.getLengthInSamples()));
 
 	for(juce::int64 readIndex = 0; readIndex < readRange.getLengthInSamples(); readIndex++)
 	{
 		for(int ch = 0; ch < incrementalBuffer.getNumChannels(); ch++)
 		{
 			juce::int64 bufferReadIndex = readIndex + readRange.getStartIndex();
-			float bufferSample = incrementalBuffer.getSample(ch, (int)bufferReadIndex);
-			float blockSample = readBlock.getSample(ch, readIndex);
+			float bufferSample = incrementalBuffer.getSample(ch, static_cast<int>(bufferReadIndex));
+			float blockSample = readBlock.getSample(ch, static_cast<int>(readIndex));
 
 			CHECK(bufferSample == blockSample);
 
@@ -235,10 +235,10 @@ TEST_CASE("Can write juce::dsp::AudioBlock to juce::AudioBuffer at specific juce
 
 	// output indices 0-9, we can expect 0's
 	for(juce::int64 sampleIndex = 0; sampleIndex < writeRange.getStartIndex(); sampleIndex++)
-	{		
+	{
 		for(int ch = 0; ch < outputBuffer.getNumChannels(); ch++)
 		{
-			float outputSample = outputBuffer.getSample(ch, sampleIndex);
+			float outputSample = outputBuffer.getSample(ch, static_cast<int>(sampleIndex));
 			CHECK(outputSample == 0.f);
 		}
 	}
@@ -246,11 +246,11 @@ TEST_CASE("Can write juce::dsp::AudioBlock to juce::AudioBuffer at specific juce
 	// now in the range of the "writing" so we should see the incBlock vals appear
 	for(juce::int64 sampleIndex = writeRange.getStartIndex(); sampleIndex <= writeRange.getEndIndex(); sampleIndex++)
 	{
-		int indexInBlock = (int)(sampleIndex - writeRange.getStartIndex());
+		int indexInBlock = static_cast<int>(sampleIndex - writeRange.getStartIndex());
 
 		for(int ch = 0; ch < outputBuffer.getNumChannels(); ch++)
 		{
-			float outputSample = outputBuffer.getSample(ch, sampleIndex);
+			float outputSample = outputBuffer.getSample(ch, static_cast<int>(sampleIndex));
 			float blockSample = incBlock.getSample(ch, indexInBlock);
 			CHECK(outputSample == blockSample);
 		}

@@ -57,7 +57,7 @@ public:
 
         for(int sampleIndex = 0; sampleIndex < buffer.getNumSamples(); sampleIndex++)
         {
-            buffer.setSample(ch, sampleIndex, val);
+            buffer.setSample(ch, sampleIndex, static_cast<float>(val));
         }
     }
 
@@ -168,22 +168,22 @@ public:
 
         auto writePtr = bufferToFill.getArrayOfWritePointers();
         int numSamples = bufferToFill.getNumSamples() - 1;  // why -1 I am not sure yet
-        
+
         for(int sampleIndex = 0; sampleIndex <= numSamples; sampleIndex++)
         {
-            writePtr[0][sampleIndex] = 0.5f * (1.0f - std::cos(2.0f * M_PI * sampleIndex / (numSamples)));
+            writePtr[0][sampleIndex] = 0.5f * (1.0f - std::cos(2.0f * static_cast<float>(M_PI) * sampleIndex / (numSamples)));
         }
     }
 
 
     //=======================
-    // 
+    //
     static void generateSine(juce::AudioBuffer<float>& bufferToFill)
 	{
 		bufferToFill.clear();
 		auto numChannels = bufferToFill.getNumChannels();
-		float numSamples = bufferToFill.getNumSamples();
-		
+		int numSamples = bufferToFill.getNumSamples();
+
 		auto writeBuff = bufferToFill.getArrayOfWritePointers();
     	for(int sampleIndex = 0; sampleIndex < numSamples; sampleIndex++)
 		{
@@ -202,8 +202,8 @@ public:
 	{
 		bufferToFill.clear();
 		auto numChannels = bufferToFill.getNumChannels();
-		float numSamples = bufferToFill.getNumSamples();
-		
+		int numSamples = bufferToFill.getNumSamples();
+
 		auto writeBuff = bufferToFill.getArrayOfWritePointers();
 
         // this will iterate like the sampleIndex, except it will wrap around the period
@@ -231,11 +231,11 @@ public:
 	{
 		bufferToFill.clear();
 		auto numChannels = bufferToFill.getNumChannels();
-		float numSamples = bufferToFill.getNumSamples();
-		
+		int numSamples = bufferToFill.getNumSamples();
+
 		if(numChannels != 2)
 			return;
-		
+
 		auto writeBuff = bufferToFill.getArrayOfWritePointers();
 
 		for(int sampleIndex = 0; sampleIndex < numSamples; sampleIndex++)
@@ -423,6 +423,7 @@ public:
     //==================
     static bool readRangeFromBuffer(juce::AudioBuffer<float>& bufferToFill, juce::AudioBuffer<float>& bufferToRead, int startSampleIndex)
     {
+		juce::ignoreUnused(bufferToFill, bufferToRead, startSampleIndex);
 		return true;
         //int numSamples = bufferToFill
     }

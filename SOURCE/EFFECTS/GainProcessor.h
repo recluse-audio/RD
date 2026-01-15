@@ -29,7 +29,7 @@ public:
     void prepareToPlay (double sampleRate, int samplesPerBlock) override;
     void releaseResources() override;
 
-    bool isBusesLayoutSupported (const BusesLayout& layouts) const override { return true; }
+    bool isBusesLayoutSupported (const BusesLayout& layouts) const override { juce::ignoreUnused(layouts); return true; }
 
     void processBlock (juce::AudioBuffer<float>&, juce::MidiBuffer&) override;
 
@@ -51,13 +51,13 @@ public:
     //
     void getStateInformation (juce::MemoryBlock& destData) override
     {
-
+        juce::ignoreUnused(destData);
     }
 
     //
     void setStateInformation (const void* data, int sizeInBytes) override
     {
-
+        juce::ignoreUnused(data, sizeInBytes);
     }
 
     juce::AudioProcessorValueTreeState& getAPVTS();

@@ -151,15 +151,15 @@ TEST_CASE("Can fill channel with specified value")
 {
     int numSamples = 100;
     juce::AudioBuffer<float> buffer(2, numSamples);
-    float val1 = 1.f;
+    int val1 = 1;
     BufferFiller::fillChannelWithValue(buffer, 0, val1);
-    float val2 = 2.f;
+    int val2 = 2;
     BufferFiller::fillChannelWithValue(buffer, 1, val2);
 
-    CHECK(buffer.getSample(0, 0) == val1);
-    CHECK(buffer.getSample(0, 1) == val1);
-    CHECK(buffer.getSample(0, 98) == val1);
-    CHECK(buffer.getSample(0, 99) == val1);
+    CHECK(buffer.getSample(0, 0) == static_cast<float>(val1));
+    CHECK(buffer.getSample(0, 1) == static_cast<float>(val1));
+    CHECK(buffer.getSample(0, 98) == static_cast<float>(val1));
+    CHECK(buffer.getSample(0, 99) == static_cast<float>(val1));
 
 
     CHECK(buffer.getSample(1, 0) == val2);
@@ -205,8 +205,8 @@ TEST_CASE("Test generating sine wave cycles")
         // cycle 1/2/3/4 respectively
         float sample1 = sineWaveBuffer.getSample(0, sampleIndex );
         float sample2 = sineWaveBuffer.getSample(0, sampleIndex + (period) );
-        float sample3 = sineWaveBuffer.getSample(0, sampleIndex + (period * 2) );
-        float sample4 = sineWaveBuffer.getSample(0, sampleIndex + (period * 3) );
+        [[maybe_unused]] float sample3 = sineWaveBuffer.getSample(0, sampleIndex + (period * 2) );
+        [[maybe_unused]] float sample4 = sineWaveBuffer.getSample(0, sampleIndex + (period * 3) );
         CHECK(sample1 == sample2);
     }
 }

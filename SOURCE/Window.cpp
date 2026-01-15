@@ -97,9 +97,9 @@ void Window::resetReadPos()
 
 //=================
 //
-float Window::getAtReadPos(double readPos) 
+float Window::getAtReadPos(double readPos)
 {
-    return _getInterpolatedSampleAtReadPos(readPos);
+    return _getInterpolatedSampleAtReadPos(static_cast<float>(readPos));
 }
 
 
@@ -152,7 +152,7 @@ float Window::_getInterpolatedSampleAtReadPos()
     // double delta = mReadPos - (int)mReadPos;
 
     // return (float)Interpolator::linearInterp(sample1, sample2, delta);
-	return BufferHelper::getLinearInterpolatedSampleAtIndex(mBuffer, mReadPos);
+	return BufferHelper::getLinearInterpolatedSampleAtIndex(mBuffer, static_cast<float>(mReadPos));
 }
 
 //====================
@@ -203,7 +203,7 @@ float Window::getValueAtIndexInPeriod(int indexInPeriod)
 	if(indexInPeriod >= mPeriod)
 		indexInPeriod = indexInPeriod % mPeriod;
 
-	float readPos = (float)indexInPeriod * mPhaseIncrement;
+	float readPos = static_cast<float>(static_cast<float>(indexInPeriod) * mPhaseIncrement);
 	float valueAtIndexInPeriod = _getInterpolatedSampleAtReadPos(readPos);
 
 	return valueAtIndexInPeriod;

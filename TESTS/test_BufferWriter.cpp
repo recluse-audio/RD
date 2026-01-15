@@ -92,7 +92,7 @@ TEST_CASE("Can load buffer from .wav and write to csv.")
     BufferFiller::loadFromWavFile(goldenWavFile, buffer);
 
     auto testOutputPath = RelativeFilePath::getTestOutputPath("OUTPUT_SignalTone.csv");
-    auto result = BufferWriter::writeToCSV(buffer, testOutputPath);
+    [[maybe_unused]] auto result = BufferWriter::writeToCSV(buffer, testOutputPath);
 
 }
 

@@ -19,6 +19,7 @@ void GainProcessor::releaseResources() {}
 
 void GainProcessor::processBlock(juce::AudioBuffer<float>& buffer, juce::MidiBuffer& midiMessages)
 {
+    juce::ignoreUnused(midiMessages);
     juce::ScopedNoDenormals noDenormals;
     auto gainValue = mGainValue.get(); // Get the current gain value
 

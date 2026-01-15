@@ -171,18 +171,33 @@ public:
                 DBG("Error: Could not create output stream!");
                 return BufferWriter::Result::kStreamError;
             }
-        
+
+            // Suppress deprecation warning for older JUCE API
+            #if defined(_MSC_VER)
+                #pragma warning(push)
+                #pragma warning(disable: 4996)
+            #elif defined(__GNUC__) || defined(__clang__)
+                #pragma GCC diagnostic push
+                #pragma GCC diagnostic ignored "-Wdeprecated-declarations"
+            #endif
+
             std::unique_ptr<juce::AudioFormatWriter> writer(
                 wavFormat.createWriterFor(fileStream.get(), sampleRate, buffer.getNumChannels(), bitDepth, {}, 0));
-        
+
+            #if defined(_MSC_VER)
+                #pragma warning(pop)
+            #elif defined(__GNUC__) || defined(__clang__)
+                #pragma GCC diagnostic pop
+            #endif
+
             if (!writer)
             {
                 DBG("Error: Could not create WAV writer!");
                 return BufferWriter::Result::kStreamError;
             }
-        
+
             fileStream.release(); // The writer now owns the file stream
-        
+
             writer->writeFromAudioSampleBuffer(buffer, 0, buffer.getNumSamples());
             return BufferWriter::Result::kSuccess;
 
