@@ -75,6 +75,7 @@ public:
     void resetReadPos();
 	double getReadPos() const { return mReadPos; }
 	double getCurrentNormalizedPhase() { return mReadPos / (double)mBuffer.getNumSamples(); }
+    void  setCurrentReadPosWithNormalizedPhase(double phase) { mReadPos = (double)mBuffer.getNumSamples() * phase; }
 
     float getAtReadPos(double readPos);
 
