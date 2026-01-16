@@ -195,6 +195,8 @@ public:
 	// TODO: This needs to handle partial windows
 	static bool applyWindowToBlock(juce::dsp::AudioBlock<float>& block, Window& window)
 	{
+		if(window.getShape() == Window::Shape::kNone)
+			return true;
 
 		// TODO: 
 		for(int sampleIndex = 0; sampleIndex < block.getNumSamples(); sampleIndex++)
