@@ -95,6 +95,40 @@ public:
         }
     }
 
+    //=======================
+    // fills a range of samples with "value" argument
+    // channel = -1 means all channels, otherwise only the specified channel
+    // returns false if range or channel is out of bounds
+    static bool fillRangeWithValue(juce::AudioBuffer<float>& buffer, int startIndex, int endIndex, float value, int channel = -1)
+    {
+        // validate sample range
+        if(startIndex < 0 || endIndex >= buffer.getNumSamples() || startIndex > endIndex)
+            return false;
+
+        // validate channel if specified
+        if(channel != -1 && (channel < 0 || channel >= buffer.getNumChannels()))
+            return false;
+
+        auto writePtr = buffer.getArrayOfWritePointers();
+
+        for(int sampleIndex = startIndex; sampleIndex <= endIndex; sampleIndex++)
+        {
+            if(channel == -1)
+            {
+                for(int ch = 0; ch < buffer.getNumChannels(); ch++)
+                {
+                    writePtr[ch][sampleIndex] = value;
+                }
+            }
+            else
+            {
+                writePtr[channel][sampleIndex] = value;
+            }
+        }
+
+        return true;
+    }
+
     /////////////////////////
     // Indices alternate values 0.f and 1.f (starting on 0.f)
     static void fillAlternatingZeroOne(juce::AudioBuffer<float>& bufferToFill)

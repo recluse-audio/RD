@@ -8,7 +8,7 @@
 #include "../SOURCE/RelativeFilePath.h"
 
 
-TEST_CASE("Can make a Hanning Window")
+TEST_CASE("Can make a Hanning Window", "[BufferFiller]")
 {
     juce::AudioBuffer<float> buffer(1, 1024);
     int numSamples = buffer.getNumSamples() - 1; // doing this extra step to make it look like the implementation
@@ -37,7 +37,7 @@ TEST_CASE("Can make a Hanning Window")
 }
 
 //========================
-TEST_CASE("Hanning window generation matches golden CSV values")
+TEST_CASE("Hanning window generation matches golden CSV values", "[BufferFiller]")
 {
     // Load the golden Hanning window from CSV
     juce::AudioBuffer<float> goldenBuffer;
@@ -76,7 +76,7 @@ TEST_CASE("Hanning window generation matches golden CSV values")
 }
 
 //========================
-TEST_CASE("Can make an incremental buffer")
+TEST_CASE("Can make an incremental buffer", "[BufferFiller]")
 {
     int numSamples = 100;
     juce::AudioBuffer<float> buffer(1, numSamples);
@@ -93,7 +93,7 @@ TEST_CASE("Can make an incremental buffer")
 }
 
 //========================
-TEST_CASE("Can make an incremental buffer that loops at the period length arg")
+TEST_CASE("Can make an incremental buffer that loops at the period length arg", "[BufferFiller]")
 {
     int numSamples = 100;
 	int periodLength = 10;
@@ -117,7 +117,7 @@ TEST_CASE("Can make an incremental buffer that loops at the period length arg")
 }
 
 //=========================
-TEST_CASE("Can fill with alternating zeroes and ones")
+TEST_CASE("Can fill with alternating zeroes and ones", "[BufferFiller]")
 {
     int numSamples = 100;
     juce::AudioBuffer<float> buffer(1, numSamples);
@@ -132,7 +132,7 @@ TEST_CASE("Can fill with alternating zeroes and ones")
 
 
 //=========================
-TEST_CASE("Can fill with specified value")
+TEST_CASE("Can fill with specified value", "[BufferFiller]")
 {
     int numSamples = 100;
     juce::AudioBuffer<float> buffer(1, numSamples);
@@ -147,7 +147,7 @@ TEST_CASE("Can fill with specified value")
 
 
 //=========================
-TEST_CASE("Can fill channel with specified value")
+TEST_CASE("Can fill channel with specified value", "[BufferFiller]")
 {
     int numSamples = 100;
     juce::AudioBuffer<float> buffer(2, numSamples);
@@ -168,8 +168,88 @@ TEST_CASE("Can fill channel with specified value")
     CHECK(buffer.getSample(1, 99) == val2);
 }
 
+//=========================
+TEST_CASE("Can fill range with specified value", "[BufferFiller]")
+{
+    int numSamples = 100;
+    juce::AudioBuffer<float> buffer(2, numSamples);
+    buffer.clear();
+
+    SECTION("Fill range on all channels (default)")
+    {
+        float value = 5.f;
+        bool result = BufferFiller::fillRangeWithValue(buffer, 10, 20, value);
+
+        CHECK(result == true);
+
+        // Check samples before range are still 0
+        CHECK(buffer.getSample(0, 9) == 0.f);
+        CHECK(buffer.getSample(1, 9) == 0.f);
+
+        // Check samples in range are filled on both channels
+        CHECK(buffer.getSample(0, 10) == value);
+        CHECK(buffer.getSample(1, 10) == value);
+        CHECK(buffer.getSample(0, 15) == value);
+        CHECK(buffer.getSample(1, 15) == value);
+        CHECK(buffer.getSample(0, 20) == value);
+        CHECK(buffer.getSample(1, 20) == value);
+
+        // Check samples after range are still 0
+        CHECK(buffer.getSample(0, 21) == 0.f);
+        CHECK(buffer.getSample(1, 21) == 0.f);
+    }
+
+    SECTION("Fill range on specific channel only")
+    {
+        float value = 3.f;
+        bool result = BufferFiller::fillRangeWithValue(buffer, 30, 40, value, 0);
+
+        CHECK(result == true);
+
+        // Channel 0 should have values in range
+        CHECK(buffer.getSample(0, 30) == value);
+        CHECK(buffer.getSample(0, 35) == value);
+        CHECK(buffer.getSample(0, 40) == value);
+
+        // Channel 1 should still be 0
+        CHECK(buffer.getSample(1, 30) == 0.f);
+        CHECK(buffer.getSample(1, 35) == 0.f);
+        CHECK(buffer.getSample(1, 40) == 0.f);
+    }
+
+    SECTION("Returns false for out-of-range start index")
+    {
+        bool result = BufferFiller::fillRangeWithValue(buffer, -1, 10, 1.f);
+        CHECK(result == false);
+    }
+
+    SECTION("Returns false for out-of-range end index")
+    {
+        bool result = BufferFiller::fillRangeWithValue(buffer, 0, 100, 1.f);
+        CHECK(result == false);
+    }
+
+    SECTION("Returns false when start > end")
+    {
+        bool result = BufferFiller::fillRangeWithValue(buffer, 50, 40, 1.f);
+        CHECK(result == false);
+    }
+
+    SECTION("Returns false for out-of-range channel")
+    {
+        bool result = BufferFiller::fillRangeWithValue(buffer, 0, 10, 1.f, 5);
+        CHECK(result == false);
+    }
+
+    SECTION("Returns false for negative channel (other than -1)")
+    {
+        bool result = BufferFiller::fillRangeWithValue(buffer, 0, 10, 1.f, -2);
+        CHECK(result == false);
+    }
+}
+
 //==========================
-TEST_CASE("Test generating sine wave")
+TEST_CASE("Test generating sine wave", "[BufferFiller]")
 {
 	juce::AudioBuffer<float> sineWaveBuffer(1, 128);
 	sineWaveBuffer.clear();
@@ -182,7 +262,7 @@ TEST_CASE("Test generating sine wave")
 }
 
 //==========================
-TEST_CASE("Test generating sine wave cycles")
+TEST_CASE("Test generating sine wave cycles", "[BufferFiller]")
 {
     int bufferLength = 1024;
     int period = 256; // sine wave every 256 samples, 4 cycles in a buffer of 1024
@@ -217,7 +297,7 @@ TEST_CASE("Test generating sine wave cycles")
 //==========================
 // This test can fail if you run the test exectuable by clicking on it in finder
 // run from root of plugin project instead by calling BUILD/Tests
-TEST_CASE("Can load a json file into a buffer")
+TEST_CASE("Can load a json file into a buffer", "[BufferFiller]")
 {
     juce::AudioBuffer<float> buffer;
     juce::File currentDir = juce::File::getCurrentWorkingDirectory(); // this works when called from root dir of repo
@@ -246,7 +326,7 @@ TEST_CASE("Can load a json file into a buffer")
 
 
 //==========================
-TEST_CASE("Load .wav into buffer")
+TEST_CASE("Load .wav into buffer", "[BufferFiller]")
 {
     /**
      * @brief Load two different golden wav files into buffers, then compare them.
@@ -275,7 +355,7 @@ TEST_CASE("Load .wav into buffer")
 
 
 //===============================
-TEST_CASE("Can load a csv file into a buffer")
+TEST_CASE("Can load a csv file into a buffer", "[BufferFiller]")
 {
     juce::AudioBuffer<float> buffer;
     buffer.clear();
@@ -308,7 +388,7 @@ TEST_CASE("Can load a csv file into a buffer")
 
 
 //========================
-TEST_CASE("Load juce::Array into buffer")
+TEST_CASE("Load juce::Array into buffer", "[BufferFiller]")
 {
     juce::Array<juce::Array<float>> array;
 
