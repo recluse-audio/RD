@@ -32,7 +32,7 @@ TEST_CASE("Can make a Hanning Window")
         float sample1 = buffer.getSample(0, sampleIndex);
         float sample2 = buffer.getSample(0, numSamples - sampleIndex);
 
-        CHECK(sample1 == Catch::Approx(sample2).epsilon(0.0001f));
+        CHECK(sample1 == Catch::Approx(sample2).margin(0.00001f));
     }
 }
 
@@ -62,17 +62,17 @@ TEST_CASE("Hanning window generation matches golden CSV values")
         float generatedValue = generatedBuffer.getSample(0, sampleIndex);
 
         INFO("Comparing sample at index " << sampleIndex);
-        CHECK(generatedValue == Catch::Approx(goldenValue).epsilon(0.0001f));
+        CHECK(generatedValue == Catch::Approx(goldenValue).margin(0.00001f));
     }
 
     // Also verify key values every 128 samples
-    CHECK(generatedBuffer.getSample(0, 0) == Catch::Approx(0.0f).epsilon(0.0001f));
-    CHECK(generatedBuffer.getSample(0, 128) == Catch::Approx(goldenBuffer.getSample(0, 128)).epsilon(0.0001f));
-    CHECK(generatedBuffer.getSample(0, 256) == Catch::Approx(goldenBuffer.getSample(0, 256)).epsilon(0.0001f));
-    CHECK(generatedBuffer.getSample(0, 512) == Catch::Approx(goldenBuffer.getSample(0, 512)).epsilon(0.0001f));
-    CHECK(generatedBuffer.getSample(0, 768) == Catch::Approx(goldenBuffer.getSample(0, 768)).epsilon(0.0001f));
-    CHECK(generatedBuffer.getSample(0, 896) == Catch::Approx(goldenBuffer.getSample(0, 896)).epsilon(0.0001f));
-    CHECK(generatedBuffer.getSample(0, 1023) == Catch::Approx(0.0f).epsilon(0.0001f));
+    CHECK(generatedBuffer.getSample(0, 0) == Catch::Approx(0.0f).margin(0.00001f));
+    CHECK(generatedBuffer.getSample(0, 128) == Catch::Approx(goldenBuffer.getSample(0, 128)).margin(0.00001f));
+    CHECK(generatedBuffer.getSample(0, 256) == Catch::Approx(goldenBuffer.getSample(0, 256)).margin(0.00001f));
+    CHECK(generatedBuffer.getSample(0, 512) == Catch::Approx(goldenBuffer.getSample(0, 512)).margin(0.00001f));
+    CHECK(generatedBuffer.getSample(0, 768) == Catch::Approx(goldenBuffer.getSample(0, 768)).margin(0.00001f));
+    CHECK(generatedBuffer.getSample(0, 896) == Catch::Approx(goldenBuffer.getSample(0, 896)).margin(0.00001f));
+    CHECK(generatedBuffer.getSample(0, 1023) == Catch::Approx(0.0f).margin(0.00001f));
 }
 
 //========================
