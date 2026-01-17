@@ -60,6 +60,40 @@ public:
         
     }
 
+
+	// Returns index with peak value
+	static int getPeakIndex(juce::AudioBuffer<float>& buffer, int startIndex, int endIndex)
+	{
+		// if given out of bounds range, ignore the out of bounds stuff
+		int rectifiedStartIndex = startIndex > 0 ? startIndex : 0;
+		int rectifiedEndIndex = endIndex < buffer.getNumSamples() ? endIndex : buffer.getNumSamples() - 1;
+
+        auto readPtr = buffer.getArrayOfReadPointers();
+
+		int currentPeakIndex = rectifiedStartIndex;
+		float currentPeakValue = readPtr[0][rectifiedStartIndex];
+
+        for(int sampleIndex = rectifiedStartIndex; sampleIndex <= rectifiedEndIndex; sampleIndex++)
+        {
+			for(int ch = 0; ch < buffer.getNumChannels(); ch++)
+			{
+
+				if( readPtr[ch][sampleIndex] > currentPeakValue )
+				{
+					currentPeakValue = readPtr[ch][sampleIndex];
+					currentPeakIndex = sampleIndex;
+				}
+			}
+
+        }
+
+		return currentPeakIndex;
+		return 0;
+	}
+
+
+
+
     static bool isSilent(juce::AudioBuffer<float>& buffer, double threshold = 0.0001)
     {
        bool isSilent = BufferHelper::getMaxRMS(buffer) < threshold ? true : false;

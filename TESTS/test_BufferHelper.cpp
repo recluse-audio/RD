@@ -388,3 +388,98 @@ TEST_CASE("Window with period 128 reads every 8th value from size 1024 buffer")
 		CHECK(windowValue == Catch::Approx(expectedValue).epsilon(0.0001f));
 	}
 }
+
+//================
+TEST_CASE("getPeakIndex returns correct index for peak in middle of range", "[BufferHelper][getPeakIndex]")
+{
+	juce::AudioBuffer<float> buffer(1, 10);
+	buffer.clear();
+
+	// Set sample at index 5 to be the peak
+	buffer.setSample(0, 5, 1.0f);
+
+	int peakIndex = BufferHelper::getPeakIndex(buffer, 0, 9);
+	CHECK(peakIndex == 5);
+}
+
+//================
+TEST_CASE("getPeakIndex returns correct index when peak is at start of range", "[BufferHelper][getPeakIndex]")
+{
+	juce::AudioBuffer<float> buffer(1, 10);
+	buffer.clear();
+
+	// Set sample at index 2 to be the peak, search starting from index 2
+	buffer.setSample(0, 2, 1.0f);
+
+	int peakIndex = BufferHelper::getPeakIndex(buffer, 2, 9);
+	CHECK(peakIndex == 2);
+}
+
+//================
+TEST_CASE("getPeakIndex returns correct index when peak is at end of range", "[BufferHelper][getPeakIndex]")
+{
+	juce::AudioBuffer<float> buffer(1, 10);
+	buffer.clear();
+
+	// Set sample at index 7 to be the peak, search ending at index 7
+	buffer.setSample(0, 7, 1.0f);
+
+	int peakIndex = BufferHelper::getPeakIndex(buffer, 0, 7);
+	CHECK(peakIndex == 7);
+}
+
+//================
+TEST_CASE("getPeakIndex handles negative start index by clamping to 0", "[BufferHelper][getPeakIndex]")
+{
+	juce::AudioBuffer<float> buffer(1, 10);
+	buffer.clear();
+
+	// Set sample at index 3 to be the peak
+	buffer.setSample(0, 3, 1.0f);
+
+	// Start index -5 should be clamped to 0
+	int peakIndex = BufferHelper::getPeakIndex(buffer, -5, 9);
+	CHECK(peakIndex == 3);
+}
+
+//================
+TEST_CASE("getPeakIndex handles end index beyond buffer size by clamping", "[BufferHelper][getPeakIndex]")
+{
+	juce::AudioBuffer<float> buffer(1, 10);
+	buffer.clear();
+
+	// Set sample at index 9 (last valid index) to be the peak
+	buffer.setSample(0, 9, 1.0f);
+
+	// End index 20 should be clamped to 9 (numSamples - 1)
+	int peakIndex = BufferHelper::getPeakIndex(buffer, 0, 20);
+	CHECK(peakIndex == 9);
+}
+
+//================
+TEST_CASE("getPeakIndex finds peak across multiple channels", "[BufferHelper][getPeakIndex]")
+{
+	juce::AudioBuffer<float> buffer(2, 10);
+	buffer.clear();
+
+	// Set peak on channel 1 (not channel 0) at index 6
+	buffer.setSample(1, 6, 1.0f);
+
+	int peakIndex = BufferHelper::getPeakIndex(buffer, 0, 9);
+	CHECK(peakIndex == 6);
+}
+
+//================
+TEST_CASE("getPeakIndex with incremental buffer returns last index", "[BufferHelper][getPeakIndex]")
+{
+	juce::AudioBuffer<float> buffer(1, 10);
+	BufferFiller::fillIncremental(buffer);  // 0, 1, 2, 3, 4, 5, 6, 7, 8, 9
+
+	// Peak should be at index 9 (value = 9.0f)
+	int peakIndex = BufferHelper::getPeakIndex(buffer, 0, 9);
+	CHECK(peakIndex == 9);
+
+	// Search only range [2, 5], peak should be at index 5 (value = 5.0f)
+	int peakIndexSubRange = BufferHelper::getPeakIndex(buffer, 2, 5);
+	CHECK(peakIndexSubRange == 5);
+}
