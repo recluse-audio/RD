@@ -189,7 +189,7 @@ public:
 	static juce::dsp::AudioBlock<float> getRangeAsBlock(juce::AudioBuffer<float>& buffer, RD::BufferRange range)
 	{
 		// Keep this in range sample wise
-		jassert (range.getStartIndex() >= 0 
+		jassert (range.getStartIndex() >= 0
 				&& range.getEndIndex() <= buffer.getNumSamples());
 
 		auto startSample  = static_cast<size_t> (range.getStartIndex());
