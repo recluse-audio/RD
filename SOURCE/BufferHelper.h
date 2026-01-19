@@ -91,6 +91,18 @@ public:
 		return 0;
 	}
 
+	// Returns expectedPeak if no value in range exceeds expectedPeakValue, otherwise returns actual peak index
+	static int getPeakIndex(juce::AudioBuffer<float>& buffer, int startIndex, int endIndex, float expectedPeakValue)
+	{
+		int actualPeakIndex = getPeakIndex(buffer, startIndex, endIndex);
+		float actualPeakValue = buffer.getSample(0, actualPeakIndex);
+
+		if (actualPeakValue <= expectedPeakValue)
+			return expectedPeakValue;
+
+		return actualPeakIndex;
+	}
+
 
 
 
