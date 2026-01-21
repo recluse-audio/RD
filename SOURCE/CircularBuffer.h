@@ -13,8 +13,10 @@ public:
     virtual void setSize(int numChannels, int numSamples);
 
     const int getNumSamples();
+    const int getSize() { return getNumSamples(); }
     const int getNumChannels();
     const int getWritePos();
+    juce::AudioBuffer<float>& getBuffer() { return mCircularBuffer; }
 
 
     // writes buffer to private mCircularBuffer.  Except if the channel nums don't align, in which case it returns false.  Get that in order first
