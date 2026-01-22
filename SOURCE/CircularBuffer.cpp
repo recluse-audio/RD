@@ -227,3 +227,35 @@ void CircularBuffer::setDelay(int newDelayInSamples)
 {
     mDelayInSamples = newDelayInSamples;
 }
+
+//========================
+//
+int CircularBuffer::getWrappedIndex(juce::int64 index) const
+{
+    int bufferSize = mCircularBuffer.getNumSamples();
+    // Handle negative and large positive indices
+    int wrapped = static_cast<int>(((index % bufferSize) + bufferSize) % bufferSize);
+    return wrapped;
+}
+
+//========================
+//
+juce::int64 CircularBuffer::findPeakInRange(juce::Range<juce::int64> range, int channel) const
+{
+    juce::int64 peakIndex = range.getStart();
+    float peakValue = 0.0f;
+
+    for (juce::int64 i = range.getStart(); i < range.getEnd(); i++)
+    {
+        int wrappedIndex = getWrappedIndex(i);
+        float sample = std::abs(mCircularBuffer.getSample(channel, wrappedIndex));
+
+        if (sample > peakValue)
+        {
+            peakValue = sample;
+            peakIndex = i;  // Store the unwrapped index
+        }
+    }
+
+    return peakIndex;
+}

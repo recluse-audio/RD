@@ -51,6 +51,15 @@ public:
     void setDelay(int newDelayInSamples);
 
     const int getWrappedIndex(int index);
+
+    // Wraps any int64 index (including negative) to valid buffer index
+    int getWrappedIndex(juce::int64 index) const;
+
+    // Finds the peak (max absolute value) within a range and returns the unwrapped index.
+    // Range uses start (inclusive) and end (exclusive).
+    // The returned index is in the same coordinate system as the input range, not wrapped to buffer size.
+    juce::int64 findPeakInRange(juce::Range<juce::int64> range, int channel = 0) const;
+
 private:
     friend class CircularBufferTest; // see test_CircularBuffer.cpp
     juce::AudioBuffer<float> mCircularBuffer;
