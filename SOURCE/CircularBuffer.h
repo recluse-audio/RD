@@ -1,7 +1,9 @@
 //===================================
 // RYAN DEVENS 2024-08-31
 
+#pragma once
 #include "Util/Juce_Header.h"
+
 class CircularBuffer
 {
 public:
@@ -49,8 +51,6 @@ public:
     juce::dsp::AudioBlock<float> popAudioBlock(int length);
 
     void setDelay(int newDelayInSamples);
-
-    const int getWrappedIndex(int index);
 
     // Wraps any int64 index (including negative) to valid buffer index
     int getWrappedIndex(juce::int64 index) const;

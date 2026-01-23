@@ -83,8 +83,9 @@ bool CircularBuffer::popBufferWithLookahead(juce::AudioBuffer<float>& lookaheadB
 //
 bool CircularBuffer::readRange(juce::AudioBuffer<float>& buffer, int startingReadIndex)
 {
-    bool success = false;
-    success = _readFromCircularBuffer(buffer, startingReadIndex);
+    // Wrap the starting index to handle negative values
+    int wrappedStartIndex = getWrappedIndex(static_cast<juce::int64>(startingReadIndex));
+    bool success = _readFromCircularBuffer(buffer, wrappedStartIndex);
     return success;
 }
 
