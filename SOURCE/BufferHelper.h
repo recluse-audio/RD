@@ -88,7 +88,6 @@ public:
         }
 
 		return currentPeakIndex;
-		return 0;
 	}
 
 	// Returns expectedPeak if no value in range exceeds expectedPeakValue, otherwise returns actual peak index
