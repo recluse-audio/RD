@@ -1,6 +1,11 @@
 #pragma once
 #include "Util/Juce_Header.h"
+#define _USE_MATH_DEFINES
+#include <cmath>
 
+#ifndef M_PI
+#define M_PI 3.14159265358979323846
+#endif
 /**
  * @brief An assortment of functions for filling buffers with amplitude values in various patters
  * 
@@ -9,7 +14,7 @@
 class BufferFiller
 {
 public:
-    inline static constexpr double M_PI = 3.141592653589793;
+    // inline static constexpr double M_PI = 3.141592653589793;
     /**
      * @brief You pass in the short name of the file you want in the SUBMODULES/RD/TESTS/GOLDEN/ directory 
      * and this returns the full path with the correct CWD.
@@ -258,6 +263,30 @@ public:
 		}
 
 	}
+
+    //=======================
+    // Fills buffer with sine wave starting at a specific phase offset
+    // phase is in radians [0, 2π)
+    // period is the wavelength in samples
+    static void generateSineWithPhase(juce::AudioBuffer<float>& bufferToFill, float period, double startPhase)
+    {
+        bufferToFill.clear();
+        auto numChannels = bufferToFill.getNumChannels();
+        int numSamples = bufferToFill.getNumSamples();
+
+        auto writeBuff = bufferToFill.getArrayOfWritePointers();
+
+        for(int sampleIndex = 0; sampleIndex < numSamples; sampleIndex++)
+        {
+            double phase = startPhase + (static_cast<double>(sampleIndex) / period) * 2.0 * M_PI;
+            float sample = static_cast<float>(std::sin(phase));
+
+            for(int channel = 0; channel < numChannels; channel++)
+            {
+                writeBuff[channel][sampleIndex] = sample;
+            }
+        }
+    }
 
     //=======================
 	// Generates a sine wave in a stereo buffer that has different phase in each channel

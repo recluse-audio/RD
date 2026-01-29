@@ -83,6 +83,9 @@ public:
     // @param index The sample index within the period (0 to period-1)
     // @return The window value at that index
     float getValueAtIndexInPeriod(int index);
+    // gets value at index fitted to period argument.
+    // this calculates the phase increment on the fly and doesn't modify or refer to a window's mPeriod/mPhaseIncrement value
+    float getValueAtIndexInPeriod(int index, int period);
 
     // Sets mReadPos to 0, and sets mPhaseIncrement to 1.0
     void reset();

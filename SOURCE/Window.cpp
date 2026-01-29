@@ -208,3 +208,19 @@ float Window::getValueAtIndexInPeriod(int indexInPeriod)
 
 	return valueAtIndexInPeriod;
 }
+
+//=============
+//
+float Window::getValueAtIndexInPeriod(int indexInPeriod, int period)
+{
+	// honestly don't even do this, but if you do we will handle it
+	// modulos are expensive or so they say, so I'm not gonna do it unless you mess up.
+	if(indexInPeriod >= period)
+		indexInPeriod = indexInPeriod % period;
+
+    double phaseInc = (double)mBuffer.getNumSamples() / (double)period;
+	float readPos = static_cast<float>(static_cast<float>(indexInPeriod) * mPhaseIncrement);
+	float valueAtIndexInPeriod = _getInterpolatedSampleAtReadPos(readPos);
+
+	return valueAtIndexInPeriod;
+}

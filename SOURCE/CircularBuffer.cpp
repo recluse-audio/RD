@@ -244,17 +244,17 @@ int CircularBuffer::getWrappedIndex(juce::int64 index) const
 juce::int64 CircularBuffer::findPeakInRange(juce::Range<juce::int64> range, int channel) const
 {
     juce::int64 peakIndex = range.getStart();
-    float peakValue = 0.0f;
+    float peakValue = -std::numeric_limits<float>::infinity();
 
-    for (juce::int64 i = range.getStart(); i < range.getEnd(); i++)
+    for (juce::int64 i = range.getStart(); i < range.getEnd(); ++i)
     {
-        int wrappedIndex = getWrappedIndex(i);
-        float sample = std::abs(mCircularBuffer.getSample(channel, wrappedIndex));
+        const int wrappedIndex = getWrappedIndex(i);
+        const float sample = mCircularBuffer.getSample(channel, wrappedIndex); // no abs
 
         if (sample > peakValue)
         {
             peakValue = sample;
-            peakIndex = i;  // Store the unwrapped index
+            peakIndex = i; // unwrapped
         }
     }
 

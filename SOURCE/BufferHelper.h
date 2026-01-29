@@ -43,6 +43,38 @@ public:
         return true;
     }
 
+    /**
+     * @brief Compare two buffers at a specific sample index
+     * @param buffer1 First buffer to compare
+     * @param buffer2 Second buffer to compare
+     * @param sampleIndex Index to compare at
+     * @param channel Channel to compare (default 0)
+     * @param tolerance Tolerance for comparison (default 0.001f)
+     * @return std::tuple<bool, float, float> - (matches, value1, value2)
+     */
+    static std::tuple<bool, float, float> samplesMatchAtIndex(
+        const juce::AudioBuffer<float>& buffer1,
+        const juce::AudioBuffer<float>& buffer2,
+        int sampleIndex,
+        int channel = 0,
+        float tolerance = 0.001f)
+    {
+        // Bounds checking
+        if (sampleIndex < 0 || sampleIndex >= buffer1.getNumSamples() || sampleIndex >= buffer2.getNumSamples())
+            return {false, 0.0f, 0.0f};
+
+        if (channel < 0 || channel >= buffer1.getNumChannels() || channel >= buffer2.getNumChannels())
+            return {false, 0.0f, 0.0f};
+
+        float value1 = buffer1.getSample(channel, sampleIndex);
+        float value2 = buffer2.getSample(channel, sampleIndex);
+        float diff = std::abs(value1 - value2);
+
+        bool matches = diff <= tolerance;
+
+        return {matches, value1, value2};
+    }
+
     // Cleaned up way to find the highest rms among the channels of audio data in a buffer
     static float getMaxRMS(juce::AudioBuffer<float>& buffer, double threshold = 0.0001)
     {
