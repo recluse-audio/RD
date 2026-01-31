@@ -68,7 +68,7 @@ juce::AudioProcessorValueTreeState::ParameterLayout GainProcessor::_createParame
         "Gain",         // Parameter name
         0.0,           // Min value
         1.0f,           // Max value
-        1.f));         // Default value
+        0.2f));         // Default value
 
     return { params.begin(), params.end() };
 }

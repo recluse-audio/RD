@@ -8,7 +8,7 @@
 #include "../SOURCE/BufferHelper.h"
 #include "../SOURCE/BufferRange.h"
 #include "../SOURCE/AudioFileHelpers.h"
-#include "../SOURCE/EFFECTS/GainProcessor.h"
+#include "../SOURCE/PROCESSORS/GAIN/GainProcessor.h"
 
 TEST_CASE("True for identical buffers")
 {

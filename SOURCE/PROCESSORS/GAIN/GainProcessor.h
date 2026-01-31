@@ -36,7 +36,7 @@ public:
     juce::AudioProcessorEditor* createEditor() override          { return new juce::GenericAudioProcessorEditor (*this); }
     bool hasEditor() const override                        { return true;   }
 
-    const juce::String getName() const override            { return "Gain PlugIn"; }
+    const juce::String getName() const override            { return "Gain Processor"; }
     bool acceptsMidi() const override                      { return false; }
     bool producesMidi() const override                     { return false; }
     double getTailLengthSeconds() const override           { return 0; }
