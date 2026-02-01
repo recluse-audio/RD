@@ -36,12 +36,19 @@ void GainProcessor::processBlock(juce::AudioBuffer<float>& buffer, juce::MidiBuf
 
 //===================
 //
-void GainProcessor::parameterChanged(const juce::String& parameterID, float newValue) 
+void GainProcessor::parameterChanged(const juce::String& parameterID, float newValue)
 {
     if(parameterID == "gain")
     {
         this->_updateGainValue(newValue);
     }
+}
+
+//===================
+//
+juce::AudioProcessorValueTreeState& GainProcessor::getAPVTS()
+{
+    return apvts;
 }
 
 
