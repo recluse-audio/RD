@@ -576,7 +576,7 @@ TEST_CASE("GranulatorProcessor end-to-end with sine input", "[GranulatorProcesso
 }
 
 
-TEST_CASE("GranulatorProcessor processBlock() does not reduce rms", "[GranulatorProcessor][processBlock]")
+TEST_CASE("GranulatorProcessor processBlock() does not reduce rms with no pitch detected", "[GranulatorProcessor][processBlock]")
 {
     /**
      * This test is a bit unreasonable, all 1's, no pitch detection. Making sure it makes sound.
@@ -616,13 +616,72 @@ TEST_CASE("GranulatorProcessor processBlock() does not reduce rms", "[Granulator
 
         INFO("Process Block Call: " << processBlockCall);
         CHECK(processBuffer.getSample(0, 0) == expectedValue);
-        // for (int sampleIndex = 0; sampleIndex < numSamples; ++sampleIndex)
-        // {
-        //     for (int ch = 0; ch < numChannels; ++ch)
-        //     {
-        //         CHECK(processBuffer.getSample(ch, sampleIndex) == expectedValue);
-        //     }
+    }
+}
 
-        // }
+
+TEST_CASE("GranulatorProcessor processBlock() does not reduce rms with pitch detected", "[GranulatorProcessor][processBlock]")
+{
+    /**
+     * This test is a bit unreasonable, all 1's, no pitch detection. Making sure it makes sound.
+     * Ensuring it doesn't unintentionally modify the audio data (mute it)
+     */
+    TestUtils::SetupAndTeardown setup;
+
+    constexpr double sampleRate = 48000.0;
+    constexpr int blockSize = 256; // same as period for convenience
+    constexpr int numChannels = 2;
+
+    GranulatorProcessor processor;
+    processor.prepareToPlay(sampleRate, blockSize);
+
+    juce::AudioBuffer<float> processBuffer (numChannels, blockSize); processBuffer.clear();
+    BufferFiller::generateSine(processBuffer); 
+
+    // make this one to test against, don't send it through processBlock()
+    juce::AudioBuffer<float> sineBuffer (numChannels, blockSize); sineBuffer.clear();
+    BufferFiller::generateSine(sineBuffer); 
+
+    // ensure they are identical before starting test
+    REQUIRE(BufferHelper::buffersAreIdentical(processBuffer, sineBuffer));
+
+    // needed for processBlock() call
+    juce::MidiBuffer midiBuffer;
+
+    // keep giving process the processBuffer filled with all ones
+    // refill each time b/c processBlock() clears it.
+    for(int processBlockCall = 0; processBlockCall < 32; processBlockCall++)
+    {
+        BufferFiller::generateSine(processBuffer); 
+        processor.processBlock(processBuffer, midiBuffer);
+
+        float detectedPeriod = processor.getLastDetectedPeriod();
+
+        INFO("Process Block Call: " << processBlockCall << ", Detected Pitch Period: " << detectedPeriod);
+
+        // Skip pitch detection check in early blocks - not enough signal history for accurate detection
+        if(processBlockCall > 4)
+        {
+            float expectedPeriod = 256.f;
+            CHECK(detectedPeriod == Catch::Approx(expectedPeriod).epsilon(0.2f));
+        }
+
+        // Compare RMS instead of individual samples - granular processing preserves energy, not waveform shape
+        if(processBlockCall >= 2)  // After warmup
+        {
+            float inputRMS = sineBuffer.getRMSLevel(0, 0, sineBuffer.getNumSamples());
+            float outputRMS = processBuffer.getRMSLevel(0, 0, processBuffer.getNumSamples());
+
+            INFO("Process Block Call: " << processBlockCall << ", Input RMS: " << inputRMS << ", Output RMS: " << outputRMS);
+
+            // Granular processing should preserve approximate energy (within 15%)
+            CHECK(outputRMS == Catch::Approx(inputRMS).epsilon(0.15f));
+        }
+        else  // During warmup, output should be silent or near-silent
+        {
+            float outputRMS = processBuffer.getRMSLevel(0, 0, processBuffer.getNumSamples());
+            INFO("Process Block Call: " << processBlockCall << " (warmup), Output RMS: " << outputRMS);
+            CHECK(outputRMS < 0.1f);  // Should be mostly silent during warmup
+        }
     }
 }
