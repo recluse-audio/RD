@@ -99,11 +99,19 @@ void GranulatorProcessor::prepareToPlay (double sampleRate, int samplesPerBlock)
 {
 	// be atleast minLookaheadSize, if at or above, use 2x block size
 	int pitchDetectBufferNumSamples = samplesPerBlock >= MagicNumbers::minDetectionSize ? (samplesPerBlock * 2) : MagicNumbers::minDetectionSize;
+    int latencySamples = MagicNumbers::minLookaheadSize;
+
 	// scale for sample rates, we deal with the same size for 44100 and 48000 for now (same for 88200 and 96000)
 	if(sampleRate > 48000.0 && sampleRate <= 96000.0)
+    {
 		pitchDetectBufferNumSamples = pitchDetectBufferNumSamples * 2;
+        latencySamples = latencySamples * 2;
+    }
 	else if(sampleRate > 96000.0)
+    {
 		pitchDetectBufferNumSamples = pitchDetectBufferNumSamples * 4;
+        latencySamples = latencySamples * 4;
+    }
 
 	mDetectionBuffer.clear();
 	mDetectionBuffer.setSize(getTotalNumOutputChannels(), pitchDetectBufferNumSamples);
@@ -118,6 +126,8 @@ void GranulatorProcessor::prepareToPlay (double sampleRate, int samplesPerBlock)
 	mSamplesProcessed = 0;
 	mBlockSize = samplesPerBlock;
     mPredictedNextAnalysisMark = -1;
+
+    setLatencySamples(latencySamples);
 }
 
 void GranulatorProcessor::releaseResources()

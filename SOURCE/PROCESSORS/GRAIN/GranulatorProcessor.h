@@ -87,7 +87,7 @@ public:
     std::tuple<juce::int64, juce::int64> getDryBlockRange();
 
 
-    private:
+private:
     float mShiftRatio = 1.f;
     std::unique_ptr<PitchDetector> mPitchDetector;
     std::unique_ptr<Granulator> mGranulator;
@@ -106,5 +106,6 @@ public:
     void _initParameterListeners();
     // cleanup ugly code in GranulatorProcessor's constructor
     juce::AudioProcessor::BusesProperties _getBusesProperties();
+
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (GranulatorProcessor)
 };
