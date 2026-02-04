@@ -32,7 +32,7 @@ GranulatorProcessor::~GranulatorProcessor()
 //==============================================================================
 const juce::String GranulatorProcessor::getName() const
 {
-    return "GrainMaker";
+    return "Granulator Processor";
 }
 
 bool GranulatorProcessor::acceptsMidi() const
