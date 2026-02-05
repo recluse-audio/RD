@@ -63,7 +63,7 @@ void Granulator::processDetecting(juce::AudioBuffer<float>& processBlock, Circul
 // 	}
 
 	// Process any active grains (overlap-add on top of dry signal)
-	processActiveGrains(processBlock, processCounterRange);
+	processActiveGrains(processBlock, circularBuffer, processCounterRange);
 }
 
 //=======================================
@@ -76,12 +76,25 @@ void Granulator::processTracking(juce::AudioBuffer<float>& processBlock, Circula
 	juce::int64 currentAnalysisWriteMark = std::get<1>(analysisWriteRangeInSampleCount);
 	juce::int64 nextAnalysisWriteMark = currentAnalysisWriteMark + (juce::int64)(detectedPeriod);
 
-	// If mSynthMark has drifted too far ahead of currentAnalysisWriteMark (due to detection variance),
-	// resync it to prevent grain emission from stalling. This can happen when the detected peak
-	// is found slightly earlier than predicted, causing analysisWriteMark to be behind mSynthMark.
-	if(mSynthMark > nextAnalysisWriteMark)
+	// Debug: track how many grains we're about to create
+	int grainsToCreate = 0;
+	juce::int64 tempSynthMark = mSynthMark;
+	while(tempSynthMark < nextAnalysisWriteMark)
 	{
-		mSynthMark = currentAnalysisWriteMark;
+		if(tempSynthMark < 0)
+			tempSynthMark = currentAnalysisWriteMark;
+		else
+			tempSynthMark += (juce::int64)shiftedPeriod;
+		grainsToCreate++;
+		if (grainsToCreate > 10) break;  // Safety limit for debug
+	}
+
+	if (grainsToCreate > 1)
+	{
+		DBG("Multiple grains! count=" << grainsToCreate << " mSynthMark=" << mSynthMark
+		    << " currentAnalysisWriteMark=" << currentAnalysisWriteMark
+		    << " nextAnalysisWriteMark=" << nextAnalysisWriteMark
+		    << " diff=" << (nextAnalysisWriteMark - mSynthMark));
 	}
 
 	// This while loop is intended to make a grain for every synth mark
@@ -112,7 +125,7 @@ void Granulator::processTracking(juce::AudioBuffer<float>& processBlock, Circula
 
 
 	// Process all active grains
-	processActiveGrains(processBlock, processCounterRange);
+	processActiveGrains(processBlock, circularBuffer, processCounterRange);
 }
 
 //=======================================
@@ -135,7 +148,10 @@ void Granulator::makeGrain(
 {
     const int grainIndex = _findInactiveGrainIndex();
     if (grainIndex < 0)
+    {
+        DBG("makeGrain: NO INACTIVE GRAIN AVAILABLE!");
         return;
+    }
 
     Grain& grain = mGrains[grainIndex];
 
@@ -156,11 +172,36 @@ void Granulator::makeGrain(
     const juce::int64 readStart = std::get<0>(analysisReadRange);
     const juce::int64 readEndExpected = readStart + (juce::int64)grainSize - 1;
 
+    // Log grain creation details
+    static int grainCounter = 0;
+    if (grainCounter < 3)  // Only log first few grains
+    {
+        std::cout << "\n=== makeGrain #" << grainCounter << " ===" << std::endl;
+        std::cout << "  analysisReadRange: [" << std::get<0>(analysisReadRange)
+                  << ", " << std::get<1>(analysisReadRange)
+                  << ", " << std::get<2>(analysisReadRange) << "]" << std::endl;
+        std::cout << "  synthRange (output): [" << std::get<0>(synthRange)
+                  << ", " << std::get<1>(synthRange)
+                  << ", " << std::get<2>(synthRange) << "]" << std::endl;
+        std::cout << "  Reading audio from circular buffer positions " << readStart
+                  << " to " << readEndExpected << std::endl;
+        grainCounter++;
+    }
+
     // Assumption for TD-PSOLA: analysisReadRange spans exactly 2*period samples and is centered
     // on the pitch mark (analysisRange.mark). We do NOT phase-rotate reads per grain.
     (void)readEndExpected; // remove if you add an assert/log
 
     grain.mBuffer.clear();
+
+    // Sample some values for logging
+    std::vector<float> sampledReadValues;
+    std::vector<float> sampledWindowedValues;
+    if (grainCounter <= 3)
+    {
+        sampledReadValues.reserve(5);
+        sampledWindowedValues.reserve(5);
+    }
 
     for (int i = 0; i < grainSize; ++i)
     {
@@ -173,7 +214,36 @@ void Granulator::makeGrain(
         {
             const float s = circularBuffer.getBuffer().getSample(ch, wrappedIndex);
             grain.mBuffer.setSample(ch, i, s * w);
+
+            // Sample first channel for logging
+            if (ch == 0 && grainCounter <= 3)
+            {
+                if (i == 0 || i == grainSize/4 || i == grainSize/2 || i == 3*grainSize/4 || i == grainSize-1)
+                {
+                    sampledReadValues.push_back(s);
+                    sampledWindowedValues.push_back(s * w);
+                }
+            }
         }
+    }
+
+    if (grainCounter <= 3)
+    {
+        std::cout << "  Sampled input values from circular buffer: [";
+        for (size_t i = 0; i < sampledReadValues.size(); ++i)
+        {
+            std::cout << sampledReadValues[i];
+            if (i < sampledReadValues.size() - 1) std::cout << ", ";
+        }
+        std::cout << "]" << std::endl;
+
+        std::cout << "  Sampled windowed grain values: [";
+        for (size_t i = 0; i < sampledWindowedValues.size(); ++i)
+        {
+            std::cout << sampledWindowedValues[i];
+            if (i < sampledWindowedValues.size() - 1) std::cout << ", ";
+        }
+        std::cout << "]" << std::endl;
     }
 
     // IMPORTANT:
@@ -183,13 +253,29 @@ void Granulator::makeGrain(
 
 
 //=======================================
-void Granulator::processActiveGrains(juce::AudioBuffer<float>& processBlock, std::tuple<juce::int64, juce::int64> processCounterRange)
+void Granulator::processActiveGrains(juce::AudioBuffer<float>& processBlock, CircularBuffer& circularBuffer,
+									  std::tuple<juce::int64, juce::int64> processCounterRange)
 {
 	int numChannels = processBlock.getNumChannels();
 	juce::int64 blockStart = std::get<0>(processCounterRange);
 	juce::int64 blockEnd = std::get<1>(processCounterRange);
 	mNormWindowBuffer.clear();
 	mWetBuffer.clear();
+
+	// Count active grains
+	int activeCount = 0;
+	for (const auto& grain : mGrains) {
+		if (grain.isActive) activeCount++;
+	}
+
+	static int callCounter = 0;
+	if (callCounter < 5)
+	{
+		std::cout << "\nprocessActiveGrains call #" << callCounter
+				  << ": blockRange=[" << blockStart << "," << blockEnd
+				  << "] activeGrains=" << activeCount << std::endl;
+		callCounter++;
+	}
 
 	for (auto& grain : mGrains)
 	{
@@ -206,9 +292,20 @@ void Granulator::processActiveGrains(juce::AudioBuffer<float>& processBlock, std
 			// If grain is completely in the past, deactivate it
 			if (synthEnd < blockStart)
 			{
+				if (callCounter <= 5)
+				{
+					std::cout << "  Grain [" << synthStart << ", " << synthEnd
+							  << "] is in PAST, deactivating" << std::endl;
+				}
 				grain.isActive = false;
 			}
 			continue;
+		}
+
+		if (callCounter <= 5)
+		{
+			std::cout << "  Grain [" << synthStart << ", " << synthEnd
+					  << "] OVERLAPS, will contribute" << std::endl;
 		}
 
 		// Calculate overlap region
@@ -225,6 +322,18 @@ void Granulator::processActiveGrains(juce::AudioBuffer<float>& processBlock, std
 			int grainBufferIndex = static_cast<int>(sampleCount - synthStart);
 			float windowVal = grain.mWindowBuffer.getSample(0, grainBufferIndex);
 			mNormWindowBuffer.addSample(0, blockIndex, windowVal);
+
+			// Log first few samples of first overlap
+			static int sampleLogCounter = 0;
+			if (callCounter <= 2 && sampleLogCounter < 3 && sampleCount == overlapStart)
+			{
+				float grainValue = grain.mBuffer.getSample(0, grainBufferIndex);
+				std::cout << "    Sample " << sampleCount << ": blockIndex=" << blockIndex
+						  << ", grainBufferIndex=" << grainBufferIndex
+						  << ", grainValue=" << grainValue << std::endl;
+				sampleLogCounter++;
+			}
+
 			// Read from grain's pre-windowed buffer and add to output (overlap-add)
 			for (int ch = 0; ch < numChannels; ++ch)
 			{
@@ -241,13 +350,19 @@ void Granulator::processActiveGrains(juce::AudioBuffer<float>& processBlock, std
 	}
 
 
+	// Fill output: use grain OLA where available, otherwise leave processBuffer unchanged
+	// (processBuffer already contains input audio, we just add/replace with grains)
 	for (int ch = 0; ch < numChannels; ++ch)
 	{
 		for (int i = 0; i < processBlock.getNumSamples(); ++i)
 		{
 			float normalizedWindowSample = mNormWindowBuffer.getSample(0, i);
 			if (normalizedWindowSample > 1.0e-6f)
+			{
+				// Grain coverage available - use normalized grain OLA
 				processBlock.setSample(ch, i, mWetBuffer.getSample(ch, i) / normalizedWindowSample);
+			}
+			// else: leave processBuffer unchanged (contains input or previous processing)
 		}
 	}
 

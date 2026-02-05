@@ -51,7 +51,9 @@ public:
 				   float shiftedPeriod);
 
 	// Process all active grains, writing to processBlock
+	// For samples without grain coverage, outputs dry audio from circular buffer
 	void processActiveGrains(juce::AudioBuffer<float>& processBlock,
+							 CircularBuffer& circularBuffer,
 							 std::tuple<juce::int64, juce::int64> processCounterRange);
 
 private:

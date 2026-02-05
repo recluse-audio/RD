@@ -44,7 +44,7 @@ TEST_CASE("Can set buffer range by passing a buffer", "test_BufferRange")
 	CHECK(bufferRange.getEndIndex() == 40);
 }
 
-TEST_CASE("RD::BufferRange::setEmpty(); Can set BufferRange as empty")
+TEST_CASE("RD::BufferRange::setEmpty() can set BufferRange as empty")
 {
 // 	RD::BufferRange bufferRange;
 // 	bufferRange.setStartIndex(10);

@@ -373,9 +373,16 @@ TEST_CASE("Granulator processActiveGrains() with no active grains leaves buffer 
     constexpr double sampleRate = 48000.0;
     constexpr int blockSize = 128;
     constexpr int maxGrainSize = 512;
+    constexpr int circularBufferSize = 2048;
 
     Granulator granulator;
     granulator.prepare(sampleRate, blockSize, maxGrainSize);
+
+    CircularBuffer circularBuffer;
+    circularBuffer.setSize(2, circularBufferSize);
+    juce::AudioBuffer<float> silenceBuffer(2, circularBufferSize);
+    silenceBuffer.clear();
+    circularBuffer.pushBuffer(silenceBuffer);
 
     auto& grains = granulator.getGrains();
     for (int i = 0; i < kNumGrains; ++i)
@@ -387,8 +394,9 @@ TEST_CASE("Granulator processActiveGrains() with no active grains leaves buffer 
     processBuffer.clear();
 
     std::tuple<juce::int64, juce::int64> processCounterRange = {0, blockSize - 1};
-    granulator.processActiveGrains(processBuffer, processCounterRange);
+    granulator.processActiveGrains(processBuffer, circularBuffer, processCounterRange);
 
+    // With no active grains, should output dry audio from circular buffer (which is silence)
     for (int ch = 0; ch < 2; ++ch)
     {
         for (int i = 0; i < blockSize; ++i)
@@ -448,7 +456,7 @@ TEST_CASE("Granulator processActiveGrains() with overlapping grains", "[Granulat
     processBuffer.clear();
 
     std::tuple<juce::int64, juce::int64> processCounterRange = {400, 527};
-    granulator.processActiveGrains(processBuffer, processCounterRange);
+    granulator.processActiveGrains(processBuffer, circularBuffer, processCounterRange);
 
     // Check that audio was output
     float minVal = 999.0f;

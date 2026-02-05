@@ -195,9 +195,8 @@ bool CircularBuffer::_readFromCircularBuffer(juce::AudioBuffer<float>& buffer, i
     {
         for(int ch = 0; ch < buffer.getNumChannels(); ch++)
         {
-            auto bufferSample = buffer.getSample(ch, sampleIndex);
             auto readSample = mCircularBuffer.getSample(ch, readPos);
-            buffer.setSample(ch, sampleIndex, readSample + bufferSample);
+            buffer.setSample(ch, sampleIndex, readSample);  // Replace, don't add
         }
 
         readPos++; // note this is not mReadPos, don't call _incrementReadPosition()

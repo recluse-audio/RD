@@ -127,6 +127,10 @@ void GranulatorProcessor::prepareToPlay (double sampleRate, int samplesPerBlock)
 	mBlockSize = samplesPerBlock;
     mPredictedNextAnalysisMark = -1;
 
+    // Initialize pitch mark storage
+    mCurrentBlockMarks.clear();
+    mAnalysisMarkHistory.prepareToPlay(sampleRate, samplesPerBlock);
+
     setLatencySamples(latencySamples);
 }
 
@@ -169,6 +173,9 @@ void GranulatorProcessor::processBlock (juce::AudioBuffer<float>& buffer,
     [[maybe_unused]] auto totalNumInputChannels  = getTotalNumInputChannels();
     [[maybe_unused]] auto totalNumOutputChannels = getTotalNumOutputChannels();
 
+    // Clear pitch marks from previous block (realtime-safe, just resets counter)
+    mCurrentBlockMarks.clear();
+
     // write audio to circular buffer
     bool writeSuccess = mCircularBuffer->pushBuffer(buffer);
 	if(!writeSuccess)
@@ -180,7 +187,15 @@ void GranulatorProcessor::processBlock (juce::AudioBuffer<float>& buffer,
 	buffer.clear();
     mDetectionBuffer.clear();
 
-    float detected_period = doDetection(buffer);
+    // Wait until enough samples processed to fill detection buffer with valid data
+    // Detection buffer size is typically 1024 samples. Need at least 2x that for clean detection.
+    const juce::int64 minSamplesForDetection = mDetectionBuffer.getNumSamples() * 2;
+    float detected_period = -1.0f;
+
+    if (mSamplesProcessed >= minSamplesForDetection)
+    {
+        detected_period = doDetection(buffer);
+    }
 
     if (detected_period > 0)
     {
@@ -214,20 +229,55 @@ void GranulatorProcessor::doCorrection(juce::AudioBuffer<float>& processBuffer, 
     const juce::int64 endProcessSample   = mSamplesProcessed + mBlockSize - 1;
     const juce::int64 endDetectionSample = endProcessSample - MagicNumbers::minLookaheadSize;
 
-    const juce::int64 markedIndex = chooseStablePitchMark(endDetectionSample, detectedPeriod);
+    // Only find a new analysis mark when needed
+    // Check if current mark has been exhausted (synthMark advanced beyond its range)
+    bool needNewMark = !mHasValidAnalysisMark;
 
-    // Prediction for NEXT time (in the SAME coordinate system as markedIndex)
-    mPredictedNextAnalysisMark = markedIndex + (juce::int64)std::llround(detectedPeriod);
+    if (mHasValidAnalysisMark)
+    {
+        // Check if synthMark has advanced past the current analysis mark's output range
+        juce::int64 currentSynthMark = mGranulator->getSynthMark();
+        juce::int64 currentAnalysisWriteEnd = std::get<2>(mCurrentAnalysisWriteRange);
 
-    auto analysisReadRange  = getAnalysisReadRange(markedIndex, detectedPeriod);
-    auto analysisWriteRange = getAnalysisWriteRange(analysisReadRange);
+        // Need new mark if synthMark has reached or passed the end of current analysis range
+        if (currentSynthMark >= currentAnalysisWriteEnd)
+        {
+            needNewMark = true;
+        }
+    }
 
+    if (needNewMark)
+    {
+        // Find new analysis mark
+        const juce::int64 markedIndex = chooseStablePitchMark(endDetectionSample, detectedPeriod);
+
+        // Store the found mark in current block buffer (realtime-safe)
+        mCurrentBlockMarks.addMark(markedIndex);
+
+        // Add to long-term history (realtime-safe, writes to pre-allocated ring buffer)
+        mAnalysisMarkHistory.addMark(markedIndex);
+
+        // Prediction for NEXT time (in the SAME coordinate system as markedIndex)
+        mPredictedNextAnalysisMark = markedIndex + (juce::int64)std::llround(detectedPeriod);
+
+        // Calculate and store ranges for this mark
+        mCurrentAnalysisMark = markedIndex;
+        mCurrentAnalysisReadRange  = getAnalysisReadRange(markedIndex, detectedPeriod);
+        mCurrentAnalysisWriteRange = getAnalysisWriteRange(mCurrentAnalysisReadRange);
+        mHasValidAnalysisMark = true;
+    }
+
+    // Fill processBuffer with delayed dry audio first (fallback for samples without grain coverage)
+    auto [dryStart, dryEnd] = getDryBlockRange();
+    mCircularBuffer->readRange(processBuffer, dryStart);
+
+    // Use current mark to create grains (will replace samples where grains contribute)
     mGranulator->processTracking(
         processBuffer,
         *mCircularBuffer.get(),
-        analysisReadRange,
-        analysisWriteRange,
-        getProcessCounterRange(),
+        mCurrentAnalysisReadRange,
+        mCurrentAnalysisWriteRange,
+        getDelayedProcessCounterRange(),  // processBuffer represents delayed output timeline
         detectedPeriod,
         shiftedPeriod);
 }
@@ -283,34 +333,43 @@ juce::int64 GranulatorProcessor::refineMarkByCorrelation(juce::int64 predictedMa
 juce::int64 GranulatorProcessor::chooseStablePitchMark( const juce::int64 endDetectionSample, const float detectedPeriod)
 {
     const juce::int64 startDetectionSample = endDetectionSample - MagicNumbers::minDetectionSize;
+    const juce::int64 periodInt = (juce::int64)std::llround(detectedPeriod);
 
-    // If we have a prediction and it's actually inside the detection window,
-    // search narrowly around it.
-    if (mPredictedNextAnalysisMark >= startDetectionSample &&
-        mPredictedNextAnalysisMark <= endDetectionSample)
+    juce::int64 searchStart, searchEnd;
+    bool usedPrediction = false;
+
+    // Check if prediction is valid
+    if (mPredictedNextAnalysisMark > 0)
     {
-        const juce::int64 radius = (juce::int64)std::llround(detectedPeriod * 0.25f);
-
-        juce::int64 rs = mPredictedNextAnalysisMark - radius;
-        juce::int64 re = mPredictedNextAnalysisMark + radius;
-
-        // Clamp to detection window (IMPORTANT: don't search outside written/valid data)
-        rs = juce::jmax(rs, startDetectionSample);
-        re = juce::jmin(re, endDetectionSample);
-
-        juce::Range<juce::int64> r(rs, re);
-        return mCircularBuffer->findPeakInRange(r, 0);
+        // Always use the prediction without adjustment to maintain smooth grain spacing
+        // Even if prediction is slightly outside detection window, the search will be clamped
+        const juce::int64 radius = periodInt / 4;
+        searchStart = mPredictedNextAnalysisMark - radius;
+        searchEnd = mPredictedNextAnalysisMark + radius;
+        usedPrediction = true;
+    }
+    else
+    {
+        // No prediction yet - search the last period of the detection window
+        searchStart = endDetectionSample - periodInt;
+        searchEnd = endDetectionSample;
     }
 
-    // Otherwise, fall back to "first peak range" (wide search),
-    // but it’s inherently jittery until we get a valid prediction.
-    {
-        const juce::int64 re = endDetectionSample;
-        const juce::int64 rs = re - (juce::int64)std::llround(detectedPeriod);
+    // Don't clamp search range - circular buffer has valid data even outside detection window
+    // The prediction-based search ensures we stay near the correct phase
+    juce::Range<juce::int64> r(searchStart, searchEnd);
+    juce::int64 foundMark = mCircularBuffer->findPeakInRange(r, 0);
 
-        juce::Range<juce::int64> r(rs, re);
-        return mCircularBuffer->findPeakInRange(r, 0);
+    // Use correlation refinement if we have enough processing history
+    // Need at least 2 periods of history before foundMark for correlation to work
+    const juce::int64 minSamplesForCorrelation = periodInt * 2;
+    if (mSamplesProcessed >= minSamplesForCorrelation && foundMark >= minSamplesForCorrelation)
+    {
+        // Refine using correlation for phase continuity
+        foundMark = refineMarkByCorrelation(foundMark, detectedPeriod);
     }
+
+    return foundMark;
 }
 
 
@@ -439,9 +498,20 @@ std::tuple<juce::int64, juce::int64> GranulatorProcessor::getProcessCounterRange
 {
     // where we will be at the end of this block
     juce::int64 startProcessSample = mSamplesProcessed;
-    juce::int64 endProcessSample = startProcessSample + mBlockSize - 1; 
+    juce::int64 endProcessSample = startProcessSample + mBlockSize - 1;
 
     return std::make_tuple(startProcessSample, endProcessSample);
+}
+
+//-------------------------------------------
+std::tuple<juce::int64, juce::int64> GranulatorProcessor::getDelayedProcessCounterRange()
+{
+    // Process range in delayed coordinate system (matches grain positions)
+    // This ensures grains overlap-add correctly with the output buffer
+    juce::int64 delayedStart = mSamplesProcessed - MagicNumbers::minLookaheadSize;
+    juce::int64 delayedEnd = delayedStart + mBlockSize - 1;
+
+    return std::make_tuple(delayedStart, delayedEnd);
 }
 
 //-------------------------------------------
@@ -489,6 +559,8 @@ std::tuple<juce::int64, juce::int64, juce::int64> GranulatorProcessor::getAnalys
 //-------------------------------------------
 std::tuple<juce::int64, juce::int64, juce::int64> GranulatorProcessor::getAnalysisWriteRange(std::tuple<juce::int64, juce::int64, juce::int64> analysisReadRange)
 {
+    // Synthesis positions compensate for lookahead delay
+    // Analysis reads from delayed audio, synthesis writes to current timeline
     juce::int64 writeStart = std::get<0>(analysisReadRange) + MagicNumbers::minLookaheadSize;
     juce::int64 writeMark = std::get<1>(analysisReadRange) + MagicNumbers::minLookaheadSize;
     juce::int64 writeEnd = std::get<2>(analysisReadRange) + MagicNumbers::minLookaheadSize;

@@ -1,6 +1,8 @@
 #pragma once
 
 #include "Util/Juce_Header.h"
+#include "PitchMarkBuffer.h"
+#include "PitchMarkHistory.h"
 
 class CircularBuffer;
 class PitchDetector;
@@ -64,12 +66,19 @@ public:
     PitchDetector* getPitchDetector() { return mPitchDetector.get(); }
     CircularBuffer& getCircularBuffer() { return *mCircularBuffer.get(); }
 
+    // Pitch mark accessors (realtime-safe - return const references)
+    const PitchMarkBuffer& getCurrentBlockMarks() const { return mCurrentBlockMarks; }
+    const PitchMarkHistory& getMarkHistory() const { return mAnalysisMarkHistory; }
+
    // AudioProcessorValueTreeState::Listener callback
     void parameterChanged(const juce::String& parameterID, float newValue) override;
 
     // range of current process block relative to total num processed, no delay
     std::tuple<juce::int64, juce::int64> getProcessCounterRange();
-    
+
+    // range of current process block in delayed coordinate system (matches grain positions)
+    std::tuple<juce::int64, juce::int64> getDelayedProcessCounterRange();
+
     // starts at delayed position behind process counter range
     std::tuple<juce::int64, juce::int64> getDetectionRange();
 
@@ -98,6 +107,16 @@ private:
 	juce::int64 mSamplesProcessed = 0;
 	int mBlockSize = 0;
     juce::int64 mPredictedNextAnalysisMark = (juce::int64) -1;
+
+    // Current analysis mark and ranges (reused until exhausted)
+    juce::int64 mCurrentAnalysisMark = -1;
+    std::tuple<juce::int64, juce::int64, juce::int64> mCurrentAnalysisReadRange{-1, -1, -1};
+    std::tuple<juce::int64, juce::int64, juce::int64> mCurrentAnalysisWriteRange{-1, -1, -1};
+    bool mHasValidAnalysisMark = false;
+
+    // Pitch mark storage
+    PitchMarkBuffer mCurrentBlockMarks;      // Marks found in current block only
+    PitchMarkHistory mAnalysisMarkHistory;   // Long-term mark history (ring buffer)
 
 
     juce::AudioProcessorValueTreeState apvts;
