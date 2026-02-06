@@ -173,7 +173,7 @@ void Granulator::makeGrain(
     const juce::int64 readEndExpected = readStart + (juce::int64)grainSize - 1;
 
     // Log grain creation details
-    static int grainCounter = 0;
+    static int grainCounter = 999;  // DISABLED: Set to high value to disable spam
     if (grainCounter < 3)  // Only log first few grains
     {
         std::cout << "\n=== makeGrain #" << grainCounter << " ===" << std::endl;
@@ -268,8 +268,9 @@ void Granulator::processActiveGrains(juce::AudioBuffer<float>& processBlock, Cir
 		if (grain.isActive) activeCount++;
 	}
 
-	static int callCounter = 0;
-	if (callCounter < 5)
+	static int callCounter = 999;  // DISABLED
+	const int numCalls = 5;
+	if (callCounter < numCalls)
 	{
 		std::cout << "\nprocessActiveGrains call #" << callCounter
 				  << ": blockRange=[" << blockStart << "," << blockEnd
@@ -292,17 +293,17 @@ void Granulator::processActiveGrains(juce::AudioBuffer<float>& processBlock, Cir
 			// If grain is completely in the past, deactivate it
 			if (synthEnd < blockStart)
 			{
-				if (callCounter <= 5)
+				if (callCounter <= numCalls)
 				{
-					std::cout << "  Grain [" << synthStart << ", " << synthEnd
-							  << "] is in PAST, deactivating" << std::endl;
+					// std::cout << "  Grain [" << synthStart << ", " << synthEnd
+					// 		  << "] is in PAST, deactivating" << std::endl;
 				}
 				grain.isActive = false;
 			}
 			continue;
 		}
 
-		if (callCounter <= 5)
+		if (callCounter <= numCalls)
 		{
 			std::cout << "  Grain [" << synthStart << ", " << synthEnd
 					  << "] OVERLAPS, will contribute" << std::endl;
@@ -352,6 +353,8 @@ void Granulator::processActiveGrains(juce::AudioBuffer<float>& processBlock, Cir
 
 	// Fill output: use grain OLA where available, otherwise leave processBuffer unchanged
 	// (processBuffer already contains input audio, we just add/replace with grains)
+	int samplesReplaced = 0;
+	int samplesLeftDry = 0;
 	for (int ch = 0; ch < numChannels; ++ch)
 	{
 		for (int i = 0; i < processBlock.getNumSamples(); ++i)
@@ -361,9 +364,22 @@ void Granulator::processActiveGrains(juce::AudioBuffer<float>& processBlock, Cir
 			{
 				// Grain coverage available - use normalized grain OLA
 				processBlock.setSample(ch, i, mWetBuffer.getSample(ch, i) / normalizedWindowSample);
+				if (ch == 0) samplesReplaced++;
+			}
+			else
+			{
+				if (ch == 0) samplesLeftDry++;
 			}
 			// else: leave processBuffer unchanged (contains input or previous processing)
 		}
+	}
+
+	static int outputLogCount = 0;
+	if (outputLogCount < 10)
+	{
+		std::cout << "  Output: " << samplesReplaced << " samples from grains, "
+				  << samplesLeftDry << " samples kept as dry" << std::endl;
+		outputLogCount++;
 	}
 
 }

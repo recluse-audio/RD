@@ -264,6 +264,59 @@ public:
 
 	}
 
+    //======================================
+    /**
+     * Fills buffer with sine cycles at a given 0-1 "normalizedStartPhase"
+     * Returns what would be the NEXT phase at the first index of the next buffer (if it wer to continue)
+     * -----------------------
+     * EXAMPLE:
+     * normalizedStartPhase = 0.0 (out of 1.0)
+     * bufferToFill = 256 samples
+     * period = 192 samples
+     * normalizedPhaseIncrement = 0.0052 (shortened)
+     * normalizedFinalPhase = 0.333333 (cont.) 
+     * finalIndex = [255]
+     *           |
+     *           |
+     *    Index & Phase Increment
+     *           |
+     *          \ /
+     *           v
+     * return normalizedNextPhase = 0.33853 
+     * -----------------------
+     * In the example, because the period is smaller than the bufferToFill it will write more than 
+     * a full period worth of sine samples.  64 extra using these numbers, which is 1/3 of 192.
+     * So we are essentially an extra 1/3 through the next cycle.
+     */
+    static double generateSineCycles(juce::AudioBuffer<float>& bufferToFill, double period, double normalizedStartPhase)
+    {
+		bufferToFill.clear();
+		auto numChannels = bufferToFill.getNumChannels();
+		int numSamples = bufferToFill.getNumSamples();
+
+		auto writeBuff = bufferToFill.getArrayOfWritePointers();
+
+        // start writing at a given percent completion of the sine cycle (aka phase)
+        double writePos = normalizedStartPhase * period;
+
+    	for(int sampleIndex = 0; sampleIndex < numSamples; sampleIndex++)
+		{
+            double radianPhase = (writePos / period) * juce::MathConstants<double>::twoPi;
+            double sample = std::sin( radianPhase );
+
+            writePos++;
+            if(writePos >= period)
+                writePos = writePos - period;
+
+            for(int channel = 0; channel < numChannels; channel++)
+            {
+				writeBuff[channel][sampleIndex] = sample;
+			}
+		}
+
+        return writePos / period;
+    }
+
     //=======================
     // Fills buffer with sine wave starting at a specific phase offset
     // phase is in radians [0, 2π)

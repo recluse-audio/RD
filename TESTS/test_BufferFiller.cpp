@@ -291,7 +291,24 @@ TEST_CASE("Test generating sine wave cycles", "[BufferFiller]")
     }
 }
 
+//==========================
+TEST_CASE("Test generating sine wave cycles with starting phase", "[BufferFiller][SineWave]")
+{
+    int bufferLength = 1024;
+    double period = 256.0; // sine wave every 256 samples, 4 cycles in a buffer of 1024
+	juce::AudioBuffer<float> sineWaveBuffer1(1, bufferLength); sineWaveBuffer1.clear();
+	BufferFiller::generateSineCycles(sineWaveBuffer1, period, 0.0);
 
+    SECTION("Test against other sine wave generation method")
+    {
+        juce::AudioBuffer<float> sineWaveBuffer2(1, bufferLength); sineWaveBuffer2.clear();
+        BufferFiller::generateSineCycles(sineWaveBuffer2, period);
+
+        // lenient threshold for now, difference in precision of methods
+        bool areEqual = BufferHelper::buffersAreIdentical(sineWaveBuffer1, sineWaveBuffer2, 0.01f);
+        CHECK(areEqual);
+    }
+}
 
 
 //==========================

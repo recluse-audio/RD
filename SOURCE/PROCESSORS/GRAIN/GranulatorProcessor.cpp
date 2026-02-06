@@ -116,12 +116,15 @@ void GranulatorProcessor::prepareToPlay (double sampleRate, int samplesPerBlock)
 	mDetectionBuffer.clear();
 	mDetectionBuffer.setSize(getTotalNumOutputChannels(), pitchDetectBufferNumSamples);
 
-    mPitchDetector->prepareToPlay(sampleRate, pitchDetectBufferNumSamples);
+    mPitchDetector->prepareToPlay(pitchDetectBufferNumSamples);
 
     mCircularBuffer->setSize(getTotalNumOutputChannels(), static_cast<int>(pitchDetectBufferNumSamples) * 2); // by default 2 seconds
     //mCircularBuffer->setDelay(MagicNumbers::minLookaheadSize);  // delay is factored in as part of getAnalysisReadRange
 
-    mGranulator->prepare(sampleRate, samplesPerBlock, pitchDetectBufferNumSamples);
+    // Maximum grain size: Detected periods can be up to pitchDetectBufferNumSamples/2 (mHalfBlock),
+    // and grains are 2*period, so maxGrainSize needs to be pitchDetectBufferNumSamples (not pitchDetectBufferNumSamples/2)
+    int maxGrainSize = pitchDetectBufferNumSamples;
+    mGranulator->prepare(sampleRate, samplesPerBlock, maxGrainSize);
 
 	mSamplesProcessed = 0;
 	mBlockSize = samplesPerBlock;
@@ -197,13 +200,24 @@ void GranulatorProcessor::processBlock (juce::AudioBuffer<float>& buffer,
         detected_period = doDetection(buffer);
     }
 
+    static int blockCounter = 0;
+    if (blockCounter < 25)
+    {
+        std::cout << "Block #" << blockCounter << " - detected_period: " << detected_period
+                  << ", mSamplesProcessed: " << mSamplesProcessed
+                  << ", minSamplesForDetection: " << minSamplesForDetection << std::endl;
+        blockCounter++;
+    }
+
+    // Always fill buffer with delayed dry audio first
+    // This ensures uncovered samples have the correct delayed input (not zeros)
+    // Grains will overlap-add on top of this where they have coverage
+    processDry(buffer);
+
+    // If pitch detected, apply granular correction on top of dry audio
     if (detected_period > 0)
     {
         doCorrection(buffer, detected_period);
-    }
-    else
-    {
-        processDry(buffer);
     }
 
 	mSamplesProcessed += buffer.getNumSamples();
@@ -216,6 +230,29 @@ float GranulatorProcessor::doDetection(juce::AudioBuffer<float>& processBuffer)
     auto [detectStart, detectEnd] = getDetectionRange();
     mCircularBuffer->readRange(mDetectionBuffer, detectStart);
 
+    // Amplify quiet audio for better pitch detection
+    // YIN algorithm needs sufficient signal level to work reliably
+    float rms = mDetectionBuffer.getRMSLevel(0, 0, mDetectionBuffer.getNumSamples());
+    const float targetRMS = 0.2f;  // Target RMS for pitch detection
+    const float minRMS = 0.001f;   // Avoid amplifying pure silence
+
+    if (rms > minRMS && rms < targetRMS)
+    {
+        float gain = targetRMS / rms;
+        // Limit gain to avoid extreme amplification of noise
+        gain = juce::jmin(gain, 50.0f);
+        mDetectionBuffer.applyGain(gain);
+
+        static int gainLogCount = 0;
+        if (gainLogCount < 3)
+        {
+            std::cout << "Amplifying detection buffer: RMS " << rms
+                      << " -> " << mDetectionBuffer.getRMSLevel(0, 0, mDetectionBuffer.getNumSamples())
+                      << " (gain: " << gain << "x)" << std::endl;
+            gainLogCount++;
+        }
+    }
+
     // Try and detect pitch, update state accordingly in temp variable for now
     float detected_period = mPitchDetector->process(mDetectionBuffer);
     return detected_period;
@@ -224,6 +261,15 @@ float GranulatorProcessor::doDetection(juce::AudioBuffer<float>& processBuffer)
 //=============================================================================
 void GranulatorProcessor::doCorrection(juce::AudioBuffer<float>& processBuffer, float detectedPeriod)
 {
+    static bool loggedOnce = false;
+    if (!loggedOnce)
+    {
+        std::cout << "PITCH SHIFT DEBUG - mShiftRatio: " << mShiftRatio
+                  << ", detectedPeriod: " << detectedPeriod
+                  << ", shiftedPeriod: " << (detectedPeriod / mShiftRatio) << std::endl;
+        loggedOnce = true;
+    }
+
     const float shiftedPeriod = detectedPeriod / mShiftRatio;
 
     const juce::int64 endProcessSample   = mSamplesProcessed + mBlockSize - 1;
@@ -277,7 +323,7 @@ void GranulatorProcessor::doCorrection(juce::AudioBuffer<float>& processBuffer, 
         *mCircularBuffer.get(),
         mCurrentAnalysisReadRange,
         mCurrentAnalysisWriteRange,
-        getDelayedProcessCounterRange(),  // processBuffer represents delayed output timeline
+        getProcessCounterRange(),  // processBuffer represents delayed output timeline
         detectedPeriod,
         shiftedPeriod);
 }

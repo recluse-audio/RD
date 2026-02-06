@@ -15,8 +15,8 @@ class Window;
 
 namespace MagicNumbers
 {
-	constexpr int minLookaheadSize = 512; // for synthesis
-    constexpr int minDetectionSize = 1024; // for detection
+	constexpr int minLookaheadSize = 1024; // for synthesis
+    constexpr int minDetectionSize = 2048; // for detection
 } // end namespace MagicNumbers
 class GranulatorProcessor : public juce::AudioProcessor
                       , public juce::AudioProcessorValueTreeState::Listener
@@ -60,6 +60,7 @@ public:
 	//===================================
     const float getLastDetectedPitch();
     const float getLastDetectedPeriod();
+    const float getShiftRatio() const { return mShiftRatio; }
 
     juce::AudioProcessorValueTreeState& getAPVTS();
     Granulator& getGranulator() { return *mGranulator.get(); }

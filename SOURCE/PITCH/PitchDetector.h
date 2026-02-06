@@ -2,9 +2,11 @@
 //  Made by Ryan Devens, 2024-07-12
 //
 
-#define DEFAULT_SAMPLE_RATE 48000
-#define DEFAULT_BUFFER_SIZE 1024
-#define DEFAULT_THRESHOLD 0.15
+namespace PitchDetectorMagicNumbers
+{
+    static const double DefaultThreshold = 0.15;
+    static const int DefaultDetectionSize = 4096; 
+}
 
 /*
     A class to detect and track pitch.
@@ -20,10 +22,11 @@ class PitchDetector
 	friend class PitchDetectorTester;
 public:
 
+
     PitchDetector();
     ~PitchDetector();
 
-    void prepareToPlay(double sampleRate, int blockSize);
+    void prepareToPlay(int blockSize);
 
     // split it up however you like, this tells you what pitch is the fundamental in that buffer.
     float process(juce::AudioBuffer<float>& buffer);
@@ -31,13 +34,15 @@ public:
     const double getCurrentPitch();
     const double getCurrentPeriod();
 
+    void setThreshold(double threshold) { mThreshold.store(threshold); }
+    double getThreshold() { return mThreshold.load(); }
+
 private:
     // Conditions of the environment
-    double mSampleRate = DEFAULT_SAMPLE_RATE;
     int mHalfBlock = 0;
 
     // Allowed amount of uncertainty, inverse of minimum probability needed to count as a pitch
-    std::atomic<double> mThreshold = DEFAULT_THRESHOLD;
+    std::atomic<double> mThreshold = PitchDetectorMagicNumbers::DefaultThreshold;
 
     // These are what we are calculating for
     std::atomic<double> mCurrentPitchHz = -1.0;

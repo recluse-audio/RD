@@ -4,9 +4,8 @@
 //
 PitchDetector::PitchDetector()
 {
-	differenceBuffer.setSize(1, DEFAULT_BUFFER_SIZE);
-	cmndBuffer.setSize(1, DEFAULT_BUFFER_SIZE);
-	mThreshold = 0.01f;
+	differenceBuffer.setSize(1, PitchDetectorMagicNumbers::DefaultDetectionSize / 2);
+	cmndBuffer.setSize(1, PitchDetectorMagicNumbers::DefaultDetectionSize / 2);
 }
 
 //
@@ -16,11 +15,9 @@ PitchDetector::~PitchDetector()
 }
 
 //
-void PitchDetector::prepareToPlay(double sampleRate, int blockSize)
+void PitchDetector::prepareToPlay(int detectionSize)
 {
-    mSampleRate = sampleRate;
-
-	mHalfBlock = (blockSize / 2);
+	mHalfBlock = (detectionSize / 2);
 
 	differenceBuffer.setSize(1, mHalfBlock);
 	differenceBuffer.clear();
@@ -44,8 +41,8 @@ float PitchDetector::process(juce::AudioBuffer<float>& buffer)
 
 	if(tauEstimate > 0)
 	{
-		// doing difference buffer on purpose per yin paper
-		periodEstimate = BufferMath::yin_parabolic_interpolation(cmndBuffer, tauEstimate);
+		// Parabolic interpolation to refine period estimate
+		periodEstimate = BufferMath::yin_parabolic_interpolation(differenceBuffer, tauEstimate);
 		mCurrentPeriod.store(periodEstimate);
 		// pitchInHertz = mSampleRate / bestTauEstimate;
 	}

@@ -64,7 +64,7 @@ public:
      * The loop inside does " < " not " <= " so no need to do max_lag - 1.  You can pass in diffBuffer.getNumSamples() and not overrun 
      */
     // 
-    static void yin_difference(juce::AudioBuffer<float>& ioBuffer, juce::AudioBuffer<float>& differenceBuffer, int max_lag)
+    static void yin_difference(juce::AudioBuffer<float>& ioBuffer, juce::AudioBuffer<float>& differenceBuffer, int max_lag, int channel = 0)
     {
         // TODO: reconsider this safety/optimization.  Is it helping?
         // depending on the diff buffer being 1/2 size of ioBuffer
@@ -85,10 +85,10 @@ public:
             {
                 for(int i = 0; i < max_lag; i++)
                 {
-                    float delta = buffRead[0][i] - buffRead[0][i+tau];
+                    float delta = buffRead[channel][i] - buffRead[channel][i+tau];
                     buffWrite[0][tau] += (delta * delta);
                 }
-            }   
+            }
         }
 
 
@@ -107,15 +107,15 @@ public:
                 difference = 0.f; // reset to 0 each time
                 for(int i = 0; i < max_lag; i++)
                 {
-                    // float delta = buffRead[0][i] - buffRead[0][i+tau];
-                    float delta = ioBuffer.getSample(0, i) - ioBuffer.getSample(0, i+tau);
+                    // float delta = buffRead[channel][i] - buffRead[channel][i+tau];
+                    float delta = ioBuffer.getSample(channel, i) - ioBuffer.getSample(channel, i+tau);
                     difference += (delta * delta);
 
                 }
-                
+
                 // buffWrite[0][tau] = difference;
                 differenceBuffer.setSample(0, tau, difference);
-            }  
+            }
         }
 
   
@@ -207,11 +207,18 @@ public:
         // using common variables from quadratic function xmin = -b/2a;
         float b = y2 - y0;
         float a = (2 * y1) - y2 - y0;
-        if(a == 0.f) // don't divide by zero
+
+        // Guard against division by zero or very small values that would produce unrealistic results
+        if(std::abs(a) < 1.0e-6f)
             return static_cast<float>(tauEstimate);
 
         // this is not "-b" like you might guess, can't articulate why right now
-        return static_cast<float>(tauEstimate) + ( b / ( 2 * a));
+        float adjustment = b / (2 * a);
+
+        // Clamp adjustment to prevent wild period estimates (should be small fractional adjustment)
+        adjustment = juce::jlimit(-5.0f, 5.0f, adjustment);
+
+        return static_cast<float>(tauEstimate) + adjustment;
 
 
         // TODO: Write this interpolation in a math function abstracted from this
