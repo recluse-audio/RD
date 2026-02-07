@@ -310,6 +310,127 @@ TEST_CASE("Test generating sine wave cycles with starting phase", "[BufferFiller
     }
 }
 
+//==========================
+TEST_CASE("generateSineWithPhase matches golden reference at period 1024", "[BufferFiller]")
+{
+    const int bufferSize = 1024;
+    const float period = 1024.0f;
+    const double startPhase = 0.0; // normalized phase 0.0 = 0.0 radians
+
+    // Generate sine wave
+    juce::AudioBuffer<float> generatedBuffer(1, bufferSize);
+    BufferFiller::generateSineWithPhase(generatedBuffer, period, startPhase);
+
+    // Load golden reference from CSV
+    juce::File currentDir = juce::File::getCurrentWorkingDirectory();
+    juce::String relativePath = "/SUBMODULES/RD/TESTS/GOLDEN/SINE/GOLDEN_SINE_1024.csv";
+    juce::String fullPath = currentDir.getFullPathName() + relativePath;
+
+    juce::AudioBuffer<float> goldenBuffer;
+    bool loadSuccess = BufferFiller::loadFromCSV(goldenBuffer, fullPath);
+    REQUIRE(loadSuccess == true);
+
+    // CSV has columns: index, normalized_phase, pi_radians, amplitude
+    // loadFromCSV treats first column as index, rest as channels
+    // So amplitude is at channel index 2 (third column after index)
+    const int amplitudeChannel = 2;
+    REQUIRE(goldenBuffer.getNumChannels() > amplitudeChannel);
+    REQUIRE(goldenBuffer.getNumSamples() == bufferSize);
+
+    // Compare generated buffer against golden amplitude values
+    for (int i = 0; i < bufferSize; ++i)
+    {
+        float generated = generatedBuffer.getSample(0, i);
+        float golden = goldenBuffer.getSample(amplitudeChannel, i);
+
+        INFO("Comparing sample at index " << i);
+        CHECK(generated == Catch::Approx(golden).margin(1e-6));
+    }
+}
+
+//==========================
+TEST_CASE("generateSineWithPhase matches golden reference at period 1000", "[BufferFiller]")
+{
+    const int bufferSize = 1000;
+    const float period = 1000.0f;
+    const double startPhase = 0.0; // normalized phase 0.0 = 0.0 radians
+
+    // Generate sine wave
+    juce::AudioBuffer<float> generatedBuffer(1, bufferSize);
+    BufferFiller::generateSineWithPhase(generatedBuffer, period, startPhase);
+
+    // Load golden reference from CSV
+    juce::File currentDir = juce::File::getCurrentWorkingDirectory();
+    juce::String relativePath = "/SUBMODULES/RD/TESTS/GOLDEN/SINE/GOLDEN_SINE_1000.csv";
+    juce::String fullPath = currentDir.getFullPathName() + relativePath;
+
+    juce::AudioBuffer<float> goldenBuffer;
+    bool loadSuccess = BufferFiller::loadFromCSV(goldenBuffer, fullPath);
+    REQUIRE(loadSuccess == true);
+
+    // CSV has columns: index, normalized_phase, pi_radians, amplitude
+    // loadFromCSV treats first column as index, rest as channels
+    // So amplitude is at channel index 2 (third column after index)
+    const int amplitudeChannel = 2;
+    REQUIRE(goldenBuffer.getNumChannels() > amplitudeChannel);
+    REQUIRE(goldenBuffer.getNumSamples() == bufferSize);
+
+    // Compare generated buffer against golden amplitude values
+    for (int i = 0; i < bufferSize; ++i)
+    {
+        float generated = generatedBuffer.getSample(0, i);
+        float golden = goldenBuffer.getSample(amplitudeChannel, i);
+
+        INFO("Comparing sample at index " << i);
+        CHECK(generated == Catch::Approx(golden).margin(1e-6));
+    }
+}
+
+//==========================
+TEST_CASE("generateSineCycles matches golden reference with period 160 and length 1024", "[BufferFiller]")
+{
+    const int bufferSize = 1024;
+    const double period = 160.0;
+    const double startPhase = 0.0; // normalized phase 0.0
+
+    // Generate sine wave and get final phase
+    juce::AudioBuffer<float> generatedBuffer(1, bufferSize);
+    double finalPhase = BufferFiller::generateSineCycles(generatedBuffer, period, startPhase);
+
+    // Load golden reference from CSV
+    juce::File currentDir = juce::File::getCurrentWorkingDirectory();
+    juce::String relativePath = "/SUBMODULES/RD/TESTS/GOLDEN/SINE/GOLDEN_SINE_PERIOD160_LEN1024.csv";
+    juce::String fullPath = currentDir.getFullPathName() + relativePath;
+
+    juce::AudioBuffer<float> goldenBuffer;
+    bool loadSuccess = BufferFiller::loadFromCSV(goldenBuffer, fullPath);
+    REQUIRE(loadSuccess == true);
+
+    // CSV has columns: index, normalized_phase, pi_radians, amplitude
+    // loadFromCSV treats first column as index, rest as channels
+    // So amplitude is at channel index 2 (third column after index)
+    const int amplitudeChannel = 2;
+    REQUIRE(goldenBuffer.getNumChannels() > amplitudeChannel);
+    REQUIRE(goldenBuffer.getNumSamples() == bufferSize);
+
+    // Compare generated buffer against golden amplitude values
+    for (int i = 0; i < bufferSize; ++i)
+    {
+        float generated = generatedBuffer.getSample(0, i);
+        float golden = goldenBuffer.getSample(amplitudeChannel, i);
+
+        INFO("Comparing sample at index " << i);
+        CHECK(generated == Catch::Approx(golden).margin(1e-6));
+    }
+
+    // Verify final phase
+    // 1024 samples / 160 period = 6.4 cycles
+    // So we expect final phase to be 0.4 (40% through the next cycle)
+    double expectedFinalPhase = 0.4;
+    INFO("Final phase returned: " << finalPhase);
+    CHECK(finalPhase == Catch::Approx(expectedFinalPhase).margin(1e-6));
+}
+
 
 //==========================
 // This test can fail if you run the test exectuable by clicking on it in finder

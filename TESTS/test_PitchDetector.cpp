@@ -108,9 +108,8 @@ TEST_CASE("PitchDetector process() detects sine wave period", "[PitchDetector][p
 	detector.prepareToPlay(detectionSize);
 
 	// Create buffer and fill with sine wave cycles (period = 256 samples)
-	juce::AudioBuffer<float> sineBuffer(numChannels, detectionSize);
-	sineBuffer.clear();
-	BufferFiller::generateSineCycles(sineBuffer, sinePeriod);
+	juce::AudioBuffer<float> sineBuffer(numChannels, detectionSize); sineBuffer.clear();
+	BufferFiller::generateSineCycles(sineBuffer, (double)sinePeriod, 0.0);
 
 	SECTION("Detects period of 256 samples from sine wave")
 	{
