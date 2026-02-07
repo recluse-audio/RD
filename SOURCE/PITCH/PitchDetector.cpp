@@ -42,7 +42,7 @@ float PitchDetector::process(juce::AudioBuffer<float>& buffer)
 	if(tauEstimate > 0)
 	{
 		// Parabolic interpolation to refine period estimate
-		periodEstimate = BufferMath::yin_parabolic_interpolation(differenceBuffer, tauEstimate);
+		periodEstimate = BufferMath::yin_parabolic_interpolation(cmndBuffer, tauEstimate);
 		mCurrentPeriod.store(periodEstimate);
 		// pitchInHertz = mSampleRate / bestTauEstimate;
 	}

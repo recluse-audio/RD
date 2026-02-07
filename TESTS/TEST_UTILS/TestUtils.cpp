@@ -144,5 +144,25 @@ std::unique_ptr<juce::AudioPlayHead> mockPlayhead_Playing() noexcept
 	return std::make_unique<MockPlayhead_Playing>();
 }
 
-} // namespace UnitTestUtils
+//=======================================
+static juce::String getGoldenFilePath(juce::String fileName)
+{
+	// Define the directory and output file path
+	juce::File currentDir = juce::File::getCurrentWorkingDirectory(); // this works when called from root dir of repo
+	juce::String relativePath = "/SUBMODULES//RD/TESTS/GOLDEN/";
+
+	return currentDir.getFullPathName() + relativePath + fileName;
+}
+
+//=======================================
+juce::File getGoldenDirectory()
+{
+	juce::File currentDir = juce::File::getCurrentWorkingDirectory();
+	return currentDir.getChildFile("SUBMODULES")
+	                 .getChildFile("RD")
+	                 .getChildFile("TESTS")
+	                 .getChildFile("GOLDEN");
+}
+
+} // namespace TestUtils
 

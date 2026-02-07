@@ -536,13 +536,6 @@ public:
         return true;
     }
 
-    //==================
-    static bool readRangeFromBuffer(juce::AudioBuffer<float>& bufferToFill, juce::AudioBuffer<float>& bufferToRead, int startSampleIndex)
-    {
-		juce::ignoreUnused(bufferToFill, bufferToRead, startSampleIndex);
-		return true;
-        //int numSamples = bufferToFill
-    }
 };
 
 

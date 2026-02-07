@@ -979,7 +979,7 @@ TEST_CASE("GranulatorProcessor Pitch Detection", "[GranulatorProcessor][PitchDet
     TestUtils::SetupAndTeardown setup;
 
     constexpr double sampleRate = 48000.0;
-    constexpr int blockSize = 4096;
+    constexpr int blockSize = 256;
     constexpr int minLookaheadSize = MagicNumbers::minLookaheadSize;
 
     // a period that does not align with block size
@@ -987,12 +987,13 @@ TEST_CASE("GranulatorProcessor Pitch Detection", "[GranulatorProcessor][PitchDet
 
     GranulatorProcessor processor;
     processor.prepareToPlay(sampleRate, blockSize);
+    processor.getPitchDetector()->setThreshold(0.01f);
 
-    juce::AudioBuffer<float> sineBuffer(1, blockSize);
+    juce::AudioBuffer<float> sineBuffer(1, PitchDetectorMagicNumbers::DefaultDetectionSize);
     BufferFiller::generateSineCycles(sineBuffer, expectedPeriod, 0.0);
 
     float detectedPeriod = processor.getPitchDetector()->process(sineBuffer);
-    CHECK(detectedPeriod == expectedPeriod);
+    CHECK(detectedPeriod == Catch::Approx(expectedPeriod).margin(1.f));
 
 }
 

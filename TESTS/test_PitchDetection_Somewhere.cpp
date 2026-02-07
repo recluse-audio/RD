@@ -4,14 +4,15 @@
 #include "../SUBMODULES/RD/SOURCE/PITCH/PitchDetector.h"
 #include "../SUBMODULES/RD/SOURCE/AudioFileProcessor.h"
 
-TEST_CASE("PitchDetector can detect pitch in Somewhere_Mono.wav file")
+TEST_CASE("PitchDetector can detect pitch in Somewhere_Mono.wav file", "[PitchDetector][FilePitchDetect]")
 {
     // Load the Somewhere file
     juce::File somewhereFile = juce::File::getCurrentWorkingDirectory()
-        .getChildFile("..")  // Go up from BUILD directory
+        .getChildFile("SUBMODULES")
+        .getChildFile("RD")
         .getChildFile("TESTS")
-        .getChildFile("TEST_FILES")
-        .getChildFile("Somewhere_Mono.wav");
+        .getChildFile("GOLDEN")
+        .getChildFile("GOLDEN_Somewhere_Mono_441K.wav");
 
     INFO("Looking for file at: " << somewhereFile.getFullPathName().toStdString());
     REQUIRE(somewhereFile.existsAsFile());

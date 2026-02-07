@@ -483,3 +483,35 @@ TEST_CASE("getPeakIndex with incremental buffer returns last index", "[BufferHel
 	int peakIndexSubRange = BufferHelper::getPeakIndex(buffer, 2, 5);
 	CHECK(peakIndexSubRange == 5);
 }
+
+//================
+TEST_CASE("cloneBlockToBuffer copies full block to buffer", "[BufferHelper][cloneBlockToBuffer]")
+{
+	// Create source buffer with incremental values
+	juce::AudioBuffer<float> sourceBuffer(2, 10);
+	BufferFiller::fillIncremental(sourceBuffer);
+
+	// Create audio block from source buffer
+	juce::dsp::AudioBlock<float> block(sourceBuffer);
+
+	// Create destination buffer (initially empty)
+	juce::AudioBuffer<float> destBuffer;
+
+	// Clone the block into the destination buffer
+	BufferHelper::cloneBlockToBuffer(destBuffer, block);
+
+	// Verify destination buffer has same dimensions
+	CHECK(destBuffer.getNumChannels() == sourceBuffer.getNumChannels());
+	CHECK(destBuffer.getNumSamples() == sourceBuffer.getNumSamples());
+
+	// Verify all values were copied correctly
+	for (int ch = 0; ch < destBuffer.getNumChannels(); ++ch)
+	{
+		for (int i = 0; i < destBuffer.getNumSamples(); ++i)
+		{
+			float expectedValue = static_cast<float>(i);  // fillIncremental creates values equal to index
+			float actualValue = destBuffer.getSample(ch, i);
+			CHECK(actualValue == expectedValue);
+		}
+	}
+}

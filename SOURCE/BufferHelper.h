@@ -232,6 +232,20 @@ public:
 		return subBlock;
 	}
 
+	static juce::dsp::AudioBlock<float> getRangeAsBlock(juce::AudioBuffer<float>& buffer, juce::int64 start, juce::int64 end)
+	{
+		// Keep this in range sample wise
+		jassert (start >= 0 && end <= buffer.getNumSamples());
+
+		auto startSample  = static_cast<size_t> (start);
+		auto numSamples   = static_cast<size_t> ((end+1) - start);
+
+		juce::dsp::AudioBlock<float> fullBlock(buffer);
+		juce::dsp::AudioBlock<float> subBlock = fullBlock.getSubBlock(startSample, numSamples);
+		// Wrap only the requested sample‐range and all channels
+		return subBlock;
+	}
+
 	// Does not do anything special if block/buffer have different numChannels, same with valid range
 	// only promises to not explode.
 	// this is an "add" not a "copy", so block values are added on top of buffer values at those indices
@@ -265,6 +279,25 @@ public:
 		return true;
 	}
 
+	// clears/resizes a given buffer so it can hold the whole block of data	
+	static bool cloneBlockToBuffer(juce::AudioBuffer<float>& buffer, juce::dsp::AudioBlock<float>& block)
+	{
+		if(block.getNumSamples() != buffer.getNumSamples() || block.getNumChannels() != buffer.getNumChannels())
+		{
+			buffer.setSize(static_cast<int>(block.getNumChannels()), static_cast<int>(block.getNumSamples()));
+		}
+
+		for(juce::int64 index = 0; index < block.getNumSamples(); index++)
+		{
+			for(int ch = 0; ch < block.getNumChannels(); ch++)
+			{
+				float blockSample = block.getSample(ch, static_cast<int>(index));
+				buffer.setSample(ch, static_cast<int>(index), blockSample);
+			}
+		}
+
+		return true;
+	}
 	//
 	// Applies window to block of audio data. This assumes that the windows size/shape/period have been set and it is ready to go
 	// doesn't do any checks to make sure these align in size so do that before if it is important.

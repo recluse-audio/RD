@@ -26,4 +26,9 @@ struct SetupAndTeardown
 /** Shortcut to return a playhead that reports isPlaying. */
 [[nodiscard]] std::unique_ptr<juce::AudioPlayHead> mockPlayhead_Playing() noexcept;
 
+static juce::String getGoldenFilePath(juce::String fileName);
+
+/** Returns the GOLDEN test files directory as a juce::File. */
+[[nodiscard]] juce::File getGoldenDirectory();
+
 } // namespace TestUtils
