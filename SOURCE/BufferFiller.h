@@ -214,6 +214,50 @@ public:
         }
     }
 
+    //====================
+    // Generates a Tukey window (tapered cosine window)
+    // alpha = 0: rectangular window
+    // alpha = 1: Hann window
+    // alpha = 0.5: half cosine taper on each side
+    static void generateTukey(juce::AudioBuffer<float>& bufferToFill, float alpha = 0.5f)
+    {
+        bufferToFill.clear();
+
+        // Clamp alpha to valid range
+        alpha = juce::jlimit(0.0f, 1.0f, alpha);
+
+        auto writePtr = bufferToFill.getArrayOfWritePointers();
+        int numSamples = bufferToFill.getNumSamples();
+
+        if (numSamples == 0)
+            return;
+
+        // Calculate taper region size
+        int taperSamples = static_cast<int>(alpha * (numSamples - 1) / 2.0f);
+
+        for (int ch = 0; ch < bufferToFill.getNumChannels(); ch++)
+        {
+            for (int sampleIndex = 0; sampleIndex < numSamples; sampleIndex++)
+            {
+                float value = 1.0f;
+
+                // Left taper
+                if (sampleIndex < taperSamples)
+                {
+                    value = 0.5f * (1.0f - std::cos(static_cast<float>(M_PI) * sampleIndex / taperSamples));
+                }
+                // Right taper
+                else if (sampleIndex > numSamples - taperSamples - 1)
+                {
+                    value = 0.5f * (1.0f - std::cos(static_cast<float>(M_PI) * (numSamples - sampleIndex - 1) / taperSamples));
+                }
+                // Middle section (value stays 1.0f)
+
+                writePtr[ch][sampleIndex] = value;
+            }
+        }
+    }
+
 
     //=======================
     //
