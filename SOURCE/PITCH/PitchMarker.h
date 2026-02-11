@@ -44,12 +44,8 @@ public:
      * @param usePrediction If true, uses internal prediction to narrow search range
      * @return Detected pitch mark in absolute sample count
      */
-    juce::int64 findMark(
-        const CircularBuffer& circularBuffer,
-        juce::Range<juce::int64> searchRange,
-        float detectedPeriod,
-        juce::int64 samplesProcessed,
-        bool usePrediction = true);
+    juce::int64 findMark(const CircularBuffer& circularBuffer, juce::Range<juce::int64> searchRange,
+                         float detectedPeriod, juce::int64 samplesProcessed, bool usePrediction = true);
 
     /**
      * Get the last found pitch mark.
