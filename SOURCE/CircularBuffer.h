@@ -55,6 +55,12 @@ public:
     // Wraps any int64 index (including negative) to valid buffer index
     int getWrappedIndex(juce::int64 index) const;
 
+    // Gets a single sample at the given unwrapped index (will be wrapped internally)
+    // @param channel Channel to read from
+    // @param sampleIndex Unwrapped sample index (in absolute sample count)
+    // @return Sample value
+    float getSample(int channel, juce::int64 sampleIndex) const;
+
     // Finds the peak (max absolute value) within a range and returns the unwrapped index.
     // Range uses start (inclusive) and end (exclusive).
     // The returned index is in the same coordinate system as the input range, not wrapped to buffer size.

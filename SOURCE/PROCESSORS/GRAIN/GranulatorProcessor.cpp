@@ -3,6 +3,7 @@
 #include "../../PITCH/PitchDetector.h"
 #include "../../CircularBuffer.h"
 #include "../../BufferHelper.h"
+#include "../../Util/DebugLogger.h"
 
 
 //==============================================================================
@@ -200,14 +201,11 @@ void GranulatorProcessor::processBlock (juce::AudioBuffer<float>& buffer,
         detected_period = doDetection(buffer);
     }
 
+#if RD_DEBUG_PITCH_DETECTION
     static int blockCounter = 0;
-    if (blockCounter < 25)
-    {
-        std::cout << "Block #" << blockCounter << " - detected_period: " << detected_period
-                  << ", mSamplesProcessed: " << mSamplesProcessed
-                  << ", minSamplesForDetection: " << minSamplesForDetection << std::endl;
-        blockCounter++;
-    }
+    DebugLogger::logPitchDetection(blockCounter, 25, detected_period, mSamplesProcessed, minSamplesForDetection);
+    blockCounter++;
+#endif
 
     // Always fill buffer with delayed dry audio first
     // This ensures uncovered samples have the correct delayed input (not zeros)
@@ -243,14 +241,10 @@ float GranulatorProcessor::doDetection(juce::AudioBuffer<float>& processBuffer)
         gain = juce::jmin(gain, 50.0f);
         mDetectionBuffer.applyGain(gain);
 
-        static int gainLogCount = 0;
-        if (gainLogCount < 3)
-        {
-            std::cout << "Amplifying detection buffer: RMS " << rms
-                      << " -> " << mDetectionBuffer.getRMSLevel(0, 0, mDetectionBuffer.getNumSamples())
-                      << " (gain: " << gain << "x)" << std::endl;
-            gainLogCount++;
-        }
+#if RD_DEBUG_GAIN_PROCESSING
+        float newRMS = mDetectionBuffer.getRMSLevel(0, 0, mDetectionBuffer.getNumSamples());
+        DebugLogger::logGainProcessing(3, rms, newRMS, gain);
+#endif
     }
 
     // Try and detect pitch, update state accordingly in temp variable for now
@@ -261,16 +255,11 @@ float GranulatorProcessor::doDetection(juce::AudioBuffer<float>& processBuffer)
 //=============================================================================
 void GranulatorProcessor::doCorrection(juce::AudioBuffer<float>& processBuffer, float detectedPeriod)
 {
-    static bool loggedOnce = false;
-    if (!loggedOnce)
-    {
-        std::cout << "PITCH SHIFT DEBUG - mShiftRatio: " << mShiftRatio
-                  << ", detectedPeriod: " << detectedPeriod
-                  << ", shiftedPeriod: " << (detectedPeriod / mShiftRatio) << std::endl;
-        loggedOnce = true;
-    }
-
     const float shiftedPeriod = detectedPeriod / mShiftRatio;
+
+#if RD_DEBUG_PITCH_DETECTION
+    DebugLogger::logPitchShift(1, mShiftRatio, detectedPeriod, shiftedPeriod);
+#endif
 
     const juce::int64 endProcessSample   = mSamplesProcessed + mBlockSize - 1;
     const juce::int64 endDetectionSample = endProcessSample - MagicNumbers::minLookaheadSize;

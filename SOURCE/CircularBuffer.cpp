@@ -240,6 +240,14 @@ int CircularBuffer::getWrappedIndex(juce::int64 index) const
 
 //========================
 //
+float CircularBuffer::getSample(int channel, juce::int64 sampleIndex) const
+{
+    const int wrappedIndex = getWrappedIndex(sampleIndex);
+    return mCircularBuffer.getSample(channel, wrappedIndex);
+}
+
+//========================
+//
 juce::int64 CircularBuffer::findPeakInRange(juce::Range<juce::int64> range, int channel) const
 {
     juce::int64 peakIndex = range.getStart();

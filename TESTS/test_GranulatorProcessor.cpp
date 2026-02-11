@@ -997,3 +997,270 @@ TEST_CASE("GranulatorProcessor Pitch Detection", "[GranulatorProcessor][PitchDet
 
 }
 
+//==============================================================================
+// Grain Export Test (for debugging and analysis)
+//==============================================================================
+
+#include "../SOURCE/BufferWriter.h"
+#include "../SOURCE/AudioFileHelpers.h"
+#include <chrono>
+#include <iomanip>
+#include <sstream>
+#include <fstream>
+
+// Grain data structures for export
+struct GranulatorGrainSnapshot
+{
+    int grainId;
+    int grainSlot;
+    juce::int64 sourceStart;
+    juce::int64 sourceCenter;
+    juce::int64 sourceEnd;
+    juce::int64 synthStart;
+    juce::int64 synthCenter;
+    juce::int64 synthEnd;
+    int grainSize;
+    float detectedPeriod;
+};
+
+struct GranulatorGrainHistory
+{
+    float shiftRatio;
+    int signalLength;
+    std::vector<GranulatorGrainSnapshot> grains;
+};
+
+class GrainTracker
+{
+public:
+    void captureGrains(GranulatorProcessor& processor, float detectedPeriod)
+    {
+        auto& granulator = processor.getGranulator();
+        auto& grains = granulator.getGrains();
+
+        for (int i = 0; i < kNumGrains; ++i)
+        {
+            const auto& grain = grains[i];
+            if (!grain.isActive)
+                continue;
+
+            juce::int64 synthCenter = std::get<1>(grain.mSynthRange);
+
+            bool alreadyTracked = false;
+            for (const auto& tracked : mTrackedSynthCenters)
+            {
+                if (tracked == synthCenter)
+                {
+                    alreadyTracked = true;
+                    break;
+                }
+            }
+
+            if (alreadyTracked)
+                continue;
+
+            GranulatorGrainSnapshot snapshot;
+            snapshot.grainId = mNextGrainId++;
+            snapshot.grainSlot = i;
+
+            auto analysisRange = grain.mAnalysisRange;
+            snapshot.sourceStart = std::get<0>(analysisRange);
+            snapshot.sourceCenter = std::get<1>(analysisRange);
+            snapshot.sourceEnd = std::get<2>(analysisRange);
+
+            auto synthRange = grain.mSynthRange;
+            snapshot.synthStart = std::get<0>(synthRange);
+            snapshot.synthCenter = std::get<1>(synthRange);
+            snapshot.synthEnd = std::get<2>(synthRange);
+
+            snapshot.grainSize = grain.mGrainSize;
+            snapshot.detectedPeriod = detectedPeriod;
+
+            mGrains.push_back(snapshot);
+            mTrackedSynthCenters.push_back(synthCenter);
+        }
+    }
+
+    const std::vector<GranulatorGrainSnapshot>& getGrains() const { return mGrains; }
+
+    void reset()
+    {
+        mGrains.clear();
+        mTrackedSynthCenters.clear();
+        mNextGrainId = 0;
+    }
+
+private:
+    std::vector<GranulatorGrainSnapshot> mGrains;
+    std::vector<juce::int64> mTrackedSynthCenters;
+    int mNextGrainId = 0;
+};
+
+bool exportGrainHistoryToCSV(const GranulatorGrainHistory& history, const juce::String& outputPath)
+{
+    juce::String basePath = outputPath.upToLastOccurrenceOf(".", false, false);
+
+    juce::String csvPath = basePath + "_synthesis_grains.csv";
+    juce::File csvFile(csvPath);
+
+    std::ofstream csvStream(csvFile.getFullPathName().toStdString());
+    if (!csvStream.is_open())
+        return false;
+
+    csvStream << "grain_id,grain_slot,source_start,source_center,source_end,";
+    csvStream << "synth_start,synth_center,synth_end,grain_size,detected_period\n";
+
+    for (const auto& grain : history.grains)
+    {
+        csvStream << grain.grainId << ","
+                  << grain.grainSlot << ","
+                  << grain.sourceStart << ","
+                  << grain.sourceCenter << ","
+                  << grain.sourceEnd << ","
+                  << grain.synthStart << ","
+                  << grain.synthCenter << ","
+                  << grain.synthEnd << ","
+                  << grain.grainSize << ","
+                  << grain.detectedPeriod << "\n";
+    }
+
+    csvStream.close();
+
+    juce::String summaryPath = basePath + "_grain_summary.txt";
+    juce::File summaryFile(summaryPath);
+
+    std::ofstream summaryStream(summaryFile.getFullPathName().toStdString());
+    if (!summaryStream.is_open())
+        return false;
+
+    summaryStream << "GranulatorProcessor Grain Analysis Summary\n";
+    summaryStream << "==================================================\n\n";
+    summaryStream << "Pitch Shift Ratio: " << history.shiftRatio << "\n";
+    summaryStream << "Signal Length: " << history.signalLength << " samples\n";
+    summaryStream << "Number of Grains Captured: " << history.grains.size() << "\n\n";
+
+    if (!history.grains.empty())
+    {
+        double avgGrainSize = 0.0;
+        double avgDetectedPeriod = 0.0;
+        for (const auto& grain : history.grains)
+        {
+            avgGrainSize += grain.grainSize;
+            avgDetectedPeriod += grain.detectedPeriod;
+        }
+        avgGrainSize /= history.grains.size();
+        avgDetectedPeriod /= history.grains.size();
+
+        summaryStream << "Average Grain Size: " << avgGrainSize << " samples\n";
+        summaryStream << "Average Detected Period: " << avgDetectedPeriod << " samples\n\n";
+    }
+
+    summaryStream << "Note: GranulatorProcessor uses 4 active grain slots that recycle.\n";
+    summaryStream << "Grains are captured when newly created, not all active grains each block.\n";
+
+    summaryStream.close();
+
+    return true;
+}
+
+TEST_CASE("GranulatorProcessor - Female_Scale.wav with grain export", "[GranulatorProcessor][grain_export]")
+{
+    TestUtils::SetupAndTeardown setup;
+
+    auto now = std::chrono::system_clock::now();
+    auto time = std::chrono::system_clock::to_time_t(now);
+    std::stringstream ss;
+    ss << std::put_time(std::localtime(&time), "%Y%m%d_%H%M%S");
+    juce::String timestamp(ss.str());
+
+    juce::String outputDirName = "GRANULATOR_Female_Scale_1.5_" + timestamp;
+    juce::File outputDir = juce::File::getCurrentWorkingDirectory()
+                            .getChildFile("SUBMODULES/RD/TESTS/OUTPUT")
+                            .getChildFile(outputDirName);
+
+    REQUIRE(outputDir.createDirectory());
+
+    juce::File currentDir = juce::File::getCurrentWorkingDirectory();
+    juce::File inputFile = currentDir.getChildFile("TESTS/TEST_FILES/Female_Scale.wav");
+    REQUIRE(inputFile.existsAsFile());
+
+    juce::AudioBuffer<float> inputBuffer;
+    bool loadSuccess = BufferFiller::loadFromWavFile(inputFile, inputBuffer);
+    REQUIRE(loadSuccess);
+    REQUIRE(inputBuffer.getNumSamples() > 0);
+
+    double sampleRate = AudioFileHelpers::getFileSampleRate(inputFile);
+
+    const int numInputSamples = inputBuffer.getNumSamples();
+    const int numChannels = inputBuffer.getNumChannels();
+
+    GranulatorProcessor processor;
+
+    float shiftRatio = 1.5f;
+    auto& apvts = processor.getAPVTS();
+    auto* shiftParam = apvts.getParameter("shift ratio");
+    REQUIRE(shiftParam != nullptr);
+    shiftParam->setValueNotifyingHost(shiftParam->convertTo0to1(shiftRatio));
+
+    const int blockSize = 512;
+    processor.prepareToPlay(sampleRate, blockSize);
+
+    GrainTracker grainTracker;
+
+    juce::AudioBuffer<float> outputBuffer;
+    outputBuffer.setSize(numChannels, numInputSamples);
+    outputBuffer.clear();
+
+    juce::MidiBuffer midiBuffer;
+    int numBlocksProcessed = 0;
+
+    for (int startSample = 0; startSample < numInputSamples; startSample += blockSize)
+    {
+        const int samplesThisBlock = std::min(blockSize, numInputSamples - startSample);
+
+        juce::AudioBuffer<float> blockBuffer(numChannels, samplesThisBlock);
+
+        for (int ch = 0; ch < numChannels; ++ch)
+        {
+            blockBuffer.copyFrom(ch, 0, inputBuffer, ch, startSample, samplesThisBlock);
+        }
+
+        processor.processBlock(blockBuffer, midiBuffer);
+
+        for (int ch = 0; ch < numChannels; ++ch)
+        {
+            outputBuffer.copyFrom(ch, startSample, blockBuffer, ch, 0, samplesThisBlock);
+        }
+
+        float detectedPeriod = processor.getLastDetectedPeriod();
+        if (detectedPeriod > 0.0f)
+        {
+            grainTracker.captureGrains(processor, detectedPeriod);
+        }
+
+        numBlocksProcessed++;
+    }
+
+    juce::String outputFileName = "Female_Scale_1.5_" + timestamp + ".wav";
+    juce::File outputFile = outputDir.getChildFile(outputFileName);
+    BufferWriter::Result writeResult = BufferWriter::writeToWav(outputBuffer, outputFile, sampleRate, 24);
+    REQUIRE(writeResult == BufferWriter::Result::kSuccess);
+    REQUIRE(outputFile.existsAsFile());
+
+    GranulatorGrainHistory history;
+    history.shiftRatio = shiftRatio;
+    history.signalLength = numInputSamples;
+    history.grains = grainTracker.getGrains();
+
+    REQUIRE(exportGrainHistoryToCSV(history, outputFile.getFullPathName()));
+
+    INFO("Captured " << history.grains.size() << " grains");
+    CHECK(history.grains.size() > 0);
+
+    std::cout << "\nGranulatorProcessor test output:" << std::endl;
+    std::cout << "  Directory: " << outputDir.getFullPathName() << std::endl;
+    std::cout << "  Audio file: " << outputFileName << std::endl;
+    std::cout << "  Grains captured: " << history.grains.size() << std::endl;
+    std::cout << "  Blocks processed: " << numBlocksProcessed << std::endl;
+}
+
