@@ -12,8 +12,8 @@
 
 namespace TD_PitchDetectorConstants
 {
-    static constexpr float kDefaultMinHz = 80.0f;   // ~E2
-    static constexpr float kDefaultMaxHz = 400.0f;  // ~G4
+    static constexpr float kDefaultMinHz = 80.0f;    // ~E2
+    static constexpr float kDefaultMaxHz = 1000.0f;  // ~B5 (covers full vocal and most instrumental range)
 }
 
 /**

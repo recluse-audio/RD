@@ -67,6 +67,7 @@ TEST_CASE("TD_PitchDetector - Sine Wave Detection", "[TD_PitchDetector]")
 
         float detectedPeriod = detector.process(testBuffer);
 
+        INFO("Expected period: " << expectedPeriod << ", Detected period: " << detectedPeriod);
         REQUIRE(detectedPeriod > 0.0f);
         REQUIRE(detector.getCurrentPeriod() == detectedPeriod);
 

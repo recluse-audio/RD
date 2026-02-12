@@ -57,16 +57,15 @@ float TD_PitchDetector::process(const juce::AudioBuffer<float>& buffer)
         mFFT = std::make_unique<juce::dsp::FFT>(fftOrder);
     }
 
-    // Allocate FFT buffer (complex data needs 2x space)
+    // Allocate FFT buffer (needs 2x space: first half = input, full buffer = complex output)
     mFFTBuffer.setSize(1, fftSize * 2, false, true, false);
     mFFTBuffer.clear();
     float* fftData = mFFTBuffer.getWritePointer(0);
 
-    // Copy signal data to FFT buffer (interleaved real/imag format)
+    // Copy signal data to first half of buffer (per JUCE documentation)
     for (int i = 0; i < numSamples; i++)
     {
-        fftData[i * 2] = signalData[i]; // Real part
-        fftData[i * 2 + 1] = 0.0f;      // Imaginary part
+        fftData[i] = signalData[i];
     }
 
     // Forward FFT - use real-only for real input signal
@@ -89,13 +88,14 @@ float TD_PitchDetector::process(const juce::AudioBuffer<float>& buffer)
     // Inverse FFT to get autocorrelation
     mFFT->performRealOnlyInverseTransform(fftData);
 
+    // After inverse transform, autocorrelation is in first half of buffer
     // Find peak in autocorrelation within period range
     int peakIndex = mMinPeriod;
-    float peakValue = fftData[mMinPeriod * 2];
+    float peakValue = fftData[mMinPeriod];
 
     for (int i = mMinPeriod + 1; i < std::min(mMaxPeriod, fftSize / 2); i++)
     {
-        float value = fftData[i * 2];
+        float value = fftData[i];
         if (value > peakValue)
         {
             peakValue = value;

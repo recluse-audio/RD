@@ -1256,11 +1256,5 @@ TEST_CASE("GranulatorProcessor - Female_Scale.wav with grain export", "[Granulat
 
     INFO("Captured " << history.grains.size() << " grains");
     CHECK(history.grains.size() > 0);
-
-    std::cout << "\nGranulatorProcessor test output:" << std::endl;
-    std::cout << "  Directory: " << outputDir.getFullPathName() << std::endl;
-    std::cout << "  Audio file: " << outputFileName << std::endl;
-    std::cout << "  Grains captured: " << history.grains.size() << std::endl;
-    std::cout << "  Blocks processed: " << numBlocksProcessed << std::endl;
 }
 
