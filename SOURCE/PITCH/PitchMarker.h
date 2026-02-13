@@ -9,6 +9,7 @@
 #pragma once
 #include "Util/Juce_Header.h"
 #include "../CircularBuffer.h"
+#include "PitchMark.h"
 
 /**
  * Finds and tracks pitch marks for TD-PSOLA pitch shifting.
@@ -22,6 +23,7 @@
  * - Correlation refinement for phase continuity
  * - Prediction tracking (predicts next mark based on detected period)
  * - Works in absolute sample count (not wrapped buffer indices)
+ * - Owns a FIFO buffer of pitch marks for historical tracking
  */
 class PitchMarker
 {
@@ -29,6 +31,73 @@ public:
     PitchMarker();
     ~PitchMarker();
 
+    /**
+     * Prepare the pitch marker.
+     * @param sampleRate Sample rate
+     * @param detectionWindowSize Size of detection window in samples
+     * @param pitchMarkBufferSeconds Duration of pitch mark buffer in seconds (default 30.0)
+     */
+    void prepare(double sampleRate, int detectionWindowSize, double pitchMarkBufferSeconds = 30.0);
+
+    /**
+     * Perform pitch marking on the given range.
+     *
+     * This is the main method that finds a pitch mark and stores it in the internal FIFO.
+     * It uses the circular buffer, search range, and detected period to find a peak,
+     * refine it with correlation, and store it in the pitch mark FIFO.
+     *
+     * @param circularBuffer Audio buffer to search
+     * @param searchRange Search range in absolute sample count
+     * @param detectedPeriod Detected period in samples (from pitch detector)
+     * @param samplesProcessed Total samples processed so far (for correlation history check)
+     * @param usePrediction If true, uses internal prediction to narrow search range
+     * @return Detected pitch mark in absolute sample count, or -1 if invalid period
+     */
+    juce::int64 doPitchMarking(const CircularBuffer& circularBuffer, juce::Range<juce::int64> searchRange,
+                               float detectedPeriod, juce::int64 samplesProcessed, bool usePrediction = true);
+
+    /**
+     * Get the last found pitch mark.
+     * @return Last pitch mark in absolute sample count, or -1 if none found yet
+     */
+    juce::int64 getLastMark() const { return mLastMark; }
+
+    /**
+     * Get the predicted next pitch mark.
+     * @return Predicted pitch mark in absolute sample count, or -1 if no prediction available
+     */
+    juce::int64 getPredictedNextMark() const { return mPredictedNextMark; }
+
+    /**
+     * Get the stored pitch marks FIFO.
+     * @return Reference to the pitch marks vector (circular FIFO)
+     */
+    const std::vector<PitchMark>& getPitchMarks() const { return mPitchMarks; }
+
+    /**
+     * Get the number of stored pitch marks.
+     * @return Number of valid pitch marks in the FIFO (may be less than FIFO size)
+     */
+    int getNumStoredMarks() const;
+
+    /**
+     * Get the current write position in the FIFO.
+     * @return Write position index
+     */
+    int getPitchMarkWritePos() const { return mPitchMarkWritePos; }
+
+    /**
+     * Get the last stored PitchMark object.
+     * @return Last pitch mark, or invalid PitchMark if none stored
+     */
+    PitchMark getLastPitchMark() const;
+
+    /**
+     * Reset the marker state (clears history, prediction, and pitch marks).
+     */
+    void reset();
+
+private:
     /**
      * Find a pitch mark in the circular buffer.
      *
@@ -44,27 +113,9 @@ public:
      * @param usePrediction If true, uses internal prediction to narrow search range
      * @return Detected pitch mark in absolute sample count
      */
-    juce::int64 findMark(const CircularBuffer& circularBuffer, juce::Range<juce::int64> searchRange,
-                         float detectedPeriod, juce::int64 samplesProcessed, bool usePrediction = true);
+    juce::int64 _findMark(const CircularBuffer& circularBuffer, juce::Range<juce::int64> searchRange,
+                          float detectedPeriod, juce::int64 samplesProcessed, bool usePrediction);
 
-    /**
-     * Get the last found pitch mark.
-     * @return Last pitch mark in absolute sample count, or -1 if none found yet
-     */
-    juce::int64 getLastMark() const { return mLastMark; }
-
-    /**
-     * Get the predicted next pitch mark.
-     * @return Predicted pitch mark in absolute sample count, or -1 if no prediction available
-     */
-    juce::int64 getPredictedNextMark() const { return mPredictedNextMark; }
-
-    /**
-     * Reset the marker state (clears history and prediction).
-     */
-    void reset();
-
-private:
     /**
      * Refine a pitch mark using correlation with the previous period.
      *
@@ -76,7 +127,7 @@ private:
      * @param detectedPeriod Period in samples
      * @return Refined pitch mark in absolute sample count
      */
-    juce::int64 _refineMarkByCorrelation(const CircularBuffer& circularBuffer, juce::int64 candidateMark, 
+    juce::int64 _refineMarkByCorrelation(const CircularBuffer& circularBuffer, juce::int64 candidateMark,
                                         float detectedPeriod) const;
 
     /**
@@ -85,11 +136,22 @@ private:
      * @param sampleIndex Sample index in absolute sample count (will be wrapped)
      * @return Sample value
      */
-    inline float _readMonoSample(
-        const CircularBuffer& circularBuffer,
-        juce::int64 sampleIndex) const;
+    inline float _readMonoSample( const CircularBuffer& circularBuffer, juce::int64 sampleIndex) const;
+
+    /**
+     * Store a pitch mark in the FIFO.
+     * @param pitchMark The pitch mark position
+     * @param detectedPeriod The detected period in samples
+     */
+    void _storePitchMark(juce::int64 pitchMark, float detectedPeriod);
 
     // State
     juce::int64 mLastMark = -1;           // Last detected pitch mark (absolute sample count)
     juce::int64 mPredictedNextMark = -1;  // Predicted next pitch mark (absolute sample count)
+
+    // Pitch mark storage (circular FIFO)
+    std::vector<PitchMark> mPitchMarks;
+    int mPitchMarkWritePos = 0;
+    int mMaxPitchMarks = 0;
+    int mNumStoredMarks = 0;  // Tracks actual number of marks stored (up to mMaxPitchMarks)
 };

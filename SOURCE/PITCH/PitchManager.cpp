@@ -25,17 +25,13 @@ void PitchManager::prepare(double sampleRate, int detectionWindowSize)
     // Prepare pitch detector
     mPitchDetector.prepare(sampleRate);
 
+    // Prepare pitch marker
+    mPitchMarker.prepare(sampleRate, detectionWindowSize, PitchManagerConstants::kPitchMarkBufferSeconds);
+
     // Allocate detection buffer (mono, to be filled incrementally)
     mDetectionBuffer.setSize(1, mDetectionWindowSize);
     mDetectionBuffer.clear();
     mDetectionBufferFillPos = 0;
-
-    // Calculate max pitch marks for 30 seconds
-    // Assuming detection happens every detectionWindowSize samples
-    const double detectionsPerSecond = sampleRate / static_cast<double>(detectionWindowSize);
-    mMaxPitchMarks = static_cast<int>(detectionsPerSecond * PitchManagerConstants::kPitchMarkBufferSeconds);
-    mPitchMarks.resize(mMaxPitchMarks, -1);
-    mPitchMarkWritePos = 0;
 
     reset();
 }
@@ -48,8 +44,6 @@ void PitchManager::reset()
     mDetectionBufferFillPos = 0;
     mDetectionBuffer.clear();
     mPitchMarker.reset();
-    mPitchMarkWritePos = 0;
-    std::fill(mPitchMarks.begin(), mPitchMarks.end(), -1);
 }
 
 //=======================================
@@ -97,23 +91,10 @@ juce::int64 PitchManager::findPitchMark(const CircularBuffer& circularBuffer, ju
     if (mCurrentPeriod <= 0.0f)
         return -1;
 
-    // Use PitchMarker to find the mark
-    juce::int64 foundMark = mPitchMarker.findMark(circularBuffer, searchRange, mCurrentPeriod, mAbsoluteSampleCounter, usePrediction);
-
-    // Store the mark in FIFO
-    if (foundMark >= 0)
-    {
-        _storePitchMark(foundMark);
-    }
+    // Use PitchMarker to perform pitch marking (finds and stores the mark)
+    juce::int64 foundMark = mPitchMarker.doPitchMarking(circularBuffer, searchRange, mCurrentPeriod, mAbsoluteSampleCounter, usePrediction);
 
     return foundMark;
-}
-
-//=======================================
-void PitchManager::_storePitchMark(juce::int64 pitchMark)
-{
-    mPitchMarks[mPitchMarkWritePos] = pitchMark;
-    mPitchMarkWritePos = (mPitchMarkWritePos + 1) % mMaxPitchMarks;
 }
 
 //=======================================

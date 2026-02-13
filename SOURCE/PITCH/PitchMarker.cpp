@@ -18,19 +18,56 @@ PitchMarker::~PitchMarker()
 }
 
 //=======================================
+void PitchMarker::prepare(double sampleRate, int detectionWindowSize, double pitchMarkBufferSeconds)
+{
+    // Calculate max pitch marks based on buffer duration
+    // Assuming detection happens every detectionWindowSize samples
+    const double detectionsPerSecond = sampleRate / static_cast<double>(detectionWindowSize);
+    mMaxPitchMarks = static_cast<int>(detectionsPerSecond * pitchMarkBufferSeconds);
+    mPitchMarks.resize(mMaxPitchMarks, PitchMark()); // Default construct invalid pitch marks
+    mPitchMarkWritePos = 0;
+    mNumStoredMarks = 0;
+}
+
+//=======================================
 void PitchMarker::reset()
 {
     mLastMark = -1;
     mPredictedNextMark = -1;
+    mPitchMarkWritePos = 0;
+    mNumStoredMarks = 0;
+    std::fill(mPitchMarks.begin(), mPitchMarks.end(), PitchMark()); // Reset to invalid pitch marks
 }
 
 //=======================================
-juce::int64 PitchMarker::findMark(
-    const CircularBuffer& circularBuffer,
-    juce::Range<juce::int64> searchRange,
-    float detectedPeriod,
-    juce::int64 samplesProcessed,
-    bool usePrediction)
+int PitchMarker::getNumStoredMarks() const
+{
+    return mNumStoredMarks;
+}
+
+//=======================================
+juce::int64 PitchMarker::doPitchMarking(const CircularBuffer& circularBuffer, juce::Range<juce::int64> searchRange,
+                                        float detectedPeriod, juce::int64 samplesProcessed, bool usePrediction)
+{
+    // Can't do pitch marking without a valid period
+    if (detectedPeriod <= 0.0f)
+        return -1;
+
+    // Find the pitch mark
+    juce::int64 foundMark = _findMark(circularBuffer, searchRange, detectedPeriod, samplesProcessed, usePrediction);
+
+    // Store the mark in FIFO with its range
+    if (foundMark >= 0)
+    {
+        _storePitchMark(foundMark, detectedPeriod);
+    }
+
+    return foundMark;
+}
+
+//=======================================
+juce::int64 PitchMarker::_findMark(const CircularBuffer& circularBuffer, juce::Range<juce::int64> searchRange,
+                                   float detectedPeriod, juce::int64 samplesProcessed, bool usePrediction)
 {
     const juce::int64 periodInt = static_cast<juce::int64>(std::llround(detectedPeriod));
 
@@ -66,10 +103,32 @@ juce::int64 PitchMarker::findMark(
 }
 
 //=======================================
-juce::int64 PitchMarker::_refineMarkByCorrelation(
-    const CircularBuffer& circularBuffer,
-    juce::int64 candidateMark,
-    float detectedPeriod) const
+void PitchMarker::_storePitchMark(juce::int64 pitchMark, float detectedPeriod)
+{
+    // Create PitchMark with range: [mark - period, mark + period - 1]
+    mPitchMarks[mPitchMarkWritePos] = PitchMark(pitchMark, detectedPeriod);
+    mPitchMarkWritePos = (mPitchMarkWritePos + 1) % mMaxPitchMarks;
+
+    // Track number of stored marks (saturates at mMaxPitchMarks)
+    if (mNumStoredMarks < mMaxPitchMarks)
+    {
+        mNumStoredMarks++;
+    }
+}
+
+//=======================================
+PitchMark PitchMarker::getLastPitchMark() const
+{
+    if (mNumStoredMarks == 0)
+        return PitchMark(); // Return invalid pitch mark
+
+    // Get the last written pitch mark (one position before current write position)
+    int lastIndex = (mPitchMarkWritePos - 1 + mMaxPitchMarks) % mMaxPitchMarks;
+    return mPitchMarks[lastIndex];
+}
+
+//=======================================
+juce::int64 PitchMarker::_refineMarkByCorrelation(const CircularBuffer& circularBuffer, juce::int64 candidateMark, float detectedPeriod) const
 {
     const int P = static_cast<int>(std::llround(detectedPeriod));
     const int radius = std::max(1, P / 4);

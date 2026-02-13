@@ -6,9 +6,50 @@
 #include <catch2/catch_test_macros.hpp>
 #include <catch2/matchers/catch_matchers_floating_point.hpp>
 #include "../SOURCE/PITCH/PitchMarker.h"
+#include "../SOURCE/PITCH/PitchMark.h"
 #include "../SOURCE/CircularBuffer.h"
 #include "../SOURCE/BufferFiller.h"
 #include <cmath>
+
+//=======================================
+TEST_CASE("PitchMark - Basic Functionality", "[PitchMark]")
+{
+    SECTION("Default constructor creates invalid mark")
+    {
+        PitchMark mark;
+        REQUIRE(!mark.isValid());
+        REQUIRE(mark.mark == -1);
+        REQUIRE(mark.rangeStart == -1);
+        REQUIRE(mark.rangeEnd == -1);
+    }
+
+    SECTION("Constructor with period sets range correctly")
+    {
+        const juce::int64 markPosition = 1000;
+        const float period = 100.0f;
+
+        PitchMark mark(markPosition, period);
+
+        REQUIRE(mark.isValid());
+        REQUIRE(mark.mark == markPosition);
+        REQUIRE(mark.rangeStart == markPosition - 100);  // mark - period
+        REQUIRE(mark.rangeEnd == markPosition + 100 - 1);  // mark + period - 1
+        REQUIRE(mark.getRangeLength() == 200);  // 2 * period
+    }
+
+    SECTION("getRange returns correct juce::Range")
+    {
+        const juce::int64 markPosition = 500;
+        const float period = 50.0f;
+
+        PitchMark mark(markPosition, period);
+        juce::Range<juce::int64> range = mark.getRange();
+
+        REQUIRE(range.getStart() == 450);  // mark - period
+        REQUIRE(range.getEnd() == 550);    // mark + period - 1 (Range is exclusive at end)
+        REQUIRE(range.getLength() == 100); // Full range length
+    }
+}
 
 //=======================================
 TEST_CASE("PitchMarker - Basic Construction", "[PitchMarker]")
@@ -19,6 +60,17 @@ TEST_CASE("PitchMarker - Basic Construction", "[PitchMarker]")
     {
         REQUIRE(marker.getLastMark() == -1);
         REQUIRE(marker.getPredictedNextMark() == -1);
+        REQUIRE(marker.getNumStoredMarks() == 0);
+    }
+
+    SECTION("Prepare")
+    {
+        const double sampleRate = 44100.0;
+        const int detectionWindowSize = 2048;
+        marker.prepare(sampleRate, detectionWindowSize);
+        REQUIRE(marker.getLastMark() == -1);
+        REQUIRE(marker.getPredictedNextMark() == -1);
+        REQUIRE(marker.getNumStoredMarks() == 0);
     }
 
     SECTION("Reset")
@@ -26,6 +78,7 @@ TEST_CASE("PitchMarker - Basic Construction", "[PitchMarker]")
         marker.reset();
         REQUIRE(marker.getLastMark() == -1);
         REQUIRE(marker.getPredictedNextMark() == -1);
+        REQUIRE(marker.getNumStoredMarks() == 0);
     }
 }
 
@@ -37,6 +90,8 @@ TEST_CASE("PitchMarker - Find Mark in Sine Wave", "[PitchMarker]")
     const float expectedPeriod = static_cast<float>(sampleRate / frequency); // ~100 samples
 
     PitchMarker marker;
+    marker.prepare(sampleRate, 2048);
+
     CircularBuffer circularBuffer;
 
     const int bufferSize = 4096;
@@ -54,7 +109,7 @@ TEST_CASE("PitchMarker - Find Mark in Sine Wave", "[PitchMarker]")
         const juce::int64 searchStart = searchEnd - static_cast<juce::int64>(expectedPeriod);
         juce::Range<juce::int64> searchRange(searchStart, searchEnd);
 
-        juce::int64 foundMark = marker.findMark(circularBuffer, searchRange, expectedPeriod, bufferSize, false); // Don't use prediction
+        juce::int64 foundMark = marker.doPitchMarking(circularBuffer, searchRange, expectedPeriod, bufferSize, false); // Don't use prediction
 
         // Mark should be within search range
         REQUIRE(foundMark >= searchStart);
@@ -69,6 +124,14 @@ TEST_CASE("PitchMarker - Find Mark in Sine Wave", "[PitchMarker]")
         // Prediction should now be set
         REQUIRE(marker.getPredictedNextMark() > foundMark);
         REQUIRE(marker.getLastMark() == foundMark);
+
+        // Mark should be stored in FIFO
+        REQUIRE(marker.getNumStoredMarks() == 1);
+        const PitchMark& storedMark = marker.getPitchMarks()[0];
+        REQUIRE(storedMark.isValid());
+        REQUIRE(storedMark.mark == foundMark);
+        REQUIRE(storedMark.rangeStart == foundMark - static_cast<juce::int64>(expectedPeriod));
+        REQUIRE(storedMark.rangeEnd == foundMark + static_cast<juce::int64>(expectedPeriod) - 1);
     }
 
     SECTION("Find consecutive marks with prediction")
@@ -78,7 +141,7 @@ TEST_CASE("PitchMarker - Find Mark in Sine Wave", "[PitchMarker]")
         juce::int64 searchStart = searchEnd - static_cast<juce::int64>(expectedPeriod);
         juce::Range<juce::int64> searchRange(searchStart, searchEnd);
 
-        juce::int64 firstMark = marker.findMark(circularBuffer, searchRange,  expectedPeriod, bufferSize, false);
+        juce::int64 firstMark = marker.doPitchMarking(circularBuffer, searchRange, expectedPeriod, bufferSize, false);
 
         juce::int64 prediction = marker.getPredictedNextMark();
 
@@ -93,12 +156,15 @@ TEST_CASE("PitchMarker - Find Mark in Sine Wave", "[PitchMarker]")
         searchStart = prediction - static_cast<juce::int64>(expectedPeriod / 2);
         juce::Range<juce::int64> searchRange2(searchStart, searchEnd);
 
-        juce::int64 secondMark = marker.findMark(circularBuffer,searchRange2, expectedPeriod, bufferSize + 512, true); // Use prediction
+        juce::int64 secondMark = marker.doPitchMarking(circularBuffer, searchRange2, expectedPeriod, bufferSize + 512, true); // Use prediction
 
         // Second mark should be approximately one period after first mark
         juce::int64 actualPeriod = secondMark - firstMark;
         float periodError = std::abs(static_cast<float>(actualPeriod) - expectedPeriod);
         REQUIRE(periodError < expectedPeriod * 0.15f); // Within 15% error
+
+        // Both marks should be stored in FIFO
+        REQUIRE(marker.getNumStoredMarks() == 2);
     }
 }
 
@@ -110,6 +176,8 @@ TEST_CASE("PitchMarker - Correlation Refinement", "[PitchMarker]")
     const float expectedPeriod = static_cast<float>(sampleRate / frequency);
 
     PitchMarker marker;
+    marker.prepare(sampleRate, 2048);
+
     CircularBuffer circularBuffer;
 
     const int bufferSize = 8192; // Large buffer for correlation testing
@@ -127,7 +195,7 @@ TEST_CASE("PitchMarker - Correlation Refinement", "[PitchMarker]")
         juce::Range<juce::int64> searchRange(searchStart, searchEnd);
 
         // With enough samplesProcessed (>= 2*period), correlation should activate
-        juce::int64 foundMark = marker.findMark(circularBuffer, searchRange, expectedPeriod, bufferSize, false);
+        juce::int64 foundMark = marker.doPitchMarking(circularBuffer, searchRange, expectedPeriod, bufferSize, false);
 
         REQUIRE(foundMark >= searchStart);
         REQUIRE(foundMark < searchEnd);
@@ -136,6 +204,9 @@ TEST_CASE("PitchMarker - Correlation Refinement", "[PitchMarker]")
         int wrappedIndex = static_cast<int>(foundMark % bufferSize);
         float detectedSample = circularBuffer.getBuffer().getSample(0, wrappedIndex);
         REQUIRE(detectedSample > 0.8f); // Should be near a peak
+
+        // Mark should be stored
+        REQUIRE(marker.getNumStoredMarks() == 1);
     }
 
     SECTION("Without sufficient history, correlation is skipped")
@@ -147,11 +218,14 @@ TEST_CASE("PitchMarker - Correlation Refinement", "[PitchMarker]")
         juce::Range<juce::int64> searchRange(searchStart, searchEnd);
 
         // Not enough history for correlation (samplesProcessed < 2*period)
-        juce::int64 foundMark = marker.findMark(circularBuffer, searchRange, expectedPeriod, static_cast<juce::int64>(expectedPeriod), false);
+        juce::int64 foundMark = marker.doPitchMarking(circularBuffer, searchRange, expectedPeriod, static_cast<juce::int64>(expectedPeriod), false);
 
         // Should still find a peak, just without correlation refinement
         REQUIRE(foundMark >= searchStart);
         REQUIRE(foundMark < searchEnd);
+
+        // Mark should be stored
+        REQUIRE(marker.getNumStoredMarks() == 1);
     }
 }
 
@@ -163,6 +237,8 @@ TEST_CASE("PitchMarker - Prediction Behavior", "[PitchMarker]")
     const float expectedPeriod = static_cast<float>(sampleRate / frequency);
 
     PitchMarker marker;
+    marker.prepare(sampleRate, 2048);
+
     CircularBuffer circularBuffer;
 
     const int bufferSize = 4096;
@@ -179,7 +255,7 @@ TEST_CASE("PitchMarker - Prediction Behavior", "[PitchMarker]")
         juce::int64 searchStart = searchEnd - static_cast<juce::int64>(expectedPeriod);
         juce::Range<juce::int64> searchRange(searchStart, searchEnd);
 
-        marker.findMark(circularBuffer, searchRange, expectedPeriod, bufferSize, false);
+        marker.doPitchMarking(circularBuffer, searchRange, expectedPeriod, bufferSize, false);
 
         juce::int64 prediction = marker.getPredictedNextMark();
         REQUIRE(prediction > 0);
@@ -190,11 +266,14 @@ TEST_CASE("PitchMarker - Prediction Behavior", "[PitchMarker]")
         juce::int64 wideSearchEnd = prediction + 1000;
         juce::Range<juce::int64> wideRange(wideSearchStart, wideSearchEnd);
 
-        juce::int64 secondMark = marker.findMark(circularBuffer, wideRange, expectedPeriod, bufferSize, true);
+        juce::int64 secondMark = marker.doPitchMarking(circularBuffer, wideRange, expectedPeriod, bufferSize, true);
 
         // Second mark should be close to prediction
         juce::int64 diff = std::abs(secondMark - prediction);
         REQUIRE(diff < expectedPeriod / 2); // Within half a period
+
+        // Both marks should be stored
+        REQUIRE(marker.getNumStoredMarks() == 2);
     }
 
     SECTION("Without prediction, uses full search range")
@@ -205,11 +284,14 @@ TEST_CASE("PitchMarker - Prediction Behavior", "[PitchMarker]")
         juce::int64 searchStart = searchEnd - static_cast<juce::int64>(expectedPeriod);
         juce::Range<juce::int64> searchRange(searchStart, searchEnd);
 
-        juce::int64 foundMark = marker.findMark(circularBuffer, searchRange, expectedPeriod, bufferSize, false);
+        juce::int64 foundMark = marker.doPitchMarking(circularBuffer, searchRange, expectedPeriod, bufferSize, false);
 
         // Should search full range
         REQUIRE(foundMark >= searchStart);
         REQUIRE(foundMark < searchEnd);
+
+        // Mark should be stored
+        REQUIRE(marker.getNumStoredMarks() == 1);
     }
 }
 
@@ -221,6 +303,8 @@ TEST_CASE("PitchMarker - Reset Clears State", "[PitchMarker]")
     const float expectedPeriod = static_cast<float>(sampleRate / frequency);
 
     PitchMarker marker;
+    marker.prepare(sampleRate, 2048);
+
     CircularBuffer circularBuffer;
 
     const int bufferSize = 4096;
@@ -235,15 +319,17 @@ TEST_CASE("PitchMarker - Reset Clears State", "[PitchMarker]")
     juce::int64 searchStart = searchEnd - static_cast<juce::int64>(expectedPeriod);
     juce::Range<juce::int64> searchRange(searchStart, searchEnd);
 
-    marker.findMark(circularBuffer, searchRange, expectedPeriod, bufferSize, false);
+    marker.doPitchMarking(circularBuffer, searchRange, expectedPeriod, bufferSize, false);
 
     REQUIRE(marker.getLastMark() != -1);
     REQUIRE(marker.getPredictedNextMark() != -1);
+    REQUIRE(marker.getNumStoredMarks() == 1);
 
     // Reset should clear state
     marker.reset();
     REQUIRE(marker.getLastMark() == -1);
     REQUIRE(marker.getPredictedNextMark() == -1);
+    REQUIRE(marker.getNumStoredMarks() == 0);
 }
 
 //=======================================
@@ -251,6 +337,8 @@ TEST_CASE("PitchMarker - Different Frequencies", "[PitchMarker]")
 {
     const double sampleRate = 44100.0;
     PitchMarker marker;
+    marker.prepare(sampleRate, 2048);
+
     CircularBuffer circularBuffer;
 
     const int bufferSize = 4096;
@@ -269,10 +357,11 @@ TEST_CASE("PitchMarker - Different Frequencies", "[PitchMarker]")
         juce::int64 searchStart = searchEnd - static_cast<juce::int64>(expectedPeriod);
         juce::Range<juce::int64> searchRange(searchStart, searchEnd);
 
-        juce::int64 foundMark = marker.findMark(circularBuffer, searchRange, expectedPeriod, bufferSize, false);
+        juce::int64 foundMark = marker.doPitchMarking(circularBuffer, searchRange, expectedPeriod, bufferSize, false);
 
         REQUIRE(foundMark >= searchStart);
         REQUIRE(foundMark < searchEnd);
+        REQUIRE(marker.getNumStoredMarks() == 1);
     }
 
     SECTION("High frequency (1000 Hz)")
@@ -291,9 +380,10 @@ TEST_CASE("PitchMarker - Different Frequencies", "[PitchMarker]")
         juce::int64 searchStart = searchEnd - static_cast<juce::int64>(expectedPeriod);
         juce::Range<juce::int64> searchRange(searchStart, searchEnd);
 
-        juce::int64 foundMark = marker.findMark(circularBuffer, searchRange, expectedPeriod, bufferSize, false);
+        juce::int64 foundMark = marker.doPitchMarking(circularBuffer, searchRange, expectedPeriod, bufferSize, false);
 
         REQUIRE(foundMark >= searchStart);
         REQUIRE(foundMark < searchEnd);
+        REQUIRE(marker.getNumStoredMarks() == 1);
     }
 }

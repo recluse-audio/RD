@@ -60,8 +60,9 @@ public:
     bool process(const juce::AudioBuffer<float>& buffer, CircularBuffer& circularBuffer);
 
     /**
-     * Find a pitch mark in the circular buffer.
+     * Perform pitch marking on the circular buffer.
      * Uses PitchMarker with the most recently detected period.
+     * The pitch mark is stored in the PitchMarker's internal FIFO.
      *
      * @param circularBuffer Circular buffer to search
      * @param searchRange Range to search for pitch mark (absolute sample count)
@@ -69,6 +70,18 @@ public:
      * @return Pitch mark position in absolute sample count, or -1 if no valid period
      */
     juce::int64 findPitchMark(const CircularBuffer& circularBuffer, juce::Range<juce::int64> searchRange, bool usePrediction = true);
+
+    /**
+     * Get access to the pitch marks FIFO from the PitchMarker.
+     * @return Reference to the pitch marks vector
+     */
+    const std::vector<PitchMark>& getPitchMarks() const { return mPitchMarker.getPitchMarks(); }
+
+    /**
+     * Get the last stored PitchMark.
+     * @return Last pitch mark, or invalid PitchMark if none stored
+     */
+    PitchMark getLastPitchMark() const { return mPitchMarker.getLastPitchMark(); }
 
     /**
      * Get the current detected period.
@@ -117,16 +130,6 @@ private:
     double mSampleRate = 44100.0;
     juce::int64 mAbsoluteSampleCounter = 0;
     float mCurrentPeriod = -1.0f;
-
-    // Pitch mark storage (circular FIFO)
-    std::vector<juce::int64> mPitchMarks;
-    int mPitchMarkWritePos = 0;
-    int mMaxPitchMarks = 0;
-
-    /**
-     * Store a pitch mark in the FIFO.
-     */
-    void _storePitchMark(juce::int64 pitchMark);
 
     /**
      * Run pitch detection on the accumulated detection buffer.
