@@ -37,7 +37,7 @@ namespace PitchManagerConstants
  * 1. Call prepare() with sample rate
  * 2. Call process() with each audio buffer
  * 3. Query getCurrentPeriod() to get detected period
- * 4. Use findPitchMark() to locate pitch marks in the circular buffer
+ * 4. Use getPitchMarker().doPitchMarking() to locate pitch marks in the circular buffer
  */
 class PitchManager
 {
@@ -61,18 +61,6 @@ public:
      * @return True if pitch was detected this call, false otherwise
      */
     bool process(const juce::AudioBuffer<float>& buffer, CircularBuffer& circularBuffer);
-
-    /**
-     * Perform pitch marking on the circular buffer.
-     * Uses PitchMarker with the most recently detected period.
-     * The pitch mark is stored in the PitchMarker's internal FIFO.
-     *
-     * @param circularBuffer Circular buffer to search
-     * @param searchRange Range to search for pitch mark (absolute sample count)
-     * @param usePrediction Whether to use prediction from previous marks
-     * @return Pitch mark position in absolute sample count, or -1 if no valid period
-     */
-    juce::int64 findPitchMark(const CircularBuffer& circularBuffer, juce::Range<juce::int64> searchRange, bool usePrediction = true);
 
     /**
      * Get access to the pitch marks FIFO from the PitchMarker.

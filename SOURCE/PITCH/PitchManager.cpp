@@ -86,19 +86,6 @@ bool PitchManager::process(const juce::AudioBuffer<float>& buffer, CircularBuffe
 }
 
 //=======================================
-juce::int64 PitchManager::findPitchMark(const CircularBuffer& circularBuffer, juce::Range<juce::int64> searchRange, bool usePrediction)
-{
-    // Can't find pitch marks without a valid period
-    if (mCurrentPeriod <= 0.0f)
-        return -1;
-
-    // Use PitchMarker to perform pitch marking (finds and stores the mark)
-    juce::int64 foundMark = mPitchMarker->doPitchMarking(circularBuffer, searchRange, mCurrentPeriod, mAbsoluteSampleCounter, usePrediction);
-
-    return foundMark;
-}
-
-//=======================================
 float PitchManager::_runDetection()
 {
     // Run pitch detection on the accumulated buffer

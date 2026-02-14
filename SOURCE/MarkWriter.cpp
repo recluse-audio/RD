@@ -49,61 +49,61 @@ bool MarkWriter::writeMarksToCSV(const std::vector<PitchMark>& pitchMarks,
     if (!createDirectoryIfNeeded(timestampedDir))
         return false;
 
-    // Create CSV file: marks_<timestamp>.csv
-    juce::String filename = timestampedDir + "/marks_" + timestamp + ".csv";
-    juce::File csvFile(filename);
+    // ========== Write Pitch Marks CSV ==========
+    juce::String pitchFilename = timestampedDir + "/pitchmarks_" + timestamp + ".csv";
+    juce::File pitchCsvFile(pitchFilename);
 
-    // Open file for writing
-    std::ofstream file(csvFile.getFullPathName().toStdString());
-    if (!file.is_open())
+    std::ofstream pitchFile(pitchCsvFile.getFullPathName().toStdString());
+    if (!pitchFile.is_open())
     {
-        DBG("Failed to open file for writing: " + filename);
+        DBG("Failed to open file for writing: " + pitchFilename);
         return false;
     }
 
-    // Write CSV header
-    file << "Type,Index,MarkPosition,RangeStart,RangeEnd,RangeLength,";
-    file << "PitchMarkRef,PitchRangeStart,PitchRangeEnd,";
-    file << "SynthMark,SynthRangeStart,SynthRangeEnd,SynthRangeLength\n";
+    // Write pitch marks CSV header
+    pitchFile << "Index,RangeStart,MarkPosition,RangeEnd,RangeLength\n";
 
     // Write pitch marks
     for (size_t i = 0; i < pitchMarks.size(); ++i)
     {
         const auto& pm = pitchMarks[i];
-
-        file << "PitchMark," << i << ",";
-        file << pm.mark << "," << pm.rangeStart << "," << pm.rangeEnd << ",";
-        file << pm.getRangeLength() << ",";
-
-        // Empty columns for synth-specific data
-        file << ",,,,,,\n";
+        pitchFile << i << ",";
+        pitchFile << pm.rangeStart << "," << pm.mark << "," << pm.rangeEnd << ",";
+        pitchFile << pm.getRangeLength() << "\n";
     }
+
+    pitchFile.close();
+
+    // ========== Write Synth Marks CSV ==========
+    juce::String synthFilename = timestampedDir + "/synthmarks_" + timestamp + ".csv";
+    juce::File synthCsvFile(synthFilename);
+
+    std::ofstream synthFile(synthCsvFile.getFullPathName().toStdString());
+    if (!synthFile.is_open())
+    {
+        DBG("Failed to open file for writing: " + synthFilename);
+        return false;
+    }
+
+    // Write synth marks CSV header
+    synthFile << "Index,SynthRangeStart,SynthMark,SynthRangeEnd,SynthRangeLength,";
+    synthFile << "PitchRangeStart,PitchMarkRef,PitchRangeEnd\n";
 
     // Write synth marks
     for (size_t i = 0; i < synthMarks.size(); ++i)
     {
         const auto& sm = synthMarks[i];
-
-        file << "SynthMark," << i << ",";
-
-        // Mark position and range (for synth mark, use synth position)
-        file << sm.synthMark << ",";
-        file << sm.synthRangeStart << "," << sm.synthRangeEnd << ",";
-        file << sm.getSynthRangeLength() << ",";
-
-        // Pitch mark reference data
-        file << sm.pitchMark << "," << sm.pitchRangeStart << "," << sm.pitchRangeEnd << ",";
-
-        // Synth mark specific data
-        file << sm.synthMark << "," << sm.synthRangeStart << "," << sm.synthRangeEnd << ",";
-        file << sm.getSynthRangeLength() << "\n";
+        synthFile << i << ",";
+        synthFile << sm.synthRangeStart << "," << sm.synthMark << "," << sm.synthRangeEnd << ",";
+        synthFile << sm.getSynthRangeLength() << ",";
+        synthFile << sm.pitchRangeStart << "," << sm.pitchMark << "," << sm.pitchRangeEnd << "\n";
     }
 
-    file.close();
+    synthFile.close();
 
-    DBG("Successfully wrote marks to: " + filename);
-    DBG("  Pitch marks: " + juce::String(pitchMarks.size()));
-    DBG("  Synth marks: " + juce::String(synthMarks.size()));
+    DBG("Successfully wrote marks to: " + timestampedDir);
+    DBG("  Pitch marks: " + juce::String(pitchMarks.size()) + " -> " + pitchFilename);
+    DBG("  Synth marks: " + juce::String(synthMarks.size()) + " -> " + synthFilename);
 
     return true;
 }

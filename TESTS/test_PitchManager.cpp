@@ -176,7 +176,9 @@ TEST_CASE("PitchManager - Pitch Mark Finding", "[PitchManager]")
     SECTION("Cannot find marks without detected period")
     {
         juce::Range<juce::int64> searchRange(0, 1000);
-        juce::int64 mark = manager.findPitchMark(circularBuffer, searchRange, false);
+        // With no detected period, doPitchMarking should still work but might not find good marks
+        // This test verifies we can call the PitchMarker directly
+        juce::int64 mark = manager.getPitchMarker().doPitchMarking(circularBuffer, searchRange, -1.0f, manager.getAbsoluteSampleCount(), false);
         REQUIRE(mark == -1);
     }
 
@@ -191,12 +193,12 @@ TEST_CASE("PitchManager - Pitch Mark Finding", "[PitchManager]")
         REQUIRE(detected);
         REQUIRE(manager.getCurrentPeriod() > 0.0f);
 
-        // Now find a pitch mark
+        // Now find a pitch mark using PitchMarker directly
         const juce::int64 searchEnd = manager.getAbsoluteSampleCount();
         const juce::int64 searchStart = searchEnd - static_cast<juce::int64>(expectedPeriod);
         juce::Range<juce::int64> searchRange(searchStart, searchEnd);
 
-        juce::int64 mark = manager.findPitchMark(circularBuffer, searchRange, false);
+        juce::int64 mark = manager.getPitchMarker().doPitchMarking(circularBuffer, searchRange, manager.getCurrentPeriod(), manager.getAbsoluteSampleCount(), false);
         REQUIRE(mark >= searchStart);
         REQUIRE(mark < searchEnd);
     }
@@ -210,24 +212,24 @@ TEST_CASE("PitchManager - Pitch Mark Finding", "[PitchManager]")
 
         manager.process(testBuffer, circularBuffer);
 
-        // Find first mark
+        // Find first mark using PitchMarker directly
         juce::int64 searchEnd = manager.getAbsoluteSampleCount();
         juce::int64 searchStart = searchEnd - static_cast<juce::int64>(expectedPeriod);
         juce::Range<juce::int64> searchRange1(searchStart, searchEnd);
 
-        juce::int64 firstMark = manager.findPitchMark(circularBuffer, searchRange1, false);
+        juce::int64 firstMark = manager.getPitchMarker().doPitchMarking(circularBuffer, searchRange1, manager.getCurrentPeriod(), manager.getAbsoluteSampleCount(), false);
         REQUIRE(firstMark >= 0);
 
         // Add more audio
         circularBuffer.pushBuffer(testBuffer);
         manager.process(testBuffer, circularBuffer);
 
-        // Find second mark with prediction
+        // Find second mark with prediction using PitchMarker directly
         searchEnd = manager.getAbsoluteSampleCount();
         searchStart = searchEnd - static_cast<juce::int64>(expectedPeriod);
         juce::Range<juce::int64> searchRange2(searchStart, searchEnd);
 
-        juce::int64 secondMark = manager.findPitchMark(circularBuffer, searchRange2, true);
+        juce::int64 secondMark = manager.getPitchMarker().doPitchMarking(circularBuffer, searchRange2, manager.getCurrentPeriod(), manager.getAbsoluteSampleCount(), true);
         REQUIRE(secondMark >= 0);
         REQUIRE(secondMark > firstMark);
     }
@@ -304,11 +306,11 @@ TEST_CASE("PitchManager - Get Marks In Range", "[PitchManager]")
 
         manager.process(testBuffer, circularBuffer);
 
-        // Find some pitch marks
+        // Find some pitch marks using PitchMarker directly
         const juce::int64 searchEnd = manager.getAbsoluteSampleCount();
         const juce::int64 searchStart = searchEnd - static_cast<juce::int64>(period);
 
-        manager.findPitchMark(circularBuffer, juce::Range<juce::int64>(searchStart, searchEnd), false);
+        manager.getPitchMarker().doPitchMarking(circularBuffer, juce::Range<juce::int64>(searchStart, searchEnd), manager.getCurrentPeriod(), manager.getAbsoluteSampleCount(), false);
 
         // Get pitch marks in a range
         auto marks = manager.getPitchMarksInRange(juce::Range<juce::int64>(0, searchEnd + 1000));
@@ -403,7 +405,7 @@ TEST_CASE("PitchManager - Complete Workflow With Pitch and Synth Marks", "[Pitch
         {
             juce::int64 searchStart = expectedPeak - searchRadius;
             juce::int64 searchEnd = expectedPeak + searchRadius;
-            juce::int64 foundMark = manager.findPitchMark(circularBuffer, juce::Range<juce::int64>(searchStart, searchEnd), false);
+            juce::int64 foundMark = manager.getPitchMarker().doPitchMarking(circularBuffer, juce::Range<juce::int64>(searchStart, searchEnd), manager.getCurrentPeriod(), manager.getAbsoluteSampleCount(), false);
 
             REQUIRE(foundMark >= 0);  // Should find a mark
 
@@ -525,7 +527,9 @@ TEST_CASE("PitchManager - Complete Workflow With Pitch and Synth Marks", "[Pitch
         bool writeSuccess = MarkWriter::writeMarksToCSV(pitchMarks, synthMarks, outputDir);
         REQUIRE(writeSuccess);
 
-        INFO("Marks written to OUTPUT/MARKS/MARKS_<timestamp>/marks_<timestamp>.csv");
+        INFO("Marks written to OUTPUT/MARKS/MARKS_<timestamp>/");
+        INFO("  - pitchmarks_<timestamp>.csv");
+        INFO("  - synthmarks_<timestamp>.csv");
     }
 }
 

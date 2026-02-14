@@ -22,13 +22,16 @@ class MarkWriter
 {
 public:
     /**
-     * Write pitch marks and synth marks to a CSV file.
+     * Write pitch marks and synth marks to separate CSV files.
      *
      * Creates a timestamped directory structure:
-     * outputDir/MARKS/MARKS_<datetime>/marks_<datetime>.csv
+     * outputDir/MARKS/MARKS_<datetime>/
+     *   - pitchmarks_<datetime>.csv
+     *   - synthmarks_<datetime>.csv
      *
-     * CSV format includes both pitch marks and synth marks in one file with columns:
-     * Type, MarkPosition, RangeStart, RangeEnd, [SynthMark-specific columns...]
+     * Pitch marks CSV columns: Index, RangeStart, MarkPosition, RangeEnd, RangeLength
+     * Synth marks CSV columns: Index, SynthRangeStart, SynthMark, SynthRangeEnd, SynthRangeLength,
+     *                           PitchRangeStart, PitchMarkRef, PitchRangeEnd
      *
      * @param pitchMarks Vector of pitch marks to write
      * @param synthMarks Vector of synth marks to write
