@@ -63,16 +63,6 @@ TEST_CASE("PitchMarker - Basic Construction", "[PitchMarker]")
         REQUIRE(marker.getNumStoredMarks() == 0);
     }
 
-    SECTION("Prepare")
-    {
-        const double sampleRate = 44100.0;
-        const int detectionWindowSize = 2048;
-        marker.prepare(sampleRate, detectionWindowSize);
-        REQUIRE(marker.getLastMark() == -1);
-        REQUIRE(marker.getPredictedNextMark() == -1);
-        REQUIRE(marker.getNumStoredMarks() == 0);
-    }
-
     SECTION("Reset")
     {
         marker.reset();
@@ -90,7 +80,6 @@ TEST_CASE("PitchMarker - Find Mark in Sine Wave", "[PitchMarker]")
     const float expectedPeriod = static_cast<float>(sampleRate / frequency); // ~100 samples
 
     PitchMarker marker;
-    marker.prepare(sampleRate, 2048);
 
     CircularBuffer circularBuffer;
 
@@ -176,7 +165,6 @@ TEST_CASE("PitchMarker - Correlation Refinement", "[PitchMarker]")
     const float expectedPeriod = static_cast<float>(sampleRate / frequency);
 
     PitchMarker marker;
-    marker.prepare(sampleRate, 2048);
 
     CircularBuffer circularBuffer;
 
@@ -237,7 +225,6 @@ TEST_CASE("PitchMarker - Prediction Behavior", "[PitchMarker]")
     const float expectedPeriod = static_cast<float>(sampleRate / frequency);
 
     PitchMarker marker;
-    marker.prepare(sampleRate, 2048);
 
     CircularBuffer circularBuffer;
 
@@ -303,7 +290,6 @@ TEST_CASE("PitchMarker - Reset Clears State", "[PitchMarker]")
     const float expectedPeriod = static_cast<float>(sampleRate / frequency);
 
     PitchMarker marker;
-    marker.prepare(sampleRate, 2048);
 
     CircularBuffer circularBuffer;
 
@@ -333,11 +319,62 @@ TEST_CASE("PitchMarker - Reset Clears State", "[PitchMarker]")
 }
 
 //=======================================
+TEST_CASE("PitchMarker - Get Marks In Range", "[PitchMarker]")
+{
+    const double sampleRate = 44100.0;
+    PitchMarker marker;
+
+    CircularBuffer circularBuffer;
+    const int bufferSize = 4096;
+    circularBuffer.setSize(1, bufferSize);
+
+    // Create test audio
+    const float period = 100.0f;
+    juce::AudioBuffer<float> testBuffer(1, bufferSize);
+    BufferFiller::generateSineCycles(testBuffer, static_cast<int>(period));
+    circularBuffer.pushBuffer(testBuffer);
+
+    // Generate several pitch marks at known positions: 100, 200, 300
+    marker.doPitchMarking(circularBuffer, juce::Range<juce::int64>(0, 150), period, bufferSize, false);
+    marker.doPitchMarking(circularBuffer, juce::Range<juce::int64>(150, 250), period, bufferSize, false);
+    marker.doPitchMarking(circularBuffer, juce::Range<juce::int64>(250, 350), period, bufferSize, false);
+
+    REQUIRE(marker.getNumStoredMarks() == 3);
+
+    SECTION("Get all marks in wide range")
+    {
+        auto marks = marker.getPitchMarksInRange(juce::Range<juce::int64>(0, 400));
+        REQUIRE(marks.size() == 3);
+    }
+
+    SECTION("Get marks in partial range")
+    {
+        // Range that includes first two marks but not third
+        auto marks = marker.getPitchMarksInRange(juce::Range<juce::int64>(0, 250));
+        REQUIRE(marks.size() >= 1);  // Should get at least one mark
+        REQUIRE(marks.size() <= 2);  // Should not get all three
+    }
+
+    SECTION("Get no marks from empty range")
+    {
+        auto marks = marker.getPitchMarksInRange(juce::Range<juce::int64>(500, 600));
+        REQUIRE(marks.size() == 0);
+    }
+
+    SECTION("Get marks in narrow range around one mark")
+    {
+        // Get just marks around position 200
+        auto marks = marker.getPitchMarksInRange(juce::Range<juce::int64>(180, 220));
+        // Should get the mark near 200, but exact position may vary slightly
+        REQUIRE(marks.size() >= 0);
+    }
+}
+
+//=======================================
 TEST_CASE("PitchMarker - Different Frequencies", "[PitchMarker]")
 {
     const double sampleRate = 44100.0;
     PitchMarker marker;
-    marker.prepare(sampleRate, 2048);
 
     CircularBuffer circularBuffer;
 

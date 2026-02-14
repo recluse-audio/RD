@@ -9,11 +9,14 @@
 //=======================================
 PitchManager::PitchManager()
 {
+    mPitchMarker = std::make_unique<PitchMarker>();
+    mSynthMarker = std::make_unique<SynthMarker>();
 }
 
 //=======================================
 PitchManager::~PitchManager()
 {
+
 }
 
 //=======================================
@@ -24,9 +27,6 @@ void PitchManager::prepare(double sampleRate, int detectionWindowSize)
 
     // Prepare pitch detector
     mPitchDetector.prepare(sampleRate);
-
-    // Prepare pitch marker
-    mPitchMarker.prepare(sampleRate, detectionWindowSize, PitchManagerConstants::kPitchMarkBufferSeconds);
 
     // Allocate detection buffer (mono, to be filled incrementally)
     mDetectionBuffer.setSize(1, mDetectionWindowSize);
@@ -43,7 +43,8 @@ void PitchManager::reset()
     mCurrentPeriod = -1.0f;
     mDetectionBufferFillPos = 0;
     mDetectionBuffer.clear();
-    mPitchMarker.reset();
+    mPitchMarker->reset();
+    mSynthMarker->reset();
 }
 
 //=======================================
@@ -92,7 +93,7 @@ juce::int64 PitchManager::findPitchMark(const CircularBuffer& circularBuffer, ju
         return -1;
 
     // Use PitchMarker to perform pitch marking (finds and stores the mark)
-    juce::int64 foundMark = mPitchMarker.doPitchMarking(circularBuffer, searchRange, mCurrentPeriod, mAbsoluteSampleCounter, usePrediction);
+    juce::int64 foundMark = mPitchMarker->doPitchMarking(circularBuffer, searchRange, mCurrentPeriod, mAbsoluteSampleCounter, usePrediction);
 
     return foundMark;
 }

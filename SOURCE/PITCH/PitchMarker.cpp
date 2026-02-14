@@ -10,23 +10,16 @@
 //=======================================
 PitchMarker::PitchMarker()
 {
+    // Allocate FIFO for 32 pitch marks
+    mMaxPitchMarks = 32;
+    mPitchMarks.resize(mMaxPitchMarks, PitchMark()); // Default construct invalid pitch marks
+    mPitchMarkWritePos = 0;
+    mNumStoredMarks = 0;
 }
 
 //=======================================
 PitchMarker::~PitchMarker()
 {
-}
-
-//=======================================
-void PitchMarker::prepare(double sampleRate, int detectionWindowSize, double pitchMarkBufferSeconds)
-{
-    // Calculate max pitch marks based on buffer duration
-    // Assuming detection happens every detectionWindowSize samples
-    const double detectionsPerSecond = sampleRate / static_cast<double>(detectionWindowSize);
-    mMaxPitchMarks = static_cast<int>(detectionsPerSecond * pitchMarkBufferSeconds);
-    mPitchMarks.resize(mMaxPitchMarks, PitchMark()); // Default construct invalid pitch marks
-    mPitchMarkWritePos = 0;
-    mNumStoredMarks = 0;
 }
 
 //=======================================
@@ -125,6 +118,30 @@ PitchMark PitchMarker::getLastPitchMark() const
     // Get the last written pitch mark (one position before current write position)
     int lastIndex = (mPitchMarkWritePos - 1 + mMaxPitchMarks) % mMaxPitchMarks;
     return mPitchMarks[lastIndex];
+}
+
+//=======================================
+std::vector<PitchMark> PitchMarker::getPitchMarksInRange(juce::Range<juce::int64> range) const
+{
+    std::vector<PitchMark> result;
+    result.reserve(mNumStoredMarks);
+
+    // Iterate through stored pitch marks
+    for (int i = 0; i < mNumStoredMarks; ++i)
+    {
+        const PitchMark& pm = mPitchMarks[i];
+
+        if (!pm.isValid())
+            continue;
+
+        // Check if pitch mark's center position is within the query range
+        if (range.contains(pm.mark))
+        {
+            result.push_back(pm);
+        }
+    }
+
+    return result;
 }
 
 //=======================================

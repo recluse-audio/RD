@@ -8,11 +8,14 @@
  */
 
 #pragma once
+#include <vector>
+
 #include "Util/Juce_Header.h"
 #include "TD_PitchDetector.h"
-#include "PitchMarker.h"
 #include "../CircularBuffer.h"
-#include <vector>
+#include "PitchMarker.h"
+#include "SynthMarker.h"
+
 
 namespace PitchManagerConstants
 {
@@ -75,13 +78,37 @@ public:
      * Get access to the pitch marks FIFO from the PitchMarker.
      * @return Reference to the pitch marks vector
      */
-    const std::vector<PitchMark>& getPitchMarks() const { return mPitchMarker.getPitchMarks(); }
+    const std::vector<PitchMark>& getPitchMarks() const { return mPitchMarker->getPitchMarks(); }
 
     /**
      * Get the last stored PitchMark.
      * @return Last pitch mark, or invalid PitchMark if none stored
      */
-    PitchMark getLastPitchMark() const { return mPitchMarker.getLastPitchMark(); }
+    PitchMark getLastPitchMark() const { return mPitchMarker->getLastPitchMark(); }
+
+    /**
+     * Get pitch marks within a given absolute time range.
+     * Returns all pitch marks whose center position falls within the query range.
+     *
+     * @param range Absolute time range to query
+     * @return Vector of pitch marks whose center is in the range
+     */
+    std::vector<PitchMark> getPitchMarksInRange(juce::Range<juce::int64> range) const { return mPitchMarker->getPitchMarksInRange(range); }
+
+    /**
+     * Get synth marks within a given absolute time range.
+     * Returns all synth marks whose center position falls within the query range.
+     *
+     * @param range Absolute time range to query (in synth/output time)
+     * @return Vector of synth marks whose center is in the range
+     */
+    std::vector<SynthMark> getSynthMarksInRange(juce::Range<juce::int64> range) const { return mSynthMarker->getSynthMarksInRange(range); }
+
+    /**
+     * Get access to the synth marks array from the SynthMarker.
+     * @return Reference to the synth marks vector
+     */
+    const std::vector<SynthMark>& getSynthMarks() const { return mSynthMarker->getSynthMarks(); }
 
     /**
      * Get the current detected period.
@@ -114,12 +141,18 @@ public:
     /**
      * Get access to the pitch marker for configuration.
      */
-    PitchMarker& getPitchMarker() { return mPitchMarker; }
+    PitchMarker& getPitchMarker() { return *mPitchMarker; }
+
+    /**
+     * Get access to the synth marker for configuration.
+     */
+    SynthMarker& getSynthMarker() { return *mSynthMarker; }
 
 private:
     // Pitch detection and marking
     TD_PitchDetector mPitchDetector;
-    PitchMarker mPitchMarker;
+    std::unique_ptr<PitchMarker> mPitchMarker;
+    std::unique_ptr<SynthMarker> mSynthMarker;
 
     // Detection buffer (accumulates samples until full)
     juce::AudioBuffer<float> mDetectionBuffer;

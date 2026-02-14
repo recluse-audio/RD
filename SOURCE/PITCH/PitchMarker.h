@@ -32,14 +32,6 @@ public:
     ~PitchMarker();
 
     /**
-     * Prepare the pitch marker.
-     * @param sampleRate Sample rate
-     * @param detectionWindowSize Size of detection window in samples
-     * @param pitchMarkBufferSeconds Duration of pitch mark buffer in seconds (default 30.0)
-     */
-    void prepare(double sampleRate, int detectionWindowSize, double pitchMarkBufferSeconds = 30.0);
-
-    /**
      * Perform pitch marking on the given range.
      *
      * This is the main method that finds a pitch mark and stores it in the internal FIFO.
@@ -91,6 +83,15 @@ public:
      * @return Last pitch mark, or invalid PitchMark if none stored
      */
     PitchMark getLastPitchMark() const;
+
+    /**
+     * Get pitch marks within a given absolute time range.
+     * Returns all pitch marks whose center position falls within the query range.
+     *
+     * @param range Absolute time range to query
+     * @return Vector of pitch marks whose center is in the range
+     */
+    std::vector<PitchMark> getPitchMarksInRange(juce::Range<juce::int64> range) const;
 
     /**
      * Reset the marker state (clears history, prediction, and pitch marks).
