@@ -39,6 +39,7 @@ public:
     {
         kNone = 0,
         kHanning = 1,
+        kTukey = 2,
     };
 
     Window();
@@ -100,7 +101,7 @@ private:
     friend class WindowTester;
     juce::AudioBuffer<float> mBuffer; // using juce buffer for some helpful functions, but could be a simple array
 
-    Window::Shape mCurrentShape;
+	Window::Shape mCurrentShape = Window::Shape::kNone;
 
 	int mPeriod = 0;
     // rate at which we read from buffer of samples.

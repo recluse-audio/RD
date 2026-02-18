@@ -9,8 +9,9 @@
 Window::Window()
 {
     mBuffer.clear();
-    mBuffer.setSize(1, (int)kDefaultSize); // sizing these according to 
-    
+    mBuffer.setSize(1, (int)kDefaultSize);
+    _update(); // fill buffer to match initial shape (kNone → all ones)
+
 }
 
 //====================
@@ -34,7 +35,8 @@ void Window::setSizeShapePeriod(int newSize, Window::Shape newShape, int newPeri
 //
 void Window::setSize(double newSize)
 {
-    mBuffer.setSize(1, (int) newSize); // 1 second worth of samples by default
+    mBuffer.setSize(1, (int) newSize);
+    _update(); // refill after resize — buffer data is invalid after reallocation
 }
 
 //=====================
@@ -68,6 +70,8 @@ void Window::_update()
 {
     if(mCurrentShape == Window::Shape::kHanning)
         BufferFiller::generateHanning(mBuffer);
+    else if(mCurrentShape == Window::Shape::kTukey)
+        BufferFiller::generateTukey(mBuffer);
     else if(mCurrentShape == Window::Shape::kNone)
         BufferFiller::fillWithAllOnes(mBuffer);
 }
@@ -111,12 +115,7 @@ const float Window::getNextSample()
     if(mReadPos >= mBuffer.getNumSamples() || mReadPos < 0)
         return 0.f;
 
-	float sample = 0.f;
-
-	if(mCurrentShape == Window::Shape::kNone)
-		sample = 1.f;
-	else
-    	sample = _getInterpolatedSampleAtReadPos();
+	float sample = _getInterpolatedSampleAtReadPos();
 
     mReadPos += mPhaseIncrement;
 
@@ -219,7 +218,7 @@ float Window::getValueAtIndexInPeriod(int indexInPeriod, int period)
 		indexInPeriod = indexInPeriod % period;
 
     double phaseInc = (double)mBuffer.getNumSamples() / (double)period;
-	float readPos = static_cast<float>(static_cast<float>(indexInPeriod) * mPhaseIncrement);
+	float readPos = static_cast<float>(static_cast<float>(indexInPeriod) * phaseInc);
 	float valueAtIndexInPeriod = _getInterpolatedSampleAtReadPos(readPos);
 
 	return valueAtIndexInPeriod;

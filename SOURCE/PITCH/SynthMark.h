@@ -35,6 +35,9 @@ public:
     juce::int64 synthRangeStart;  // Start of synth mark's output range
     juce::int64 synthRangeEnd;    // End of synth mark's output range
 
+    // Windowing flag: false for inharmonic/unvoiced content — grain uses rectangular window
+    bool isVoiced = true;
+
     /**
      * Default constructor (creates invalid synth mark).
      */

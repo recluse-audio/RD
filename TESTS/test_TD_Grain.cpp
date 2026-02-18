@@ -4,10 +4,12 @@
  */
 
 #include <catch2/catch_test_macros.hpp>
+#include <catch2/matchers/catch_matchers_floating_point.hpp>
 #include "../SOURCE/PROCESSORS/TDPSOLA/TD_Grain.h"
 #include "../SOURCE/CircularBuffer.h"
 #include "../SOURCE/Window.h"
 #include "../SOURCE/PITCH/SynthMark.h"
+#include "../SOURCE/BufferFiller.h"
 
 TEST_CASE("TD_Grain - Instantiation", "[TD_Grain]")
 {
@@ -148,5 +150,116 @@ TEST_CASE("TD_Grain - getOverlapWithBlock()", "[TD_Grain]")
         REQUIRE_FALSE(overlap.isEmpty());
         REQUIRE(overlap.getStart() == 767);
         REQUIRE(overlap.getEnd()   == 768);
+    }
+}
+
+// Helper: build a CircularBuffer filled with ones (single channel)
+static CircularBuffer makeOnesBuffer(int numSamples)
+{
+    CircularBuffer cb;
+    cb.setSize(1, numSamples);
+    cb.pushValue(numSamples, 1.0f, 0, true);
+    return cb;
+}
+
+// Helper: build a SynthMark whose synth range is [0, grainSize-1] and pitch range starts at 0
+// outputPeriod = grainSize / 2  →  synthRangeLength = grainSize
+static SynthMark makeGrainMark(int grainSize)
+{
+    juce::int64 half = grainSize / 2;
+    // SynthMark(pitchMark, pitchStart, pitchEnd, synthMark, outputPeriod)
+    // synthRangeStart = synthMark - outputPeriod = 0
+    // synthRangeEnd   = synthMark + outputPeriod - 1 = grainSize - 1
+    return SynthMark(half, 0, grainSize - 1, half, static_cast<float>(half));
+}
+
+TEST_CASE("TD_Grain - process() with ones buffer shows only window coefficients", "[TD_Grain][Window]")
+{
+    // With CircularBuffer full of 1.0f, the output equals the window values directly.
+    // grainSize = synthRangeLength, which is what TD_Grain uses as grainPeriod internally.
+    constexpr int grainSize = 512;
+
+    SynthMark mark       = makeGrainMark(grainSize);
+    CircularBuffer source = makeOnesBuffer(grainSize * 2);
+
+    juce::AudioBuffer<float> output(1, grainSize);
+
+    // All sections use window sized to grainSize so phaseIncrement = 1.0 (1:1 lookup).
+    // This lets us compare against a same-sized reference buffer from BufferFiller directly.
+
+    SECTION("kNone (rectangular) - output is all ones")
+    {
+        Window window;
+        window.setSize(grainSize);
+        window.setShape(Window::Shape::kNone);
+        window.setPeriod(grainSize);
+
+        output.clear();
+        TD_Grain grain(mark, window, source, 0);
+        grain.process(output, 0, grainSize);
+
+        for (int i = 0; i < grainSize; ++i)
+            REQUIRE(output.getSample(0, i) == 1.0f);
+    }
+
+    SECTION("kHanning - output matches Hanning coefficients")
+    {
+        Window window;
+        window.setSize(grainSize);
+        window.setShape(Window::Shape::kHanning);
+        window.setPeriod(grainSize);
+
+        juce::AudioBuffer<float> ref(1, grainSize);
+        BufferFiller::generateHanning(ref);
+
+        output.clear();
+        TD_Grain grain(mark, window, source, 0);
+        grain.process(output, 0, grainSize);
+
+        for (int i = 0; i < grainSize; ++i)
+        {
+            INFO("sample " << i);
+            REQUIRE_THAT(output.getSample(0, i),  Catch::Matchers::WithinAbs(ref.getSample(0, i), 1e-5f));
+        }
+    }
+
+    SECTION("kTukey - output matches Tukey coefficients")
+    {
+        Window window;
+        window.setSize(grainSize);
+        window.setShape(Window::Shape::kTukey);
+        window.setPeriod(grainSize);
+
+        juce::AudioBuffer<float> ref(1, grainSize);
+        BufferFiller::generateTukey(ref);
+
+        output.clear();
+        TD_Grain grain(mark, window, source, 0);
+        grain.process(output, 0, grainSize);
+
+        for (int i = 0; i < grainSize; ++i)
+        {
+            INFO("sample " << i);
+            REQUIRE_THAT(output.getSample(0, i), Catch::Matchers::WithinAbs(ref.getSample(0, i), 1e-5f));
+        }
+    }
+
+    SECTION("kTukey - starts and ends near zero, flat top in the middle")
+    {
+        Window window;
+        window.setSize(grainSize);
+        window.setShape(Window::Shape::kTukey);
+        window.setPeriod(grainSize);
+
+        output.clear();
+        TD_Grain grain(mark, window, source, 0);
+        grain.process(output, 0, grainSize);
+
+        // Edges should taper to zero (alpha=0.5 → 25% taper each side = 128 samples)
+        REQUIRE(output.getSample(0, 0)            < 0.01f);
+        REQUIRE(output.getSample(0, grainSize - 1) < 0.01f);
+
+        // Flat top should be 1.0
+        REQUIRE_THAT(output.getSample(0, grainSize / 2), Catch::Matchers::WithinAbs(1.0f, 1e-5f));
     }
 }

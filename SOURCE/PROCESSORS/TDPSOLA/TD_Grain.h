@@ -148,8 +148,10 @@ public:
             // Calculate output buffer index
             int outputIndex = static_cast<int>(absoluteSample - blockStartSample);
 
-            // Get window value at this position within the grain's period
-            float windowValue = window.getValueAtIndexInPeriod(static_cast<int>(grainIndex), grainPeriod);
+            // Voiced grains apply the shaped window; unvoiced use rectangular (pass-through)
+            float windowValue = synthMark.isVoiced
+                ? window.getValueAtIndexInPeriod(static_cast<int>(grainIndex), grainPeriod)
+                : 1.0f;
 
             // Process each channel
             for (int ch = 0; ch < outputBuffer.getNumChannels(); ++ch)

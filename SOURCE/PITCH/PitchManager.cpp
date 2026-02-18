@@ -53,9 +53,6 @@ bool PitchManager::process(const juce::AudioBuffer<float>& buffer, CircularBuffe
     const int numSamples = buffer.getNumSamples();
     bool detectionOccurred = false;
 
-    // Write incoming audio to circular buffer
-    circularBuffer.pushBuffer(const_cast<juce::AudioBuffer<float>&>(buffer));
-
     // Accumulate audio in detection buffer
     int samplesProcessed = 0;
     while (samplesProcessed < numSamples)
