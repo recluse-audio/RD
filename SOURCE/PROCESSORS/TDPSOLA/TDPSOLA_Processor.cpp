@@ -7,9 +7,9 @@ namespace TDPSOLA
     // Must be larger than the lookahead + longest expected grain period.
     constexpr double kCircularBufferSeconds = 2.0;
 
-    // Lookahead in seconds. Pitch detection needs a window of audio ahead of
-    // the current playback position to place accurate pitch marks.
-    constexpr double kLookaheadSeconds = 0.05; // 50 ms
+    // Lookahead is now calculated directly from the pitch detection window size
+    // (PitchManagerConstants::kDefaultDetectionWindowSize = 2048 samples = 2^11)
+    // This ensures proper alignment and uses a power-of-two value.
 
     constexpr int kMaxGrains = 64;
 
@@ -42,10 +42,12 @@ void TDPSOLA_Processor::prepareToPlay (double sampleRate, int samplesPerBlock)
 
     const int  numChannels      = getTotalNumInputChannels();
     const int  circularBufSize  = static_cast<int> (sampleRate * TDPSOLA::kCircularBufferSeconds);
-    const auto lookaheadSamples = static_cast<juce::int64> (sampleRate * TDPSOLA::kLookaheadSeconds);
+
+    // Use the detection window size from PitchManager as lookahead (power of two: 2048 = 2^11)
+    const auto lookaheadSamples = static_cast<juce::int64> (PitchManagerConstants::kDefaultDetectionWindowSize);
 
     mCircularBuffer.setSize (numChannels, circularBufSize);
-    mPitchManager.prepare   (sampleRate);
+    mPitchManager.prepare   (sampleRate, numChannels);
     mGranulator.prepare     (sampleRate, numChannels, lookaheadSamples, TDPSOLA::kMaxGrains);
 }
 
@@ -80,7 +82,7 @@ void TDPSOLA_Processor::processBlock (juce::AudioBuffer<float>& buffer, juce::Mi
         const juce::int64 detectionWindowEnd   = blockEnd;
         const juce::int64 detectionWindowStart = detectionWindowEnd - PitchManagerConstants::kDefaultDetectionWindowSize;
 
-        mPitchManager.detect (mCircularBuffer, detectionWindowStart);
+        [[maybe_unused]] float detectedPeriod = mPitchManager.detect (mCircularBuffer, detectionWindowStart, mShiftRatio.get());
 
         auto synthMarks = mPitchManager.getSynthMarksInRange ( juce::Range<juce::int64> (detectionWindowStart, detectionWindowEnd));
 

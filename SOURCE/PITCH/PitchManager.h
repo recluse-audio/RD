@@ -47,7 +47,7 @@ public:
      * @param sampleRate Sample rate
      * @param detectionWindowSize Size of detection window in samples (default 2048)
      */
-    void prepare(double sampleRate, int detectionWindowSize = PitchManagerConstants::kDefaultDetectionWindowSize);
+    void prepare(double sampleRate, int numChannels = 2, int detectionWindowSize = PitchManagerConstants::kDefaultDetectionWindowSize);
 
     /**
      * Run pitch detection on a window of samples read from the circular buffer.
@@ -57,7 +57,7 @@ public:
      * @param startAbsIndex Absolute sample index to start reading from
      * @return Detected period in samples, or -1 if no pitch detected
      */
-    float detect(CircularBuffer& circularBuffer, juce::int64 startAbsIndex);
+    float detect(CircularBuffer& circularBuffer, juce::int64 startAbsIndex, float shiftRatio = 1.0f);
 
     /**
      * Get access to the pitch marks FIFO from the PitchMarker.

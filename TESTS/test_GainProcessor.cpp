@@ -1,10 +1,12 @@
 #include <catch2/catch_test_macros.hpp>
 #include <catch2/matchers/catch_matchers_floating_point.hpp>
 #include "TEST_UTILS/BufferGenerator.h"
+#include "TEST_UTILS/TestUtils.h"
 #include "../SOURCE/PROCESSORS/GAIN/GainProcessor.h"
 
 TEST_CASE("GainProcessor applies gain exactly to unity input", "[GainProcessor]")
 {
+    TestUtils::SetupAndTeardown setup;
     GainProcessor processor;
 
     const double sampleRate = 44100.0;
@@ -144,6 +146,7 @@ TEST_CASE("GainProcessor applies gain exactly to unity input", "[GainProcessor]"
 
 TEST_CASE("GainProcessor maintains gain consistency across multiple blocks", "[GainProcessor]")
 {
+    TestUtils::SetupAndTeardown setup;
     GainProcessor processor;
 
     const double sampleRate = 44100.0;

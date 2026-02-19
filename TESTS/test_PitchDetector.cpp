@@ -8,6 +8,7 @@
 #include <catch2/catch_test_macros.hpp>
 #include <catch2/catch_approx.hpp>
 #include <catch2/matchers/catch_matchers_string.hpp>
+#include "TEST_UTILS/TestUtils.h"
 #include "../SOURCE/PITCH/PitchDetector.h"
 #include "../SOURCE/BufferFiller.h"
 #include "../SOURCE/PROCESSORS/GRAIN/GranulatorProcessor.h"
@@ -41,6 +42,7 @@ namespace TestConfig
 
 TEST_CASE("PitchDetector prepareToPlay() initializes member objects correctly", "[PitchDetector][prepareToPlay]")
 {
+	TestUtils::SetupAndTeardown setup;
 	PitchDetector detector;
 
 	SECTION("Before prepareToPlay: default values from constructor")
@@ -78,6 +80,7 @@ TEST_CASE("PitchDetector prepareToPlay() initializes member objects correctly", 
 
 TEST_CASE("PitchDetector prepareToPlay() with different detection sizes", "[PitchDetector][prepareToPlay]")
 {
+	TestUtils::SetupAndTeardown setup;
 	PitchDetector detector;
 
 	SECTION("2048 sample detection buffer")
@@ -99,6 +102,7 @@ TEST_CASE("PitchDetector prepareToPlay() with different detection sizes", "[Pitc
 
 TEST_CASE("PitchDetector process() detects sine wave period", "[PitchDetector][process]")
 {
+	TestUtils::SetupAndTeardown setup;
 	constexpr int detectionSize = PitchDetectorMagicNumbers::DefaultDetectionSize;
 	constexpr int sinePeriod = 256;
 	constexpr int numChannels = 1;
@@ -123,6 +127,7 @@ TEST_CASE("PitchDetector process() detects sine wave period", "[PitchDetector][p
 
 TEST_CASE("PitchDetector process() with various frequencies", "[PitchDetector][process]")
 {
+	TestUtils::SetupAndTeardown setup;
 	constexpr int detectionSize = PitchDetectorMagicNumbers::DefaultDetectionSize;
 	constexpr int numChannels = 1;
 
@@ -169,6 +174,7 @@ TEST_CASE("PitchDetector process() with various frequencies", "[PitchDetector][p
 
 TEST_CASE("PitchDetector returns -1 for silent or noise input", "[PitchDetector][process]")
 {
+	TestUtils::SetupAndTeardown setup;
 	constexpr int detectionSize = PitchDetectorMagicNumbers::DefaultDetectionSize;
 	constexpr int numChannels = 1;
 
@@ -187,6 +193,7 @@ TEST_CASE("PitchDetector returns -1 for silent or noise input", "[PitchDetector]
 
 TEST_CASE("PitchDetector getCurrentPeriod() thread-safe getter", "[PitchDetector][thread-safety]")
 {
+	TestUtils::SetupAndTeardown setup;
 	constexpr int detectionSize = PitchDetectorMagicNumbers::DefaultDetectionSize;
 	constexpr int sinePeriod = 256;
 	constexpr int numChannels = 1;
@@ -208,6 +215,7 @@ TEST_CASE("PitchDetector getCurrentPeriod() thread-safe getter", "[PitchDetector
 
 TEST_CASE("PitchDetector with GranulatorProcessor", "[PitchDetector][GranulatorProcessor]")
 {
+	TestUtils::SetupAndTeardown setup;
 	SECTION("Direct PitchDetector usage (not through GranulatorProcessor)")
 	{
 		constexpr int detectionSize = PitchDetectorMagicNumbers::DefaultDetectionSize;
