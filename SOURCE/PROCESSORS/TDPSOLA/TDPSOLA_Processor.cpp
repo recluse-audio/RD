@@ -1,6 +1,7 @@
 #include "TDPSOLA_Processor.h"
+#include "TDPSOLA_Editor.h"
 
-namespace
+namespace TDPSOLA
 {
     // Circular buffer holds this many seconds of audio.
     // Must be larger than the lookahead + longest expected grain period.
@@ -11,6 +12,8 @@ namespace
     constexpr double kLookaheadSeconds = 0.05; // 50 ms
 
     constexpr int kMaxGrains = 64;
+
+    static const juce::String kShiftRatioID = "shift_ratio";
 }
 
 //==============================================================================
@@ -18,26 +21,32 @@ TDPSOLA_Processor::TDPSOLA_Processor()
     : AudioProcessor (BusesProperties()
                         .withInput  ("Input",  juce::AudioChannelSet::stereo(), true)
                         .withOutput ("Output", juce::AudioChannelSet::stereo(), true))
-    , mGranulator (mCircularBuffer)   // mCircularBuffer is already constructed here
+    , mGranulator (mCircularBuffer)
+    , apvts (*this, nullptr, "Parameters", _createParameterLayout())
 {
+    apvts.addParameterListener (TDPSOLA::kShiftRatioID, this);
 }
 
-TDPSOLA_Processor::~TDPSOLA_Processor() {}
+TDPSOLA_Processor::~TDPSOLA_Processor()
+{
+    apvts.removeParameterListener (TDPSOLA::kShiftRatioID, this);
+}
 
 //==============================================================================
 void TDPSOLA_Processor::prepareToPlay (double sampleRate, int samplesPerBlock)
 {
-    mSampleRate           = sampleRate;
-    mBlockSize            = samplesPerBlock;
-    mAbsoluteSampleCount  = 0;
+    mSampleRate            = sampleRate;
+    mBlockSize             = samplesPerBlock;
+    mAbsoluteSampleCount   = 0;
+    mDetectionSampleCount  = 0;
 
-    const int   numChannels      = getTotalNumInputChannels();
-    const int   circularBufSize  = static_cast<int> (sampleRate * kCircularBufferSeconds);
-    const auto  lookaheadSamples = static_cast<juce::int64> (sampleRate * kLookaheadSeconds);
+    const int  numChannels      = getTotalNumInputChannels();
+    const int  circularBufSize  = static_cast<int> (sampleRate * TDPSOLA::kCircularBufferSeconds);
+    const auto lookaheadSamples = static_cast<juce::int64> (sampleRate * TDPSOLA::kLookaheadSeconds);
 
     mCircularBuffer.setSize (numChannels, circularBufSize);
     mPitchManager.prepare   (sampleRate);
-    mGranulator.prepare     (sampleRate, numChannels, lookaheadSamples, kMaxGrains);
+    mGranulator.prepare     (sampleRate, numChannels, lookaheadSamples, TDPSOLA::kMaxGrains);
 }
 
 //==============================================================================
@@ -45,48 +54,84 @@ void TDPSOLA_Processor::releaseResources()
 {
     mPitchManager.reset();
     mGranulator.reset();
-    mAbsoluteSampleCount = 0;
+    mAbsoluteSampleCount  = 0;
+    mDetectionSampleCount = 0;
 }
 
 //==============================================================================
 void TDPSOLA_Processor::processBlock (juce::AudioBuffer<float>& buffer, juce::MidiBuffer&)
 {
-    const int       numSamples = buffer.getNumSamples();
+    const int         numSamples = buffer.getNumSamples();
     const juce::int64 blockStart = mAbsoluteSampleCount;
     const juce::int64 blockEnd   = blockStart + numSamples;
 
-    // 1. Push incoming audio into the CircularBuffer so grains can read it later.
+    // 1. Store incoming audio in the circular buffer.
     mCircularBuffer.pushBuffer (buffer);
 
-    // 2. Run pitch detection. PitchManager accumulates samples internally and
-    //    fires detection when its window is full; pitch/synth marks are stored
-    //    in absolute sample time.
-    mPitchManager.process (buffer, mCircularBuffer);
+    // 2. Accumulate sample count. When a full detection window has been seen,
+    //    detect pitch and generate grains over that completed window.
+    //    The detection window ends at blockEnd and starts one window-length earlier.
+    //    While incoming audio is in [blockStart, blockEnd), the window being
+    //    detected is [blockEnd - windowSize, blockEnd) — the just-completed block.
+    mDetectionSampleCount += numSamples;
 
-    // 3. Fetch any synth marks whose centres fall inside the current block.
-    auto synthMarks = mPitchManager.getSynthMarksInRange (juce::Range<juce::int64> (blockStart, blockEnd));
+    if (mDetectionSampleCount >= PitchManagerConstants::kDefaultDetectionWindowSize)
+    {
+        const juce::int64 detectionWindowEnd   = blockEnd;
+        const juce::int64 detectionWindowStart = detectionWindowEnd - PitchManagerConstants::kDefaultDetectionWindowSize;
 
-    // 4. Hand new marks to the granulator — it finds finished grains to reuse.
-    if (!synthMarks.empty())
-        mGranulator.generateGrains (synthMarks);
+        mPitchManager.detect (mCircularBuffer, detectionWindowStart);
 
-    // 5. Overlap-add all active grains into the output buffer.
-    //    The write range of each grain is offset by lookaheadSamples, so we
-    //    query the granulator at the lookahead-adjusted block window.
-    const juce::int64 lookahead = mGranulator.getLookaheadSize();
+        auto synthMarks = mPitchManager.getSynthMarksInRange ( juce::Range<juce::int64> (detectionWindowStart, detectionWindowEnd));
+
+        if (!synthMarks.empty())
+            mGranulator.generateGrains (synthMarks);
+
+        mDetectionSampleCount -= PitchManagerConstants::kDefaultDetectionWindowSize;
+    }
+
+    // 3. Overlap-add active grains into the output buffer.
+    //    Grain write ranges already incorporate the lookahead offset, so query
+    //    using the raw incoming block range — no extra offset needed here.
     buffer.clear();
-    mGranulator.process (buffer, blockStart + lookahead, blockEnd + lookahead);
+    mGranulator.process (buffer, blockStart, blockEnd);
 
     mAbsoluteSampleCount += numSamples;
 }
 
 //==============================================================================
+juce::AudioProcessorEditor* TDPSOLA_Processor::createEditor()
+{
+    return new TDPSOLA_Editor (*this);
+}
+
+//==============================================================================
 bool TDPSOLA_Processor::isBusesLayoutSupported (const BusesLayout& layouts) const
 {
-    // Input and output layouts must match; mono or stereo only.
     if (layouts.getMainInputChannelSet() != layouts.getMainOutputChannelSet())
         return false;
 
     return layouts.getMainOutputChannelSet() == juce::AudioChannelSet::mono()
         || layouts.getMainOutputChannelSet() == juce::AudioChannelSet::stereo();
+}
+
+//==============================================================================
+void TDPSOLA_Processor::parameterChanged (const juce::String& parameterID, float newValue)
+{
+    if (parameterID == TDPSOLA::kShiftRatioID)
+        mShiftRatio.set (newValue);
+}
+
+//==============================================================================
+juce::AudioProcessorValueTreeState::ParameterLayout TDPSOLA_Processor::_createParameterLayout()
+{
+    std::vector<std::unique_ptr<juce::RangedAudioParameter>> params;
+
+    params.push_back (std::make_unique<juce::AudioParameterFloat> (
+        TDPSOLA::kShiftRatioID,
+        "Shift Ratio",
+        juce::NormalisableRange<float> (0.5f, 2.0f, 0.01f),
+        1.0f));
+
+    return { params.begin(), params.end() };
 }

@@ -3,8 +3,7 @@
  * Created by Ryan Devens
  *
  * Manages pitch detection and pitch mark tracking.
- * Coordinates TD_PitchDetector and PitchMarker, tracks absolute sample position,
- * and stores pitch marks in a FIFO buffer.
+ * Coordinates TD_PitchDetector and PitchMarker, and stores pitch marks in a FIFO buffer.
  */
 
 #pragma once
@@ -27,15 +26,13 @@ namespace PitchManagerConstants
  * PitchManager coordinates pitch detection and pitch mark tracking.
  *
  * Responsibilities:
- * - Accumulates incoming audio until detection window is filled
- * - Runs pitch detection when enough samples are available
+ * - Runs pitch detection on a window of samples read from a CircularBuffer
  * - Tracks pitch marks using PitchMarker
  * - Stores pitch marks in a circular FIFO buffer
- * - Tracks absolute sample position across all processed audio
  *
  * Usage:
  * 1. Call prepare() with sample rate
- * 2. Call process() with each audio buffer
+ * 2. Call detect() with the circular buffer and an absolute start index
  * 3. Query getCurrentPeriod() to get detected period
  * 4. Use getPitchMarker().doPitchMarking() to locate pitch marks in the circular buffer
  */
@@ -53,14 +50,14 @@ public:
     void prepare(double sampleRate, int detectionWindowSize = PitchManagerConstants::kDefaultDetectionWindowSize);
 
     /**
-     * Process an audio buffer.
-     * Accumulates audio and runs pitch detection when enough samples are available.
+     * Run pitch detection on a window of samples read from the circular buffer.
+     * The window size is determined by the current detectionWindowSize.
      *
-     * @param buffer Input audio buffer (any size)
-     * @param circularBuffer Circular buffer to write audio to (for pitch mark detection)
-     * @return True if pitch was detected this call, false otherwise
+     * @param circularBuffer Circular buffer containing the audio to analyze
+     * @param startAbsIndex Absolute sample index to start reading from
+     * @return Detected period in samples, or -1 if no pitch detected
      */
-    bool process(const juce::AudioBuffer<float>& buffer, CircularBuffer& circularBuffer);
+    float detect(CircularBuffer& circularBuffer, juce::int64 startAbsIndex);
 
     /**
      * Get access to the pitch marks FIFO from the PitchMarker.
@@ -105,18 +102,6 @@ public:
     float getCurrentPeriod() const { return mCurrentPeriod; }
 
     /**
-     * Get the absolute sample counter.
-     * @return Total samples processed since prepare() or reset()
-     */
-    juce::int64 getAbsoluteSampleCount() const { return mAbsoluteSampleCounter; }
-
-    /**
-     * Check if we have enough samples accumulated for detection.
-     * @return True if detection will run on next process() call
-     */
-    bool isReadyForDetection() const { return mDetectionBufferFillPos >= mDetectionWindowSize; }
-
-    /**
      * Reset all state.
      */
     void reset();
@@ -142,19 +127,11 @@ private:
     std::unique_ptr<PitchMarker> mPitchMarker;
     std::unique_ptr<SynthMarker> mSynthMarker;
 
-    // Detection buffer (accumulates samples until full)
+    // Scratch buffer for extracting a detection window from the circular buffer
     juce::AudioBuffer<float> mDetectionBuffer;
-    int mDetectionBufferFillPos = 0;
     int mDetectionWindowSize = PitchManagerConstants::kDefaultDetectionWindowSize;
 
     // State
     double mSampleRate = 44100.0;
-    juce::int64 mAbsoluteSampleCounter = 0;
     float mCurrentPeriod = -1.0f;
-
-    /**
-     * Run pitch detection on the accumulated detection buffer.
-     * @return Detected period, or -1 if no pitch detected
-     */
-    float _runDetection();
 };

@@ -4,7 +4,6 @@
  */
 
 #include "PitchManager.h"
-#include <algorithm>
 
 //=======================================
 PitchManager::PitchManager()
@@ -25,13 +24,10 @@ void PitchManager::prepare(double sampleRate, int detectionWindowSize)
     mSampleRate = sampleRate;
     mDetectionWindowSize = detectionWindowSize;
 
-    // Prepare pitch detector
     mPitchDetector.prepare(sampleRate);
 
-    // Allocate detection buffer (mono, to be filled incrementally)
     mDetectionBuffer.setSize(1, mDetectionWindowSize);
     mDetectionBuffer.clear();
-    mDetectionBufferFillPos = 0;
 
     reset();
 }
@@ -39,53 +35,18 @@ void PitchManager::prepare(double sampleRate, int detectionWindowSize)
 //=======================================
 void PitchManager::reset()
 {
-    mAbsoluteSampleCounter = 0;
     mCurrentPeriod = -1.0f;
-    mDetectionBufferFillPos = 0;
     mDetectionBuffer.clear();
     mPitchMarker->reset();
     mSynthMarker->reset();
 }
 
 //=======================================
-bool PitchManager::process(const juce::AudioBuffer<float>& buffer, CircularBuffer& circularBuffer)
+float PitchManager::detect(CircularBuffer& circularBuffer, juce::int64 startAbsIndex)
 {
-    const int numSamples = buffer.getNumSamples();
-    bool detectionOccurred = false;
+    const int wrappedStart = circularBuffer.getWrappedIndex(startAbsIndex);
+    circularBuffer.readRange(mDetectionBuffer, wrappedStart);
 
-    // Accumulate audio in detection buffer
-    int samplesProcessed = 0;
-    while (samplesProcessed < numSamples)
-    {
-        const int samplesToProcess = std::min(numSamples - samplesProcessed, mDetectionWindowSize - mDetectionBufferFillPos);
-
-        // Copy samples to detection buffer
-        for (int i = 0; i < samplesToProcess; ++i)
-        {
-            const float sample = buffer.getSample(0, samplesProcessed + i);
-            mDetectionBuffer.setSample(0, mDetectionBufferFillPos + i, sample);
-        }
-
-        mDetectionBufferFillPos += samplesToProcess;
-        samplesProcessed += samplesToProcess;
-        mAbsoluteSampleCounter += samplesToProcess;
-
-        // Run detection when buffer is full
-        if (mDetectionBufferFillPos >= mDetectionWindowSize)
-        {
-            mCurrentPeriod = _runDetection();
-            mDetectionBufferFillPos = 0;
-            detectionOccurred = true;
-        }
-    }
-
-    return detectionOccurred;
-}
-
-//=======================================
-float PitchManager::_runDetection()
-{
-    // Run pitch detection on the accumulated buffer
-    float detectedPeriod = mPitchDetector.process(mDetectionBuffer);
-    return detectedPeriod;
+    mCurrentPeriod = mPitchDetector.process(mDetectionBuffer);
+    return mCurrentPeriod;
 }
