@@ -64,8 +64,7 @@ float PitchManager::detect(CircularBuffer& circularBuffer, juce::int64 startAbsI
         if (predicted > 0 && predicted >= windowEnd)
             break;
 
-        const juce::int64 mark = mPitchMarker->doPitchMarking(
-            circularBuffer, windowRange, mCurrentPeriod, windowEnd, true);
+        const juce::int64 mark = mPitchMarker->doPitchMarking(circularBuffer, windowRange, mCurrentPeriod, windowEnd, true);
 
         if (mark < 0 || mark >= windowEnd)
             break;
@@ -74,8 +73,7 @@ float PitchManager::detect(CircularBuffer& circularBuffer, juce::int64 startAbsI
     // Generate synth marks using the shifted output period
     const float safeShift     = std::max(shiftRatio, 0.01f);
     const float shiftedPeriod = mCurrentPeriod / safeShift;
-    const int   numSynthMarks = static_cast<int>(mDetectionWindowSize / shiftedPeriod) + 4;
-    mSynthMarker->generateSynthMarks(mPitchMarker->getPitchMarks(), shiftedPeriod, numSynthMarks);
+    mSynthMarker->generateSynthMarks(mPitchMarker->getPitchMarks(), shiftedPeriod, windowRange);
 
     return mCurrentPeriod;
 }

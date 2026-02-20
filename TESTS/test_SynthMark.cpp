@@ -28,9 +28,8 @@ TEST_CASE("SynthMark - Basic Construction", "[SynthMark]")
         const juce::int64 pitchStart = 900;
         const juce::int64 pitchEnd = 1099;
         const juce::int64 synthMarkPos = 5000;
-        const float outputPeriod = 120.0f;
 
-        SynthMark mark(pitchMarkPos, pitchStart, pitchEnd, synthMarkPos, outputPeriod);
+        SynthMark mark(pitchMarkPos, pitchStart, pitchEnd, synthMarkPos);
 
         REQUIRE(mark.isValid());
 
@@ -40,11 +39,12 @@ TEST_CASE("SynthMark - Basic Construction", "[SynthMark]")
         REQUIRE(mark.pitchRangeEnd == pitchEnd);
         REQUIRE(mark.getPitchRangeLength() == 200);
 
-        // Synth mark data
+        // Synth mark data - length matches pitch mark
+        const juce::int64 pitchPeriod = 100;  // Derived from pitch mark position - pitch range start
         REQUIRE(mark.synthMark == synthMarkPos);
-        REQUIRE(mark.synthRangeStart == synthMarkPos - 120);  // synthMark - outputPeriod
-        REQUIRE(mark.synthRangeEnd == synthMarkPos + 120 - 1);  // synthMark + outputPeriod - 1
-        REQUIRE(mark.getSynthRangeLength() == 240);  // 2 * outputPeriod
+        REQUIRE(mark.synthRangeStart == synthMarkPos - pitchPeriod);
+        REQUIRE(mark.synthRangeEnd == synthMarkPos + pitchPeriod - 1);
+        REQUIRE(mark.getSynthRangeLength() == 200);  // Same as pitch range length
     }
 }
 
@@ -58,8 +58,7 @@ TEST_CASE("SynthMark - Construction from PitchMark", "[SynthMark]")
         PitchMark pitchMark(pitchMarkPos, inputPeriod);
 
         const juce::int64 synthMarkPos = 10000;
-        const float outputPeriod = 150.0f;
-        SynthMark synthMark(pitchMark, synthMarkPos, outputPeriod);
+        SynthMark synthMark(pitchMark, synthMarkPos);
 
         REQUIRE(synthMark.isValid());
 
@@ -68,10 +67,11 @@ TEST_CASE("SynthMark - Construction from PitchMark", "[SynthMark]")
         REQUIRE(synthMark.pitchRangeStart == pitchMark.rangeStart);
         REQUIRE(synthMark.pitchRangeEnd == pitchMark.rangeEnd);
 
-        // Should have its own synth mark data with output period
+        // Synth mark length matches pitch mark length
         REQUIRE(synthMark.synthMark == synthMarkPos);
-        REQUIRE(synthMark.synthRangeStart == synthMarkPos - 150);
-        REQUIRE(synthMark.synthRangeEnd == synthMarkPos + 150 - 1);
+        REQUIRE(synthMark.synthRangeStart == synthMarkPos - 100);  // Uses pitch period
+        REQUIRE(synthMark.synthRangeEnd == synthMarkPos + 100 - 1);
+        REQUIRE(synthMark.getSynthRangeLength() == 200);  // Same as pitch range length (2 * inputPeriod)
     }
 
     SECTION("Synth mark is independent of pitch mark changes")
@@ -80,7 +80,7 @@ TEST_CASE("SynthMark - Construction from PitchMark", "[SynthMark]")
         PitchMark pitchMark(1000, 100.0f);
 
         // Create synth mark from it
-        SynthMark synthMark(pitchMark, 5000, 100.0f);
+        SynthMark synthMark(pitchMark, 5000);
 
         // Store original values
         juce::int64 originalPitchMark = synthMark.pitchMark;
@@ -105,8 +105,7 @@ TEST_CASE("SynthMark - Range Methods", "[SynthMark]")
     PitchMark pitchMark(pitchMarkPos, inputPeriod);
 
     const juce::int64 synthMarkPos = 5000;
-    const float outputPeriod = 150.0f;
-    SynthMark synthMark(pitchMark, synthMarkPos, outputPeriod);
+    SynthMark synthMark(pitchMark, synthMarkPos);
 
     SECTION("getPitchRange returns correct juce::Range")
     {
@@ -119,46 +118,15 @@ TEST_CASE("SynthMark - Range Methods", "[SynthMark]")
     SECTION("getSynthRange returns correct juce::Range")
     {
         juce::Range<juce::int64> range = synthMark.getSynthRange();
-        REQUIRE(range.getStart() == 4850);  // synthMark - outputPeriod
-        REQUIRE(range.getEnd() == 5150);    // synthMark + outputPeriod (exclusive end)
-        REQUIRE(range.getLength() == 300);
+        REQUIRE(range.getStart() == 4900);  // synthMark - inputPeriod
+        REQUIRE(range.getEnd() == 5100);    // synthMark + inputPeriod (exclusive end)
+        REQUIRE(range.getLength() == 200);  // Same as pitch range
     }
 
-    SECTION("Range lengths match expected periods")
+    SECTION("Range lengths match - synth length equals pitch length")
     {
         REQUIRE(synthMark.getPitchRangeLength() == static_cast<juce::int64>(inputPeriod * 2));
-        REQUIRE(synthMark.getSynthRangeLength() == static_cast<juce::int64>(outputPeriod * 2));
+        REQUIRE(synthMark.getSynthRangeLength() == static_cast<juce::int64>(inputPeriod * 2));  // Always matches pitch
     }
 }
 
-//=======================================
-TEST_CASE("SynthMark - Different Input and Output Periods", "[SynthMark]")
-{
-    SECTION("Output period larger than input (time stretching)")
-    {
-        const juce::int64 pitchMarkPos = 1000;
-        const float inputPeriod = 100.0f;
-        PitchMark pitchMark(pitchMarkPos, inputPeriod);
-
-        const juce::int64 synthMarkPos = 5000;
-        const float outputPeriod = 200.0f;  // 2x slower
-        SynthMark synthMark(pitchMark, synthMarkPos, outputPeriod);
-
-        REQUIRE(synthMark.getPitchRangeLength() == 200);  // Input: 2 * 100
-        REQUIRE(synthMark.getSynthRangeLength() == 400);  // Output: 2 * 200
-    }
-
-    SECTION("Output period smaller than input (time compression)")
-    {
-        const juce::int64 pitchMarkPos = 1000;
-        const float inputPeriod = 100.0f;
-        PitchMark pitchMark(pitchMarkPos, inputPeriod);
-
-        const juce::int64 synthMarkPos = 5000;
-        const float outputPeriod = 50.0f;  // 2x faster
-        SynthMark synthMark(pitchMark, synthMarkPos, outputPeriod);
-
-        REQUIRE(synthMark.getPitchRangeLength() == 200);  // Input: 2 * 100
-        REQUIRE(synthMark.getSynthRangeLength() == 100);  // Output: 2 * 50
-    }
-}

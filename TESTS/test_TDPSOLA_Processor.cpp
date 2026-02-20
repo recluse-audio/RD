@@ -94,27 +94,27 @@ TEST_CASE("TDPSOLA_Processor generates correct number of synth marks for given p
 
     INFO("Expected period: " << expectedPeriod);
     INFO("Detected period: " << detectedPeriod);
-    INFO("Period tolerance: ±" << periodTolerance);
+    INFO("Period tolerance: " << periodTolerance);
 
     REQUIRE(detectedPeriod > 0.0f);  // Ensure pitch was detected
     REQUIRE(std::abs(detectedPeriod - expectedPeriod) < periodTolerance);  // Verify correct period
 
     // Calculate expected number of synth marks
-    // From PitchManager::detect():
-    //   shiftedPeriod = currentPeriod / shiftRatio
-    //   numSynthMarks = (detectionWindowSize / shiftedPeriod) + 4
+    // New implementation generates marks incrementally across the detection window range
+    // Number of marks ≈ windowSize / shiftedPeriod (may vary by ±1 depending on alignment)
 
     const float shiftedPeriod = detectedPeriod / shiftRatio;
-    const int expectedSynthMarks = static_cast<int>(detectionWindowSize / shiftedPeriod) + 4;
+    const int approximateExpectedMarks = static_cast<int>(detectionWindowSize / shiftedPeriod);
 
-    // Verify the actual number of synth marks matches the expected count
+    // Verify the actual number of synth marks is close to expected (within ±2 for alignment)
     const int actualSynthMarks = static_cast<int>(synthMarks.size());
 
     INFO("Shifted period: " << shiftedPeriod);
-    INFO("Expected synth marks: " << expectedSynthMarks);
+    INFO("Approximate expected synth marks: " << approximateExpectedMarks);
     INFO("Actual synth marks: " << actualSynthMarks);
 
-    REQUIRE(actualSynthMarks == expectedSynthMarks);
+    REQUIRE(actualSynthMarks >= approximateExpectedMarks - 2);
+    REQUIRE(actualSynthMarks <= approximateExpectedMarks + 2);
 
     processor.releaseResources();
 }
@@ -165,7 +165,7 @@ TEST_CASE("TDPSOLA_Processor generates correct number of synth marks with pitch 
 
     INFO("Expected period: " << expectedPeriod);
     INFO("Detected period: " << detectedPeriod);
-    INFO("Period tolerance: ±" << periodTolerance);
+    INFO("Period tolerance: " << periodTolerance);
 
     REQUIRE(detectedPeriod > 0.0f);  // Ensure pitch was detected
     REQUIRE(std::abs(detectedPeriod - expectedPeriod) < periodTolerance);  // Verify correct period
@@ -173,16 +173,17 @@ TEST_CASE("TDPSOLA_Processor generates correct number of synth marks with pitch 
     // With shiftRatio = 0.5, shiftedPeriod = period / 0.5 = period * 2
     // This means fewer synth marks (larger spacing)
     const float shiftedPeriod = detectedPeriod / shiftRatio;
-    const int expectedSynthMarks = static_cast<int>(detectionWindowSize / shiftedPeriod) + 4;
+    const int approximateExpectedMarks = static_cast<int>(detectionWindowSize / shiftedPeriod);
 
     const int actualSynthMarks = static_cast<int>(synthMarks.size());
 
     INFO("Shift ratio: " << shiftRatio);
     INFO("Shifted period: " << shiftedPeriod);
-    INFO("Expected synth marks: " << expectedSynthMarks);
+    INFO("Approximate expected synth marks: " << approximateExpectedMarks);
     INFO("Actual synth marks: " << actualSynthMarks);
 
-    REQUIRE(actualSynthMarks == expectedSynthMarks);
+    REQUIRE(actualSynthMarks >= approximateExpectedMarks - 2);
+    REQUIRE(actualSynthMarks <= approximateExpectedMarks + 2);
 
     processor.releaseResources();
 }

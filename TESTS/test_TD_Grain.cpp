@@ -19,7 +19,7 @@ TEST_CASE("TD_Grain - Instantiation", "[TD_Grain]")
     SECTION("Constructor with SynthMark creates a valid grain")
     {
         // Pitch mark at 128, period of 128 samples, no shift
-        SynthMark mark(128, 0, 255, 128, 128.0f);
+        SynthMark mark(128, 0, 255, 128);
         constexpr juce::int64 lookahead = 512;
 
         TD_Grain grain(mark, window, sourceBuffer, lookahead);
@@ -32,7 +32,7 @@ TEST_CASE("TD_Grain - Instantiation", "[TD_Grain]")
     SECTION("Write range is synth range offset by lookahead")
     {
         // synthRangeStart = 128 - 128 = 0, synthRangeEnd = 128 + 128 - 1 = 255
-        SynthMark mark(128, 0, 255, 128, 128.0f);
+        SynthMark mark(128, 0, 255, 128);
         constexpr juce::int64 lookahead = 2048;
 
         TD_Grain grain(mark, window, sourceBuffer, lookahead);
@@ -43,8 +43,8 @@ TEST_CASE("TD_Grain - Instantiation", "[TD_Grain]")
 
     SECTION("setGrain() updates write range and resets index")
     {
-        SynthMark firstMark(128, 0, 255, 128, 128.0f);
-        SynthMark newMark(512, 256, 767, 512, 256.0f);
+        SynthMark firstMark(128, 0, 255, 128);
+        SynthMark newMark(512, 256, 767, 512);
         constexpr juce::int64 lookahead = 512;
 
         TD_Grain grain(firstMark, window, sourceBuffer, lookahead);
@@ -64,7 +64,7 @@ TEST_CASE("TD_Grain - getOverlapWithBlock()", "[TD_Grain]")
 
     // Grain: synthRangeStart=0, synthRangeEnd=255, lookahead=512
     //        → writeRangeStart=512, writeRangeEnd=767
-    SynthMark mark(128, 0, 255, 128, 128.0f);
+    SynthMark mark(128, 0, 255, 128);
     constexpr juce::int64 lookahead = 512;
     TD_Grain grain(mark, window, sourceBuffer, lookahead);
 
@@ -163,14 +163,15 @@ static CircularBuffer makeOnesBuffer(int numSamples)
 }
 
 // Helper: build a SynthMark whose synth range is [0, grainSize-1] and pitch range starts at 0
-// outputPeriod = grainSize / 2  →  synthRangeLength = grainSize
+// pitchPeriod = grainSize / 2  →  synthRangeLength = grainSize (matches pitch range length)
 static SynthMark makeGrainMark(int grainSize)
 {
     juce::int64 half = grainSize / 2;
-    // SynthMark(pitchMark, pitchStart, pitchEnd, synthMark, outputPeriod)
-    // synthRangeStart = synthMark - outputPeriod = 0
-    // synthRangeEnd   = synthMark + outputPeriod - 1 = grainSize - 1
-    return SynthMark(half, 0, grainSize - 1, half, static_cast<float>(half));
+    // SynthMark(pitchMark, pitchStart, pitchEnd, synthMark)
+    // Synth range length will match pitch range length
+    // synthRangeStart = synthMark - pitchPeriod = half - half = 0
+    // synthRangeEnd   = synthMark + pitchPeriod - 1 = half + half - 1 = grainSize - 1
+    return SynthMark(half, 0, grainSize - 1, half);
 }
 
 TEST_CASE("TD_Grain - process() with ones buffer shows only window coefficients", "[TD_Grain][Window]")

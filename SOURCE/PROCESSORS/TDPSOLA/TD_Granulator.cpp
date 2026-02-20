@@ -23,6 +23,12 @@ void TD_Granulator::prepare(double sampleRate, int numChannels, juce::int64 look
     mLookaheadSamples = lookaheadSamples;
     mMaxGrains = maxGrains;
 
+    // Configure the shared window with Tukey shape for smooth grain edges
+    // Window size set to accommodate maximum expected grain size (2048 samples covers pitch down to ~22 Hz at 44.1kHz)
+    // Period will be set per-grain based on actual grain size in TD_Grain::process()
+    const int maxWindowSize = 2048;
+    mWindow.setSizeShapePeriod(maxWindowSize, Window::Shape::kTukey, maxWindowSize);
+
     // Pre-allocate grains pool
     // All grains share the same window reference
     mGrains.clear();
@@ -33,9 +39,6 @@ void TD_Granulator::prepare(double sampleRate, int numChannels, juce::int64 look
     {
         mGrains.emplace_back(SynthMark(), mWindow, mSourceBuffer, mLookaheadSamples);
     }
-
-    // Window preparation can be done here if needed
-    // For now, window will be configured per-grain based on period
 }
 
 void TD_Granulator::generateGrains(const std::vector<SynthMark>& synthMarks)

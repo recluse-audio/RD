@@ -31,14 +31,15 @@ TEST_CASE("TD_Granulator - generateGrains()", "[TD_Granulator]")
     TD_Granulator granulator(sourceBuffer);
     granulator.prepare(44100.0, 2, lookahead, 8);
 
-    // synthRangeStart = synthMark - period, synthRangeEnd = synthMark + period - 1
-    // Mark 0: synthRange [0,   255], writeRange [512, 767]
-    // Mark 1: synthRange [128, 383], writeRange [640, 895]
-    // Mark 2: synthRange [256, 511], writeRange [768, 1023]
+    // synthRangeStart = synthMark - pitchPeriod, synthRangeEnd = synthMark + pitchPeriod - 1
+    // Synth range length matches pitch range length
+    // Mark 0: pitch[0,255], synth[0,255], writeRange [512, 767]
+    // Mark 1: pitch[128,383], synth[128,383], writeRange [640, 895]
+    // Mark 2: pitch[256,511], synth[256,511], writeRange [768, 1023]
     std::vector<SynthMark> synthMarks = {
-        SynthMark(128, 0, 255, 128, 128.0f),
-        SynthMark(256, 128, 383, 256, 128.0f),
-        SynthMark(384, 256, 511, 384, 128.0f),
+        SynthMark(128, 0, 255, 128),
+        SynthMark(256, 128, 383, 256),
+        SynthMark(384, 256, 511, 384),
     };
 
     granulator.generateGrains(synthMarks);

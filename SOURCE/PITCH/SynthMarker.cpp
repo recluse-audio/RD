@@ -19,49 +19,59 @@ SynthMarker::~SynthMarker()
 void SynthMarker::reset()
 {
     mSynthMarks.clear();
+    mPredictedNextSynthMark = -1;
 }
 
 //=======================================
-void SynthMarker::generateSynthMarks(const std::vector<PitchMark>& pitchMarks, float shiftedPeriod, int numSynthMarks)
+void SynthMarker::generateSynthMarks(const std::vector<PitchMark>& pitchMarks, float shiftedPeriod, juce::Range<juce::int64> absSampleRange)
 {
     // Clear existing synth marks
     mSynthMarks.clear();
 
-    // Can't generate without pitch marks
-    if (pitchMarks.empty() || numSynthMarks <= 0)
+    // Can't generate without pitch marks or with invalid range
+    if (pitchMarks.empty() || absSampleRange.isEmpty())
         return;
 
-    // Find first valid pitch mark
-    const PitchMark* firstPitchMark = nullptr;
-    for (const auto& pm : pitchMarks)
+    juce::int64 currentSynthPos;
+
+    // Determine starting position
+    if (mPredictedNextSynthMark >= 0)
     {
-        if (pm.isValid())
+        // Use predicted next synth mark from previous call
+        currentSynthPos = mPredictedNextSynthMark;
+    }
+    else
+    {
+        // No predicted position - sync with first valid pitch mark
+        const PitchMark* firstPitchMark = nullptr;
+        for (const auto& pm : pitchMarks)
         {
-            firstPitchMark = &pm;
-            break;
+            if (pm.isValid())
+            {
+                firstPitchMark = &pm;
+                break;
+            }
         }
+
+        if (!firstPitchMark)
+            return; // No valid pitch marks
+
+        currentSynthPos = firstPitchMark->mark;
     }
 
-    if (!firstPitchMark)
-        return; // No valid pitch marks
+    // Generate synth marks by incrementing through shiftedPeriod steps
+    const juce::int64 rangeEnd = absSampleRange.getEnd();
 
-    // Reserve space for synth marks
-    mSynthMarks.reserve(numSynthMarks);
-
-    // Generate synth marks
-    for (int i = 0; i < numSynthMarks; ++i)
+    while (currentSynthPos < rangeEnd)
     {
-        // Calculate synth mark position
-        // First synth mark matches first pitch mark, subsequent marks use shiftedPeriod
-        juce::int64 synthPos = firstPitchMark->mark + static_cast<juce::int64>(i * shiftedPeriod);
-
         // Find which pitch mark this synth position should use
-        const PitchMark* sourcePitchMark = _findPitchMarkForSynthPos(pitchMarks, synthPos);
+        const PitchMark* sourcePitchMark = _findPitchMarkForSynthPos(pitchMarks, currentSynthPos);
 
         if (sourcePitchMark)
         {
             // Create synth mark from the source pitch mark
-            SynthMark synthMark(*sourcePitchMark, synthPos, shiftedPeriod);
+            // Synth mark will automatically match the pitch mark's range length
+            SynthMark synthMark(*sourcePitchMark, currentSynthPos);
             mSynthMarks.push_back(synthMark);
         }
         else
@@ -69,7 +79,13 @@ void SynthMarker::generateSynthMarks(const std::vector<PitchMark>& pitchMarks, f
             // No valid pitch mark found for this position, create invalid synth mark
             mSynthMarks.push_back(SynthMark());
         }
+
+        // Increment by shifted period
+        currentSynthPos += static_cast<juce::int64>(shiftedPeriod);
     }
+
+    // Store predicted next synth mark for next call
+    mPredictedNextSynthMark = currentSynthPos;
 }
 
 //=======================================

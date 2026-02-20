@@ -7,12 +7,15 @@
 #include "PitchMark.h"
 
 //=======================================
-SynthMark::SynthMark(const PitchMark& pitchMark, juce::int64 synthMarkPosition, float outputPeriod)
+SynthMark::SynthMark(const PitchMark& pitchMark, juce::int64 synthMarkPosition)
     : pitchMark(pitchMark.mark)
     , pitchRangeStart(pitchMark.rangeStart)
     , pitchRangeEnd(pitchMark.rangeEnd)
     , synthMark(synthMarkPosition)
-    , synthRangeStart(synthMarkPosition - static_cast<juce::int64>(outputPeriod))
-    , synthRangeEnd(synthMarkPosition + static_cast<juce::int64>(outputPeriod) - 1)
 {
+    // Synth range must match pitch range length
+    // Calculate pitch period from the pitch mark position and range start
+    juce::int64 pitchPeriod = pitchMark.mark - pitchMark.rangeStart;
+    synthRangeStart = synthMarkPosition - pitchPeriod;
+    synthRangeEnd = synthMarkPosition + pitchPeriod - 1;
 }

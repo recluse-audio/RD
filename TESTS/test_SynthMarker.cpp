@@ -42,9 +42,9 @@ TEST_CASE("SynthMarker - Generate Synth Marks - No Pitch Shift", "[SynthMarker]"
     SECTION("Generate synth marks with same period (no time stretching)")
     {
         const float shiftedPeriod = 100.0f;  // Same as input period
-        const int numSynthMarks = 3;
+        const juce::Range<juce::int64> range(0, 400);  // Range to generate 3 marks at 100, 200, 300
 
-        marker.generateSynthMarks(pitchMarks, shiftedPeriod, numSynthMarks);
+        marker.generateSynthMarks(pitchMarks, shiftedPeriod, range);
 
         REQUIRE(marker.getNumSynthMarks() == 3);
 
@@ -83,9 +83,9 @@ TEST_CASE("SynthMarker - Pitch Mark Range Assignment Rule", "[SynthMarker]")
     SECTION("Synth marks from 128-255 use the same pitch mark range")
     {
         const float shiftedPeriod = 50.0f;
-        const int numSynthMarks = 3;  // Will be at 128, 178, 228
+        const juce::Range<juce::int64> range(0, 278);  // Range to generate 3 marks at 128, 178, 228 (excludes 278)
 
-        marker.generateSynthMarks(pitchMarks, shiftedPeriod, numSynthMarks);
+        marker.generateSynthMarks(pitchMarks, shiftedPeriod, range);
 
         REQUIRE(marker.getNumSynthMarks() == 3);
 
@@ -125,9 +125,9 @@ TEST_CASE("SynthMarker - Time Stretching (Slower Output)", "[SynthMarker]")
     SECTION("Generate synth marks with larger period (slower/stretched)")
     {
         const float shiftedPeriod = 150.0f;  // 1.5x slower
-        const int numSynthMarks = 3;
+        const juce::Range<juce::int64> range(0, 450);  // Range to generate 3 marks at 100, 250, 400
 
-        marker.generateSynthMarks(pitchMarks, shiftedPeriod, numSynthMarks);
+        marker.generateSynthMarks(pitchMarks, shiftedPeriod, range);
 
         REQUIRE(marker.getNumSynthMarks() == 3);
 
@@ -136,7 +136,7 @@ TEST_CASE("SynthMarker - Time Stretching (Slower Output)", "[SynthMarker]")
         // First synth mark at 100
         REQUIRE(synthMarks[0].synthMark == 100);
         REQUIRE(synthMarks[0].pitchMark == 100);
-        REQUIRE(synthMarks[0].getSynthRangeLength() == 300);  // 2 * 150
+        REQUIRE(synthMarks[0].getSynthRangeLength() == 200);  // 2 * inputPeriod (100), NOT shifted period
 
         // Second synth mark at 250 (100 + 150)
         REQUIRE(synthMarks[1].synthMark == 250);
@@ -167,9 +167,9 @@ TEST_CASE("SynthMarker - Time Compression (Faster Output)", "[SynthMarker]")
     SECTION("Generate synth marks with smaller period (faster/compressed)")
     {
         const float shiftedPeriod = 50.0f;  // 2x faster
-        const int numSynthMarks = 5;
+        const juce::Range<juce::int64> range(0, 350);  // Range to generate 5 marks at 100, 150, 200, 250, 300
 
-        marker.generateSynthMarks(pitchMarks, shiftedPeriod, numSynthMarks);
+        marker.generateSynthMarks(pitchMarks, shiftedPeriod, range);
 
         REQUIRE(marker.getNumSynthMarks() == 5);
 
@@ -189,10 +189,10 @@ TEST_CASE("SynthMarker - Time Compression (Faster Output)", "[SynthMarker]")
         REQUIRE(synthMarks[3].pitchMark == 200);  // 250 in [200, 299]
         REQUIRE(synthMarks[4].pitchMark == 300);  // 300 in [300, 399]
 
-        // All synth marks should have same output period
+        // All synth marks should have same length as pitch marks (NOT shifted period)
         for (const auto& sm : synthMarks)
         {
-            REQUIRE(sm.getSynthRangeLength() == 100);  // 2 * 50
+            REQUIRE(sm.getSynthRangeLength() == 200);  // 2 * inputPeriod (100), NOT shifted period
         }
     }
 }
@@ -205,17 +205,17 @@ TEST_CASE("SynthMarker - Edge Cases", "[SynthMarker]")
     SECTION("Empty pitch marks")
     {
         std::vector<PitchMark> pitchMarks;
-        marker.generateSynthMarks(pitchMarks, 100.0f, 5);
+        marker.generateSynthMarks(pitchMarks, 100.0f, juce::Range<juce::int64>(0, 500));
 
         REQUIRE(marker.getNumSynthMarks() == 0);
     }
 
-    SECTION("Zero synth marks requested")
+    SECTION("Empty range")
     {
         std::vector<PitchMark> pitchMarks;
         pitchMarks.push_back(PitchMark(100, 100.0f));
 
-        marker.generateSynthMarks(pitchMarks, 100.0f, 0);
+        marker.generateSynthMarks(pitchMarks, 100.0f, juce::Range<juce::int64>());
 
         REQUIRE(marker.getNumSynthMarks() == 0);
     }
@@ -226,7 +226,7 @@ TEST_CASE("SynthMarker - Edge Cases", "[SynthMarker]")
         pitchMarks.push_back(PitchMark());  // Invalid
         pitchMarks.push_back(PitchMark());  // Invalid
 
-        marker.generateSynthMarks(pitchMarks, 100.0f, 3);
+        marker.generateSynthMarks(pitchMarks, 100.0f, juce::Range<juce::int64>(0, 300));
 
         REQUIRE(marker.getNumSynthMarks() == 0);
     }
@@ -238,7 +238,7 @@ TEST_CASE("SynthMarker - Edge Cases", "[SynthMarker]")
         pitchMarks.push_back(PitchMark(100, 100.0f)); // Valid
         pitchMarks.push_back(PitchMark());            // Invalid
 
-        marker.generateSynthMarks(pitchMarks, 100.0f, 2);
+        marker.generateSynthMarks(pitchMarks, 100.0f, juce::Range<juce::int64>(0, 250));
 
         REQUIRE(marker.getNumSynthMarks() == 2);
 
@@ -257,7 +257,7 @@ TEST_CASE("SynthMarker - Reset Clears Synth Marks", "[SynthMarker]")
     std::vector<PitchMark> pitchMarks;
     pitchMarks.push_back(PitchMark(100, 100.0f));
 
-    marker.generateSynthMarks(pitchMarks, 100.0f, 3);
+    marker.generateSynthMarks(pitchMarks, 100.0f, juce::Range<juce::int64>(0, 350));
     REQUIRE(marker.getNumSynthMarks() == 3);
 
     marker.reset();
@@ -280,9 +280,8 @@ TEST_CASE("SynthMarker - Get Marks In Range", "[SynthMarker]")
     // Generate synth marks with same period (no time stretching)
     // Synth marks will be at: 100, 200, 300
     const float shiftedPeriod = 100.0f;
-    const int numSynthMarks = 3;
 
-    marker.generateSynthMarks(pitchMarks, shiftedPeriod, numSynthMarks);
+    marker.generateSynthMarks(pitchMarks, shiftedPeriod, juce::Range<juce::int64>(0, 400));
     REQUIRE(marker.getNumSynthMarks() == 3);
 
     SECTION("Get all marks in wide range")
@@ -342,9 +341,8 @@ TEST_CASE("SynthMarker - Get Marks In Range With Time Stretching", "[SynthMarker
     // Generate synth marks with larger period (time stretching)
     // Synth marks will be at: 100, 250, 400
     const float shiftedPeriod = 150.0f;
-    const int numSynthMarks = 3;
 
-    marker.generateSynthMarks(pitchMarks, shiftedPeriod, numSynthMarks);
+    marker.generateSynthMarks(pitchMarks, shiftedPeriod, juce::Range<juce::int64>(0, 450));
     REQUIRE(marker.getNumSynthMarks() == 3);
 
     SECTION("Get marks with stretched spacing")
@@ -370,6 +368,63 @@ TEST_CASE("SynthMarker - Get Marks In Range With Time Stretching", "[SynthMarker
 }
 
 //=======================================
+TEST_CASE("SynthMarker - Predicted Next Synth Mark Continuation", "[SynthMarker]")
+{
+    SynthMarker marker;
+
+    std::vector<PitchMark> pitchMarks;
+    pitchMarks.push_back(PitchMark(100, 100.0f));   // Range [0, 199]
+    pitchMarks.push_back(PitchMark(200, 100.0f));   // Range [100, 299]
+    pitchMarks.push_back(PitchMark(300, 100.0f));   // Range [200, 399]
+
+    SECTION("First call syncs with first pitch mark")
+    {
+        // First generation - should sync with first pitch mark at 100
+        marker.generateSynthMarks(pitchMarks, 100.0f, juce::Range<juce::int64>(0, 250));
+
+        REQUIRE(marker.getNumSynthMarks() == 2);
+        const auto& marks1 = marker.getSynthMarks();
+        REQUIRE(marks1[0].synthMark == 100);  // First pitch mark
+        REQUIRE(marks1[1].synthMark == 200);
+    }
+
+    SECTION("Second call uses predicted position from first call")
+    {
+        // First generation
+        marker.generateSynthMarks(pitchMarks, 100.0f, juce::Range<juce::int64>(0, 250));
+        REQUIRE(marker.getNumSynthMarks() == 2);
+
+        // Second generation - should continue from predicted position (300)
+        // NOT resync with first pitch mark
+        marker.generateSynthMarks(pitchMarks, 100.0f, juce::Range<juce::int64>(250, 550));
+
+        REQUIRE(marker.getNumSynthMarks() == 3);
+        const auto& marks2 = marker.getSynthMarks();
+        REQUIRE(marks2[0].synthMark == 300);  // Continues from predicted position
+        REQUIRE(marks2[1].synthMark == 400);
+        REQUIRE(marks2[2].synthMark == 500);
+    }
+
+    SECTION("Reset clears predicted position and resyncs")
+    {
+        // First generation
+        marker.generateSynthMarks(pitchMarks, 100.0f, juce::Range<juce::int64>(0, 250));
+        REQUIRE(marker.getNumSynthMarks() == 2);
+
+        // Reset
+        marker.reset();
+
+        // After reset, should sync with first pitch mark again
+        marker.generateSynthMarks(pitchMarks, 100.0f, juce::Range<juce::int64>(0, 250));
+
+        REQUIRE(marker.getNumSynthMarks() == 2);
+        const auto& marks3 = marker.getSynthMarks();
+        REQUIRE(marks3[0].synthMark == 100);  // Back to first pitch mark
+        REQUIRE(marks3[1].synthMark == 200);
+    }
+}
+
+//=======================================
 TEST_CASE("SynthMarker - Multiple Generations", "[SynthMarker]")
 {
     SynthMarker marker;
@@ -378,14 +433,15 @@ TEST_CASE("SynthMarker - Multiple Generations", "[SynthMarker]")
     pitchMarks1.push_back(PitchMark(100, 100.0f));
 
     // First generation
-    marker.generateSynthMarks(pitchMarks1, 100.0f, 2);
+    marker.generateSynthMarks(pitchMarks1, 100.0f, juce::Range<juce::int64>(0, 250));
     REQUIRE(marker.getNumSynthMarks() == 2);
 
-    // Second generation (should replace first)
+    // Reset and second generation (should replace first)
+    marker.reset();  // Reset to clear predicted position and start fresh
     std::vector<PitchMark> pitchMarks2;
     pitchMarks2.push_back(PitchMark(200, 100.0f));
 
-    marker.generateSynthMarks(pitchMarks2, 50.0f, 5);
+    marker.generateSynthMarks(pitchMarks2, 50.0f, juce::Range<juce::int64>(0, 450));
     REQUIRE(marker.getNumSynthMarks() == 5);
 
     const auto& synthMarks = marker.getSynthMarks();

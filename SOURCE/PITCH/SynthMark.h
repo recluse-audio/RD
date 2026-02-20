@@ -53,30 +53,33 @@ public:
 
     /**
      * Construct a synth mark from pitch mark data and synth position.
+     * Synth range length will match pitch range length.
      * @param pitchMarkPosition The pitch mark position in circular buffer
      * @param pitchMarkRangeStart Start of pitch mark range
      * @param pitchMarkRangeEnd End of pitch mark range
      * @param synthMarkPosition The synth mark position in output
-     * @param outputPeriod The output period for synth range (can differ from input period)
      */
     SynthMark(juce::int64 pitchMarkPosition, juce::int64 pitchMarkRangeStart, juce::int64 pitchMarkRangeEnd,
-              juce::int64 synthMarkPosition, float outputPeriod)
+              juce::int64 synthMarkPosition)
         : pitchMark(pitchMarkPosition)
         , pitchRangeStart(pitchMarkRangeStart)
         , pitchRangeEnd(pitchMarkRangeEnd)
         , synthMark(synthMarkPosition)
-        , synthRangeStart(synthMarkPosition - static_cast<juce::int64>(outputPeriod))
-        , synthRangeEnd(synthMarkPosition + static_cast<juce::int64>(outputPeriod) - 1)
     {
+        // Synth range must match pitch range length
+        // Calculate pitch period from the pitch mark position and range start
+        juce::int64 pitchPeriod = pitchMarkPosition - pitchMarkRangeStart;
+        synthRangeStart = synthMarkPosition - pitchPeriod;
+        synthRangeEnd = synthMarkPosition + pitchPeriod - 1;
     }
 
     /**
      * Construct a synth mark from a PitchMark and synth position.
+     * Synth range length will match pitch range length.
      * @param pitchMark The pitch mark to copy data from
      * @param synthMarkPosition The synth mark position in output
-     * @param outputPeriod The output period for synth range
      */
-    SynthMark(const class PitchMark& pitchMark, juce::int64 synthMarkPosition, float outputPeriod);
+    SynthMark(const class PitchMark& pitchMark, juce::int64 synthMarkPosition);
 
     /**
      * Check if this synth mark is valid.

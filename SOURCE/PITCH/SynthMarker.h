@@ -39,15 +39,16 @@ public:
     /**
      * Generate synthesis marks from pitch marks.
      *
-     * Creates synth marks starting at the first pitch mark position,
-     * then placing subsequent marks at shiftedPeriod intervals.
-     * Each synth mark determines its source pitch mark based on overlap rules.
+     * Generates synth marks incrementally by stepping through shiftedPeriod intervals.
+     * If a predicted next synth mark exists (from previous call), starts from there.
+     * Otherwise, syncs with the first pitch mark position.
+     * Continues generating marks until reaching the end of the sample range.
      *
      * @param pitchMarks Array of pitch marks to synthesize from
      * @param shiftedPeriod Output period for placing synth marks (can differ from input period)
-     * @param numSynthMarks Number of synth marks to generate
+     * @param absSampleRange Absolute sample range to generate synth marks for
      */
-    void generateSynthMarks(const std::vector<PitchMark>& pitchMarks, float shiftedPeriod, int numSynthMarks);
+    void generateSynthMarks(const std::vector<PitchMark>& pitchMarks, float shiftedPeriod, juce::Range<juce::int64> absSampleRange);
 
     /**
      * Get the generated synth marks.
@@ -77,6 +78,10 @@ public:
 
 private:
     std::vector<SynthMark> mSynthMarks;
+
+    // Predicted position for the next synth mark (for incremental generation)
+    // If not set (-1), will sync with first pitch mark on next generation
+    juce::int64 mPredictedNextSynthMark = -1;
 
     /**
      * Find the pitch mark that should be used for a given synth mark position.
