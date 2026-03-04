@@ -3,9 +3,12 @@
 RD_PluginEditor::RD_PluginEditor (RD_PluginProcessor& p)
     : juce::AudioProcessorEditor (&p), processorRef (p)
 {
-    if (auto* gain = processorRef.getGainProcessor())
+    auto* gain    = processorRef.getGainProcessor();
+    auto* tdpsola = processorRef.getTDPSOLAProcessor();
+
+    if (gain != nullptr && tdpsola != nullptr)
     {
-        mControlsView = std::make_unique<ProcessorControlsView> (*gain);
+        mControlsView = std::make_unique<ProcessorControlsView> (*gain, *tdpsola);
         addAndMakeVisible (*mControlsView);
     }
 

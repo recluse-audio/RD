@@ -1,6 +1,7 @@
 #pragma once
 #include "Util/Juce_Header.h"
 #include "GAIN/GainProcessor.h"
+#include "TDPSOLA/TDPSOLA_Processor.h"
 
 class RD_PluginProcessor : public juce::AudioProcessor
 {
@@ -17,13 +18,11 @@ public:
     juce::AudioProcessorEditor* createEditor() override;
     bool hasEditor() const override;
 
-    GainProcessor* getGainProcessor()
-    {
-        if (mGainNode != nullptr)
-            return dynamic_cast<GainProcessor*> (mGainNode->getProcessor());
-        return nullptr;
-    }
+    //==============================================================================
+    GainProcessor*     getGainProcessor();
+    TDPSOLA_Processor* getTDPSOLAProcessor();
 
+    //==============================================================================
     const juce::String getName() const override             { return "RD"; }
     bool acceptsMidi() const override                       { return false; }
     bool producesMidi() const override                      { return false; }
@@ -39,9 +38,10 @@ public:
 private:
     juce::AudioProcessorGraph mGraph;
 
-    juce::AudioProcessorGraph::Node::Ptr mAudioInputNode;
-    juce::AudioProcessorGraph::Node::Ptr mAudioOutputNode;
-    juce::AudioProcessorGraph::Node::Ptr mGainNode;
+    juce::AudioProcessorGraph::NodeID mAudioInputNodeID;
+    juce::AudioProcessorGraph::NodeID mAudioOutputNodeID;
+    juce::AudioProcessorGraph::NodeID mGainNodeID;
+    juce::AudioProcessorGraph::NodeID mTDPSOLANodeID;
 
     void _buildGraph();
 
