@@ -1,0 +1,33 @@
+set(TEST_SOURCES
+    TESTS/TEST_UTILS/BufferGenerator.h
+    TESTS/TEST_UTILS/TestUtils.cpp
+    TESTS/TEST_UTILS/TestUtils.h
+    TESTS/test_AudioFileHelpers.cpp
+    TESTS/test_AudioFileProcessor.cpp
+    TESTS/test_BlockAccumulator.cpp
+    TESTS/test_BufferFiller.cpp
+    TESTS/test_BufferHelper.cpp
+    TESTS/test_BufferMath.cpp
+    TESTS/test_BufferRange.cpp
+    TESTS/test_BufferWriter.cpp
+    TESTS/test_CircularBuffer.cpp
+    TESTS/test_GainProcessor.cpp
+    TESTS/test_Granulator.cpp
+    TESTS/test_GranulatorProcessor.cpp
+    TESTS/test_PitchDetection_Arpeggios.cpp
+    TESTS/test_PitchDetection_Somewhere.cpp
+    TESTS/test_PitchDetector.cpp
+    TESTS/test_PitchManager.cpp
+    TESTS/test_PitchMarker.cpp
+    TESTS/test_RelativeFilePath.cpp
+    TESTS/test_SynthMark.cpp
+    TESTS/test_SynthMarker.cpp
+    TESTS/test_TDPSOLA_Female_Scale.cpp
+    TESTS/test_TDPSOLA_Processor.cpp
+    TESTS/test_TD_Grain.cpp
+    TESTS/test_TD_Granulator.cpp
+    TESTS/test_TD_PitchDetector.cpp
+    TESTS/test_Windowing.cpp
+    TESTS/test_main.cpp
+    TESTS/tests_Interpolator.cpp
+)
