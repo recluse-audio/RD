@@ -1,5 +1,6 @@
 #pragma once
 #include "Util/Juce_Header.h"
+#include "GAIN/GainProcessor.h"
 
 class RD_PluginProcessor : public juce::AudioProcessor
 {
@@ -16,6 +17,13 @@ public:
     juce::AudioProcessorEditor* createEditor() override;
     bool hasEditor() const override;
 
+    GainProcessor* getGainProcessor()
+    {
+        if (mGainNode != nullptr)
+            return dynamic_cast<GainProcessor*> (mGainNode->getProcessor());
+        return nullptr;
+    }
+
     const juce::String getName() const override             { return "RD"; }
     bool acceptsMidi() const override                       { return false; }
     bool producesMidi() const override                      { return false; }
@@ -29,5 +37,13 @@ public:
     void setStateInformation (const void* d, int n) override    { juce::ignoreUnused (d, n); }
 
 private:
+    juce::AudioProcessorGraph mGraph;
+
+    juce::AudioProcessorGraph::Node::Ptr mAudioInputNode;
+    juce::AudioProcessorGraph::Node::Ptr mAudioOutputNode;
+    juce::AudioProcessorGraph::Node::Ptr mGainNode;
+
+    void _buildGraph();
+
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (RD_PluginProcessor)
 };

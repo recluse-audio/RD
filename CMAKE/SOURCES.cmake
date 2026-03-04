@@ -9,6 +9,8 @@ set(SOURCES
     SOURCE/BufferWriter.h
     SOURCE/CircularBuffer.cpp
     SOURCE/CircularBuffer.h
+    SOURCE/EDITORS/ProcessorControlsView.cpp
+    SOURCE/EDITORS/ProcessorControlsView.h
     SOURCE/EDITORS/RD_PluginEditor.cpp
     SOURCE/EDITORS/RD_PluginEditor.h
     SOURCE/EDITORS/TDPSOLA_Editor.cpp

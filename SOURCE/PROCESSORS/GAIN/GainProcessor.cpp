@@ -4,10 +4,14 @@ GainProcessor::GainProcessor()
 : AudioProcessor (_getBusesProperties())
 , apvts(*this, nullptr, "Parameters", _createParameterLayout())
 {
-
+    apvts.addParameterListener ("gain", this);
+    mGainValue.set (*apvts.getRawParameterValue ("gain"));
 }
 
-GainProcessor::~GainProcessor() {}
+GainProcessor::~GainProcessor()
+{
+    apvts.removeParameterListener ("gain", this);
+}
 
 void GainProcessor::prepareToPlay(double sampleRate, int samplesPerBlock) 
 {
