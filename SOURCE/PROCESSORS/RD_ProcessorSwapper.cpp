@@ -1,5 +1,5 @@
 #include "RD_ProcessorSwapper.h"
-#include "EDITORS/RD_PluginEditor.h"
+#include "EDITORS/RD_ProcessorSwapperEditor.h"
 
 RD_ProcessorSwapper::RD_ProcessorSwapper()
     : AudioProcessor (BusesProperties()
@@ -57,7 +57,7 @@ juce::AudioProcessor* RD_ProcessorSwapper::getProcessorByIndex (ProcessorIndex i
 
 juce::AudioProcessor* RD_ProcessorSwapper::getActiveProcessor()
 {
-    return getProcessorByIndex (mActiveProcessor);
+    return getProcessorByIndex (mActiveProcessorIndex);
 }
 
 //==============================================================================
@@ -92,6 +92,26 @@ void RD_ProcessorSwapper::processBlock (juce::AudioBuffer<float>& buffer, juce::
 {
     juce::ScopedNoDenormals noDenormals;
     mGraph.processBlock (buffer, midiMessages);
+
+    if (mGraphUpdateNeeded)
+    {
+        mGraphUpdateNeeded = false;
+        mFade.triggerFadeOut();
+    }
+
+    if (mFade.getCurrentState() == Fade::FadeState::kFadingIn ||
+        mFade.getCurrentState() == Fade::FadeState::kFadingOut)
+    {
+        const float fadeValue = static_cast<float> (mFade.getCurrentFadeValue());
+        for (int ch = 0; ch < buffer.getNumChannels(); ++ch)
+            buffer.applyGain (ch, 0, buffer.getNumSamples(), fadeValue);
+        mFade.incrementFadeValue (buffer.getNumSamples());
+    }
+
+    if (mFade.getCurrentState() == Fade::FadeState::kFullFade)
+    {
+        _applyProcessorSwap();
+    }
 }
 
 //==============================================================================
@@ -99,10 +119,40 @@ bool RD_ProcessorSwapper::hasEditor() const { return true; }
 
 juce::AudioProcessorEditor* RD_ProcessorSwapper::createEditor()
 {
-    return new RD_PluginEditor (*this);
+    return new RD_ProcessorSwapperEditor (*this);
 }
 
 juce::AudioProcessor* JUCE_CALLTYPE createPluginFilter()
 {
     return new RD_ProcessorSwapper();
+}
+
+//==============================================================================
+void RD_ProcessorSwapper::setActiveProcessor (ProcessorIndex index)
+{
+    if (index != mActiveProcessorIndex)
+    {
+        mActiveProcessorIndex = index;
+        mGraphUpdateNeeded = true;
+    }
+}
+
+void RD_ProcessorSwapper::_applyProcessorSwap()
+{
+    for (int ch = 0; ch < 2; ++ch)
+    {
+        mGraph.removeConnection ({{ mAudioInputNodeID,  ch }, { mGainNodeID,        ch }});
+        mGraph.removeConnection ({{ mGainNodeID,        ch }, { mTDPSOLANodeID,     ch }});
+        mGraph.removeConnection ({{ mTDPSOLANodeID,     ch }, { mAudioOutputNodeID, ch }});
+    }
+
+    auto activeNodeID = (mActiveProcessorIndex == ProcessorIndex::kGain) ? mGainNodeID : mTDPSOLANodeID;
+
+    for (int ch = 0; ch < 2; ++ch)
+    {
+        mGraph.addConnection ({{ mAudioInputNodeID, ch }, { activeNodeID,        ch }});
+        mGraph.addConnection ({{ activeNodeID,      ch }, { mAudioOutputNodeID,  ch }});
+    }
+
+    mFade.triggerFadeIn();
 }

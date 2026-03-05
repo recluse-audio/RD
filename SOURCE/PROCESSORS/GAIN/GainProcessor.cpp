@@ -1,4 +1,5 @@
 #include "GainProcessor.h"
+#include "EDITORS/GainEditor.h"
 
 GainProcessor::GainProcessor()
 : AudioProcessor (_getBusesProperties())
@@ -50,6 +51,11 @@ void GainProcessor::parameterChanged(const juce::String& parameterID, float newV
 
 //===================
 //
+juce::AudioProcessorEditor* GainProcessor::createEditor()
+{
+    return new GainEditor (*this);
+}
+
 juce::AudioProcessorValueTreeState& GainProcessor::getAPVTS()
 {
     return apvts;

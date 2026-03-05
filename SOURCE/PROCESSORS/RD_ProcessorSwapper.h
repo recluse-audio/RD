@@ -2,6 +2,7 @@
 #include "Util/Juce_Header.h"
 #include "GAIN/GainProcessor.h"
 #include "TDPSOLA/TDPSOLA_Processor.h"
+#include "FX/Fade.h"
 
 class RD_ProcessorSwapper : public juce::AudioProcessor
 {
@@ -9,7 +10,8 @@ public:
     enum class ProcessorIndex
     {
         kGain    = 0,
-        kTDPSOLA = 1
+        kTDPSOLA = 1,
+        kCount
     };
 
     RD_ProcessorSwapper();
@@ -40,8 +42,11 @@ public:
     //==============================================================================
     juce::AudioProcessor* getActiveProcessor();
     juce::AudioProcessor* getProcessorByIndex (ProcessorIndex index);
-    void setActiveProcessor (ProcessorIndex index) { mActiveProcessor = index; }
-    const ProcessorIndex& getActiveProcessorIndex() const { return mActiveProcessor; }
+    int getNumProcessors() const { return static_cast<int> (ProcessorIndex::kCount); }
+    void setActiveProcessor (ProcessorIndex index);
+    const ProcessorIndex& getActiveProcessorIndex() const { return mActiveProcessorIndex; }
+    Fade::FadeState getFadeState() const { return mFade.getCurrentState(); }
+
 
 private:
     juce::AudioProcessorGraph mGraph;
@@ -51,9 +56,12 @@ private:
     juce::AudioProcessorGraph::NodeID mGainNodeID;
     juce::AudioProcessorGraph::NodeID mTDPSOLANodeID;
 
-    ProcessorIndex mActiveProcessor { ProcessorIndex::kGain };
+    ProcessorIndex mActiveProcessorIndex { ProcessorIndex::kGain };
 
+    Fade mFade;
+    bool mGraphUpdateNeeded = false;
     void _buildGraph();
+    void _applyProcessorSwap();
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (RD_ProcessorSwapper)
 };

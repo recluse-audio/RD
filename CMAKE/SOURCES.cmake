@@ -7,14 +7,16 @@ set(SOURCES
     SOURCE/BufferMath.h
     SOURCE/BufferRange.h
     SOURCE/BufferWriter.h
-    SOURCE/COMPONENTS/ActiveProcessorView.cpp
-    SOURCE/COMPONENTS/ActiveProcessorView.h
     SOURCE/CircularBuffer.cpp
     SOURCE/CircularBuffer.h
-    SOURCE/EDITORS/RD_PluginEditor.cpp
-    SOURCE/EDITORS/RD_PluginEditor.h
+    SOURCE/EDITORS/GainEditor.cpp
+    SOURCE/EDITORS/GainEditor.h
+    SOURCE/EDITORS/RD_ProcessorSwapperEditor.cpp
+    SOURCE/EDITORS/RD_ProcessorSwapperEditor.h
     SOURCE/EDITORS/TDPSOLA_Editor.cpp
     SOURCE/EDITORS/TDPSOLA_Editor.h
+    SOURCE/FX/Fade.cpp
+    SOURCE/FX/Fade.h
     SOURCE/Interpolator.h
     SOURCE/MarkWriter.cpp
     SOURCE/MarkWriter.h
