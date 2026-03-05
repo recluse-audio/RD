@@ -160,7 +160,7 @@ TEST_CASE("TDPSOLA_Processor - Female_Scale.wav with pitch/synth mark export", "
 
         juce::String outputDirName = juce::String("TDPSOLA_PROCESSOR_Female_Scale_") + juce::String(shiftRatio, 1) + "_" + timestamp;
         juce::File outputDir = juce::File::getCurrentWorkingDirectory()
-                                .getChildFile("SUBMODULES/RD/TESTS/OUTPUT")
+                                .getChildFile("TESTS/OUTPUT")
                                 .getChildFile(outputDirName);
 
         REQUIRE(outputDir.createDirectory());
@@ -291,7 +291,7 @@ TEST_CASE("TDPSOLA_Processor - Female_Scale.wav with pitch/synth mark export", "
 
         juce::String outputDirName = juce::String("TDPSOLA_PROCESSOR_Female_Scale_") + juce::String(shiftRatio, 1) + "_" + timestamp;
         juce::File outputDir = juce::File::getCurrentWorkingDirectory()
-                                .getChildFile("SUBMODULES/RD/TESTS/OUTPUT")
+                                .getChildFile("TESTS/OUTPUT")
                                 .getChildFile(outputDirName);
 
         REQUIRE(outputDir.createDirectory());

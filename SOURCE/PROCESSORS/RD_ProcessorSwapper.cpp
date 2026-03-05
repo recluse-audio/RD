@@ -1,7 +1,7 @@
-#include "RD_PluginProcessor.h"
+#include "RD_ProcessorSwapper.h"
 #include "EDITORS/RD_PluginEditor.h"
 
-RD_PluginProcessor::RD_PluginProcessor()
+RD_ProcessorSwapper::RD_ProcessorSwapper()
     : AudioProcessor (BusesProperties()
         .withInput  ("Input",  juce::AudioChannelSet::stereo(), true)
         .withOutput ("Output", juce::AudioChannelSet::stereo(), true))
@@ -9,10 +9,10 @@ RD_PluginProcessor::RD_PluginProcessor()
     _buildGraph();
 }
 
-RD_PluginProcessor::~RD_PluginProcessor() {}
+RD_ProcessorSwapper::~RD_ProcessorSwapper() {}
 
 //==============================================================================
-void RD_PluginProcessor::_buildGraph()
+void RD_ProcessorSwapper::_buildGraph()
 {
     mGraph.clear();
 
@@ -38,24 +38,30 @@ void RD_PluginProcessor::_buildGraph()
 }
 
 //==============================================================================
-GainProcessor* RD_PluginProcessor::getGainProcessor()
+juce::AudioProcessor* RD_ProcessorSwapper::getProcessorByIndex (ProcessorIndex index)
 {
-    for (auto* node : mGraph.getNodes())
-        if (auto* p = dynamic_cast<GainProcessor*> (node->getProcessor()))
-            return p;
+    if (index == ProcessorIndex::kGain)
+    {
+        for (auto* node : mGraph.getNodes())
+            if (auto* p = dynamic_cast<GainProcessor*> (node->getProcessor()))
+                return p;
+    }
+    else if (index == ProcessorIndex::kTDPSOLA)
+    {
+        for (auto* node : mGraph.getNodes())
+            if (auto* p = dynamic_cast<TDPSOLA_Processor*> (node->getProcessor()))
+                return p;
+    }
     return nullptr;
 }
 
-TDPSOLA_Processor* RD_PluginProcessor::getTDPSOLAProcessor()
+juce::AudioProcessor* RD_ProcessorSwapper::getActiveProcessor()
 {
-    for (auto* node : mGraph.getNodes())
-        if (auto* p = dynamic_cast<TDPSOLA_Processor*> (node->getProcessor()))
-            return p;
-    return nullptr;
+    return getProcessorByIndex (mActiveProcessor);
 }
 
 //==============================================================================
-void RD_PluginProcessor::prepareToPlay (double sampleRate, int samplesPerBlock)
+void RD_ProcessorSwapper::prepareToPlay (double sampleRate, int samplesPerBlock)
 {
     mGraph.enableAllBuses();
 
@@ -68,12 +74,12 @@ void RD_PluginProcessor::prepareToPlay (double sampleRate, int samplesPerBlock)
     mGraph.prepareToPlay (sampleRate, samplesPerBlock);
 }
 
-void RD_PluginProcessor::releaseResources()
+void RD_ProcessorSwapper::releaseResources()
 {
     mGraph.releaseResources();
 }
 
-bool RD_PluginProcessor::isBusesLayoutSupported (const BusesLayout& layouts) const
+bool RD_ProcessorSwapper::isBusesLayoutSupported (const BusesLayout& layouts) const
 {
     if (layouts.getMainOutputChannelSet() != juce::AudioChannelSet::mono()
      && layouts.getMainOutputChannelSet() != juce::AudioChannelSet::stereo())
@@ -82,21 +88,21 @@ bool RD_PluginProcessor::isBusesLayoutSupported (const BusesLayout& layouts) con
     return true;
 }
 
-void RD_PluginProcessor::processBlock (juce::AudioBuffer<float>& buffer, juce::MidiBuffer& midiMessages)
+void RD_ProcessorSwapper::processBlock (juce::AudioBuffer<float>& buffer, juce::MidiBuffer& midiMessages)
 {
     juce::ScopedNoDenormals noDenormals;
     mGraph.processBlock (buffer, midiMessages);
 }
 
 //==============================================================================
-bool RD_PluginProcessor::hasEditor() const { return true; }
+bool RD_ProcessorSwapper::hasEditor() const { return true; }
 
-juce::AudioProcessorEditor* RD_PluginProcessor::createEditor()
+juce::AudioProcessorEditor* RD_ProcessorSwapper::createEditor()
 {
     return new RD_PluginEditor (*this);
 }
 
 juce::AudioProcessor* JUCE_CALLTYPE createPluginFilter()
 {
-    return new RD_PluginProcessor();
+    return new RD_ProcessorSwapper();
 }

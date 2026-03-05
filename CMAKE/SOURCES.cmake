@@ -7,10 +7,10 @@ set(SOURCES
     SOURCE/BufferMath.h
     SOURCE/BufferRange.h
     SOURCE/BufferWriter.h
+    SOURCE/COMPONENTS/ActiveProcessorView.cpp
+    SOURCE/COMPONENTS/ActiveProcessorView.h
     SOURCE/CircularBuffer.cpp
     SOURCE/CircularBuffer.h
-    SOURCE/EDITORS/ProcessorControlsView.cpp
-    SOURCE/EDITORS/ProcessorControlsView.h
     SOURCE/EDITORS/RD_PluginEditor.cpp
     SOURCE/EDITORS/RD_PluginEditor.h
     SOURCE/EDITORS/TDPSOLA_Editor.cpp
@@ -41,10 +41,8 @@ set(SOURCES
     SOURCE/PROCESSORS/GRAIN/GranulatorProcessor.h
     SOURCE/PROCESSORS/GRAIN/PitchMarkBuffer.h
     SOURCE/PROCESSORS/GRAIN/PitchMarkHistory.h
-    SOURCE/PROCESSORS/RD_PluginProcessor.cpp
-    SOURCE/PROCESSORS/RD_PluginProcessor.h
-    SOURCE/PROCESSORS/TDPSOLA/TDPSOLA_Editor.cpp
-    SOURCE/PROCESSORS/TDPSOLA/TDPSOLA_Editor.h
+    SOURCE/PROCESSORS/RD_ProcessorSwapper.cpp
+    SOURCE/PROCESSORS/RD_ProcessorSwapper.h
     SOURCE/PROCESSORS/TDPSOLA/TDPSOLA_Processor.cpp
     SOURCE/PROCESSORS/TDPSOLA/TDPSOLA_Processor.h
     SOURCE/PROCESSORS/TDPSOLA/TD_Grain.h

@@ -1175,7 +1175,7 @@ TEST_CASE("GranulatorProcessor - Female_Scale.wav with grain export", "[Granulat
 
     juce::String outputDirName = "GRANULATOR_Female_Scale_1.5_" + timestamp;
     juce::File outputDir = juce::File::getCurrentWorkingDirectory()
-                            .getChildFile("SUBMODULES/RD/TESTS/OUTPUT")
+                            .getChildFile("TESTS/OUTPUT")
                             .getChildFile(outputDirName);
 
     REQUIRE(outputDir.createDirectory());

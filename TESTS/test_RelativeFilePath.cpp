@@ -7,7 +7,7 @@
 
 TEST_CASE("Can get file relative to project root directory.")
 {
-    juce::String relativePath("/SUBMODULES/RD/TESTS/GOLDEN/gold_incremental.json");
+    juce::String relativePath("/TESTS/GOLDEN/gold_incremental.json");
     auto file = RelativeFilePath::getFileFromProjectRoot(relativePath);
 
     juce::AudioBuffer<float> buffer(1, 128);

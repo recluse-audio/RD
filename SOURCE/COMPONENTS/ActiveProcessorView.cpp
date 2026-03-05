@@ -1,6 +1,6 @@
-#include "ProcessorControlsView.h"
+#include "ActiveProcessorView.h"
 
-ProcessorControlsView::ProcessorControlsView (GainProcessor& gainProcessor,
+ActiveProcessorView::ActiveProcessorView (GainProcessor& gainProcessor,
                                               TDPSOLA_Processor& tdpsolaProcessor)
     : mGainAttachment       (gainProcessor.getAPVTS(),    "gain",        mGainSlider)
     , mShiftRatioAttachment (tdpsolaProcessor.getAPVTS(), "shift_ratio", mShiftRatioSlider)
@@ -20,14 +20,14 @@ ProcessorControlsView::ProcessorControlsView (GainProcessor& gainProcessor,
     addAndMakeVisible (mShiftRatioLabel);
 }
 
-ProcessorControlsView::~ProcessorControlsView() {}
+ActiveProcessorView::~ActiveProcessorView() {}
 
-void ProcessorControlsView::paint (juce::Graphics& g)
+void ActiveProcessorView::paint (juce::Graphics& g)
 {
     g.fillAll (juce::Colours::darkgrey.darker());
 }
 
-void ProcessorControlsView::resized()
+void ActiveProcessorView::resized()
 {
     auto area = getLocalBounds().reduced (8);
     const int labelWidth = 50;

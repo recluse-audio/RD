@@ -52,6 +52,10 @@ void validateSynthMarksAgainstGolden(const std::vector<SynthMark>& synthMarks, f
         // Check if this is a synth marks section header
         if (line.find("# SYNTH MARKS") != std::string::npos)
         {
+            // If we already found our section, a new section header means we're done
+            if (foundShiftRatio)
+                break;
+
             // Check if this section matches our shift ratio
             if (line.find("Shift Ratio " + targetRatio) != std::string::npos ||
                 line.find("Shift Ratio: " + targetRatio) != std::string::npos)
@@ -95,7 +99,9 @@ void validateSynthMarksAgainstGolden(const std::vector<SynthMark>& synthMarks, f
 
                 const auto& mark = synthMarks[index];
 
+                INFO("Shift ratio: " << shiftRatio);
                 INFO("Synth mark index: " << index);
+                INFO("Actual synthMark: " << mark.synthMark << "  Expected: " << expectedPosition);
                 REQUIRE(mark.synthMark == expectedPosition);
                 REQUIRE(mark.synthRangeStart == expectedRangeStart);
                 REQUIRE(mark.synthRangeEnd == expectedRangeEnd);

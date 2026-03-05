@@ -1,14 +1,14 @@
 #include "RD_PluginEditor.h"
 
-RD_PluginEditor::RD_PluginEditor (RD_PluginProcessor& p)
+RD_PluginEditor::RD_PluginEditor (RD_ProcessorSwapper& p)
     : juce::AudioProcessorEditor (&p), processorRef (p)
 {
-    auto* gain    = processorRef.getGainProcessor();
-    auto* tdpsola = processorRef.getTDPSOLAProcessor();
+    auto* gain    = dynamic_cast<GainProcessor*>     (processorRef.getProcessorByIndex (RD_ProcessorSwapper::ProcessorIndex::kGain));
+    auto* tdpsola = dynamic_cast<TDPSOLA_Processor*> (processorRef.getProcessorByIndex (RD_ProcessorSwapper::ProcessorIndex::kTDPSOLA));
 
     if (gain != nullptr && tdpsola != nullptr)
     {
-        mControlsView = std::make_unique<ProcessorControlsView> (*gain, *tdpsola);
+        mControlsView = std::make_unique<ActiveProcessorView> (*gain, *tdpsola);
         addAndMakeVisible (*mControlsView);
     }
 

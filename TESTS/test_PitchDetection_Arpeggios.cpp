@@ -2,10 +2,9 @@
 #include <catch2/matchers/catch_matchers_floating_point.hpp>
 #include <catch2/catch_approx.hpp>
 
-#include "../SUBMODULES/RD/SOURCE/PITCH/PitchDetector.h"
-#include "../SUBMODULES/RD/SOURCE/AudioFileProcessor.h"
-#include "../SUBMODULES/RD/SOURCE/BufferFiller.h"
-#include "../SUBMODULES/RD/SOURCE/BufferHelper.h"
+#include "../SOURCE/PITCH/PitchDetector.h"
+#include "../SOURCE/BufferFiller.h"
+#include "../SOURCE/BufferHelper.h"
 #include "TEST_UTILS/TestUtils.h"
 
 // Note frequencies and their expected periods at 48kHz

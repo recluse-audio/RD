@@ -1,5 +1,5 @@
 #include "TDPSOLA_Processor.h"
-#include "TDPSOLA_Editor.h"
+#include "EDITORS/TDPSOLA_Editor.h"
 
 namespace TDPSOLA
 {

@@ -44,7 +44,7 @@ TEST_CASE("Hanning window generation matches golden CSV values", "[BufferFiller]
     goldenBuffer.clear();
 
     juce::File currentDir = juce::File::getCurrentWorkingDirectory();
-    juce::String relativePath = "/SUBMODULES/RD/TESTS/GOLDEN/GOLDEN_HanningBuffer_1024.csv";
+    juce::String relativePath = "/TESTS/GOLDEN/GOLDEN_HanningBuffer_1024.csv";
     juce::String fullPath = currentDir.getFullPathName() + relativePath;
 
     bool loadSuccess = BufferFiller::loadFromCSV(goldenBuffer, fullPath);
@@ -323,7 +323,7 @@ TEST_CASE("generateSineWithPhase matches golden reference at period 1024", "[Buf
 
     // Load golden reference from CSV
     juce::File currentDir = juce::File::getCurrentWorkingDirectory();
-    juce::String relativePath = "/SUBMODULES/RD/TESTS/GOLDEN/SINE/GOLDEN_SINE_1024.csv";
+    juce::String relativePath = "/TESTS/GOLDEN/SINE/GOLDEN_SINE_1024.csv";
     juce::String fullPath = currentDir.getFullPathName() + relativePath;
 
     juce::AudioBuffer<float> goldenBuffer;
@@ -361,7 +361,7 @@ TEST_CASE("generateSineWithPhase matches golden reference at period 1000", "[Buf
 
     // Load golden reference from CSV
     juce::File currentDir = juce::File::getCurrentWorkingDirectory();
-    juce::String relativePath = "/SUBMODULES/RD/TESTS/GOLDEN/SINE/GOLDEN_SINE_1000.csv";
+    juce::String relativePath = "/TESTS/GOLDEN/SINE/GOLDEN_SINE_1000.csv";
     juce::String fullPath = currentDir.getFullPathName() + relativePath;
 
     juce::AudioBuffer<float> goldenBuffer;
@@ -399,7 +399,7 @@ TEST_CASE("generateSineCycles matches golden reference with period 160 and lengt
 
     // Load golden reference from CSV
     juce::File currentDir = juce::File::getCurrentWorkingDirectory();
-    juce::String relativePath = "/SUBMODULES/RD/TESTS/GOLDEN/SINE/GOLDEN_SINE_PERIOD160_LEN1024.csv";
+    juce::String relativePath = "/TESTS/GOLDEN/SINE/GOLDEN_SINE_PERIOD160_LEN1024.csv";
     juce::String fullPath = currentDir.getFullPathName() + relativePath;
 
     juce::AudioBuffer<float> goldenBuffer;
@@ -439,7 +439,7 @@ TEST_CASE("Can load a json file into a buffer", "[BufferFiller]")
 {
     juce::AudioBuffer<float> buffer;
     juce::File currentDir = juce::File::getCurrentWorkingDirectory(); // this works when called from root dir of repo
-    juce::String relativePath = "/SUBMODULES//RD/TESTS/GOLDEN/gold_incremental.json"; 
+    juce::String relativePath = "/TESTS/GOLDEN/gold_incremental.json"; 
 
     juce::String fullPath = currentDir.getFullPathName() + relativePath;
     // Instantiate the juce::File using the relative path
@@ -498,7 +498,7 @@ TEST_CASE("Can load a csv file into a buffer", "[BufferFiller]")
     juce::AudioBuffer<float> buffer;
     buffer.clear();
     juce::File currentDir = juce::File::getCurrentWorkingDirectory(); // this works when called from root dir of repo
-    juce::String relativePath = "/SUBMODULES//RD/TESTS/GOLDEN/GOLDEN_stereo_incremental_buffer.csv"; 
+    juce::String relativePath = "/TESTS/GOLDEN/GOLDEN_stereo_incremental_buffer.csv"; 
 
     juce::String fullPath = currentDir.getFullPathName() + relativePath;
 

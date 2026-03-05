@@ -3,12 +3,12 @@
 #include "PROCESSORS/GAIN/GainProcessor.h"
 #include "PROCESSORS/TDPSOLA/TDPSOLA_Processor.h"
 
-class ProcessorControlsView : public juce::Component
+class ActiveProcessorView : public juce::Component
 {
 public:
-    ProcessorControlsView (GainProcessor& gainProcessor,
+    ActiveProcessorView (GainProcessor& gainProcessor,
                            TDPSOLA_Processor& tdpsolaProcessor);
-    ~ProcessorControlsView() override;
+    ~ActiveProcessorView() override;
 
     void paint (juce::Graphics& g) override;
     void resized() override;
@@ -23,5 +23,5 @@ private:
     juce::Label  mShiftRatioLabel;
     juce::AudioProcessorValueTreeState::SliderAttachment mShiftRatioAttachment;
 
-    JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (ProcessorControlsView)
+    JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (ActiveProcessorView)
 };

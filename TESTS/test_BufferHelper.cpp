@@ -359,7 +359,7 @@ TEST_CASE("Window with period 128 reads every 8th value from size 1024 buffer")
 	goldenFullHanning.clear();
 
 	juce::File currentDir = juce::File::getCurrentWorkingDirectory();
-	juce::String relativePath = "/SUBMODULES/RD/TESTS/GOLDEN/GOLDEN_HanningBuffer_1024.csv";
+	juce::String relativePath = "/TESTS/GOLDEN/GOLDEN_HanningBuffer_1024.csv";
 	juce::String fullPath = currentDir.getFullPathName() + relativePath;
 
 	bool loadSuccess = BufferFiller::loadFromCSV(goldenFullHanning, fullPath);
