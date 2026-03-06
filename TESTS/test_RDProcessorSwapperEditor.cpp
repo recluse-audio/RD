@@ -9,6 +9,11 @@ struct RD_ProcessorSwapperEditorTests
     {
         editor._onProcessorSelected (comboBoxId);
     }
+
+    static bool isEditorVisible (RD_ProcessorSwapperEditor& editor, int index)
+    {
+        return editor.mChildEditors[index]->isVisible();
+    }
 };
 
 TEST_CASE("RD_ProcessorSwapperEditor _onProcessorSelected updates active processor index", "[RD_ProcessorSwapperEditor]")
@@ -34,5 +39,17 @@ TEST_CASE("RD_ProcessorSwapperEditor _onProcessorSelected updates active process
         RD_ProcessorSwapperEditorTests::onProcessorSelected (editor, gainId);
 
         REQUIRE(swapper.getActiveProcessorIndex() == RD_ProcessorSwapper::ProcessorIndex::kGain);
+    }
+
+    SECTION("Selecting kTDPSOLA makes the TDPSOLA editor visible and Gain editor hidden")
+    {
+        const int id = static_cast<int> (RD_ProcessorSwapper::ProcessorIndex::kTDPSOLA) + 1;
+        RD_ProcessorSwapperEditorTests::onProcessorSelected (editor, id);
+
+        const int gainIndex    = static_cast<int> (RD_ProcessorSwapper::ProcessorIndex::kGain);
+        const int tdpsolaIndex = static_cast<int> (RD_ProcessorSwapper::ProcessorIndex::kTDPSOLA);
+
+        REQUIRE(RD_ProcessorSwapperEditorTests::isEditorVisible (editor, tdpsolaIndex) == true);
+        REQUIRE(RD_ProcessorSwapperEditorTests::isEditorVisible (editor, gainIndex)    == false);
     }
 }

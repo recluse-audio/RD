@@ -55,6 +55,7 @@ void RD_ProcessorSwapperEditor::_onProcessorSelected (int comboBoxId)
 {
     auto index = static_cast<RD_ProcessorSwapper::ProcessorIndex> (comboBoxId - 1);
     processorRef.setActiveProcessor (index);
+    updateActiveEditor();
 }
 
 //==============================================================================
