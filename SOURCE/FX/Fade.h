@@ -18,6 +18,7 @@ public:
     void triggerFadeOut();
     void triggerFadeIn();
     void incrementFadeValue (int numSamples);
+    void setLength (int numSamples);
 
     FadeState getCurrentState() const    { return mState; }
     double    getCurrentFadeValue() const { return mCurrentFadeValue; }

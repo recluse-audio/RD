@@ -5,6 +5,11 @@ Fade::Fade()
 {
 }
 
+void Fade::setLength (int numSamples)
+{
+    mFadeIncrement = 1.0 / numSamples;
+}
+
 void Fade::triggerFadeOut()
 {
     mState = FadeState::kFadingOut;
