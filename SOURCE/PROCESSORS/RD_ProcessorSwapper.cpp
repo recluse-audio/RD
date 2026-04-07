@@ -96,22 +96,22 @@ void RD_ProcessorSwapper::processBlock (juce::AudioBuffer<float>& buffer, juce::
     if (mGraphUpdateNeeded)
     {
         mGraphUpdateNeeded = false;
-        mFade.triggerFadeOut();
-    }
-
-    if (mFade.getCurrentState() == Fade::FadeState::kFadingIn ||
-        mFade.getCurrentState() == Fade::FadeState::kFadingOut)
-    {
-        const float fadeValue = static_cast<float> (mFade.getCurrentFadeValue());
-        for (int ch = 0; ch < buffer.getNumChannels(); ++ch)
-            buffer.applyGain (ch, 0, buffer.getNumSamples(), fadeValue);
-        mFade.incrementFadeValue (buffer.getNumSamples());
-    }
-
-    if (mFade.getCurrentState() == Fade::FadeState::kFullFade)
-    {
         _applyProcessorSwap();
     }
+
+    // if (mFade.getCurrentState() == Fade::FadeState::kFadingIn ||
+    //     mFade.getCurrentState() == Fade::FadeState::kFadingOut)
+    // {
+    //     const float fadeValue = static_cast<float> (mFade.getCurrentFadeValue());
+    //     for (int ch = 0; ch < buffer.getNumChannels(); ++ch)
+    //         buffer.applyGain (ch, 0, buffer.getNumSamples(), fadeValue);
+    //     mFade.incrementFadeValue (buffer.getNumSamples());
+    // }
+
+    // if (mFade.getCurrentState() == Fade::FadeState::kFullFade)
+    // {
+    //     _applyProcessorSwap();
+    // }
 }
 
 //==============================================================================
@@ -154,5 +154,5 @@ void RD_ProcessorSwapper::_applyProcessorSwap()
         mGraph.addConnection ({{ activeNodeID,      ch }, { mAudioOutputNodeID,  ch }});
     }
 
-    mFade.triggerFadeIn();
+    //mFade.triggerFadeIn();
 }

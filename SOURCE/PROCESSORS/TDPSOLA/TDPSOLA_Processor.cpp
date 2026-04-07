@@ -117,8 +117,8 @@ void TDPSOLA_Processor::parameterChanged (const juce::String& parameterID, float
 {
     if (parameterID == TDPSOLA::kShiftRatioID)
         mShiftRatio.set (newValue);
-    else if (parameterID == TDPSOLA::kThresholdID)
-        mPitchManager.getPitchDetector().setThreshold (newValue);
+    // else if (parameterID == TDPSOLA::kThresholdID)
+    //     mPitchManager.getPitchDetector().setThreshold (newValue);
 }
 
 //==============================================================================
