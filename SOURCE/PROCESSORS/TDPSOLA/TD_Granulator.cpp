@@ -43,8 +43,6 @@ void TD_Granulator::prepare(double sampleRate, int numChannels, juce::int64 look
 
 void TD_Granulator::generateGrains(const std::vector<SynthMark>& synthMarks)
 {
-    // Find finished/invalid grains and reuse them for new synth marks
-    // Like a synth voice pool - grains free themselves when finished
     int synthMarkIndex = 0;
 
     for (auto& grain : mGrains)

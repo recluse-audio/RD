@@ -13,7 +13,8 @@ namespace TDPSOLA
 
     constexpr int kMaxGrains = 64;
 
-    static const juce::String kShiftRatioID = "shift_ratio";
+    static const juce::String kShiftRatioID  = "shift_ratio";
+    static const juce::String kThresholdID   = "pitch_threshold";
 }
 
 //==============================================================================
@@ -25,11 +26,13 @@ TDPSOLA_Processor::TDPSOLA_Processor()
     , apvts (*this, nullptr, "Parameters", _createParameterLayout())
 {
     apvts.addParameterListener (TDPSOLA::kShiftRatioID, this);
+    apvts.addParameterListener (TDPSOLA::kThresholdID,  this);
 }
 
 TDPSOLA_Processor::~TDPSOLA_Processor()
 {
     apvts.removeParameterListener (TDPSOLA::kShiftRatioID, this);
+    apvts.removeParameterListener (TDPSOLA::kThresholdID,  this);
 }
 
 //==============================================================================
@@ -70,11 +73,6 @@ void TDPSOLA_Processor::processBlock (juce::AudioBuffer<float>& buffer, juce::Mi
     // 1. Store incoming audio in the circular buffer.
     mCircularBuffer.pushBuffer (buffer);
 
-    // 2. Accumulate sample count. When a full detection window has been seen,
-    //    detect pitch and generate grains over that completed window.
-    //    The detection window ends at blockEnd and starts one window-length earlier.
-    //    While incoming audio is in [blockStart, blockEnd), the window being
-    //    detected is [blockEnd - windowSize, blockEnd) — the just-completed block.
     mDetectionSampleCount += numSamples;
 
     if (mDetectionSampleCount >= PitchManagerConstants::kDefaultDetectionWindowSize)
@@ -92,9 +90,6 @@ void TDPSOLA_Processor::processBlock (juce::AudioBuffer<float>& buffer, juce::Mi
         mDetectionSampleCount -= PitchManagerConstants::kDefaultDetectionWindowSize;
     }
 
-    // 3. Overlap-add active grains into the output buffer.
-    //    Grain write ranges already incorporate the lookahead offset, so query
-    //    using the raw incoming block range — no extra offset needed here.
     buffer.clear();
     mGranulator.process (buffer, blockStart, blockEnd);
 
@@ -122,6 +117,8 @@ void TDPSOLA_Processor::parameterChanged (const juce::String& parameterID, float
 {
     if (parameterID == TDPSOLA::kShiftRatioID)
         mShiftRatio.set (newValue);
+    else if (parameterID == TDPSOLA::kThresholdID)
+        mPitchManager.getPitchDetector().setThreshold (newValue);
 }
 
 //==============================================================================
@@ -134,6 +131,12 @@ juce::AudioProcessorValueTreeState::ParameterLayout TDPSOLA_Processor::_createPa
         "Shift Ratio",
         juce::NormalisableRange<float> (0.5f, 2.0f, 0.01f),
         1.0f));
+
+    params.push_back (std::make_unique<juce::AudioParameterFloat> (
+        TDPSOLA::kThresholdID,
+        "Pitch Threshold",
+        juce::NormalisableRange<float> (0.0f, 1.0f, 0.01f),
+        TD_PitchDetectorConstants::kDefaultThreshold));
 
     return { params.begin(), params.end() };
 }

@@ -12,8 +12,9 @@
 
 namespace TD_PitchDetectorConstants
 {
-    static constexpr float kDefaultMinHz = 80.0f;    // ~E2
-    static constexpr float kDefaultMaxHz = 1000.0f;  // ~B5 (covers full vocal and most instrumental range)
+    static constexpr float kDefaultMinHz       = 80.0f;    // ~E2
+    static constexpr float kDefaultMaxHz       = 1000.0f;  // ~B5 (covers full vocal and most instrumental range)
+    static constexpr float kDefaultThreshold   = 0.1f;     // normalized autocorrelation minimum
 }
 
 /**
@@ -60,6 +61,13 @@ public:
      */
     void setFrequencyRange(float minHz, float maxHz);
 
+    // /**
+    //  * Set the normalized autocorrelation threshold below which no pitch is reported.
+    //  * Range [0, 1]. Values below this return -1 (no pitch detected).
+    //  */
+    // void  setThreshold (float threshold) { mThreshold = threshold; }
+    // float getThreshold()           const { return mThreshold; }
+
     /**
      * Get minimum period in samples (based on maxHz).
      */
@@ -79,8 +87,9 @@ private:
     // State
     double mSampleRate = 44100.0;
     float mCurrentPeriod = -1.0f;
-    float mMinHz = TD_PitchDetectorConstants::kDefaultMinHz;
-    float mMaxHz = TD_PitchDetectorConstants::kDefaultMaxHz;
+    float mMinHz      = TD_PitchDetectorConstants::kDefaultMinHz;
+    float mMaxHz      = TD_PitchDetectorConstants::kDefaultMaxHz;
+    float mThreshold  = TD_PitchDetectorConstants::kDefaultThreshold;
     int mMinPeriod = 0;
     int mMaxPeriod = 0;
 

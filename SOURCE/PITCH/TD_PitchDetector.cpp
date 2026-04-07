@@ -103,6 +103,17 @@ float TD_PitchDetector::process(const juce::AudioBuffer<float>& buffer)
         }
     }
 
+    // Normalize peak by zero-lag autocorrelation (signal energy).
+    // Gives a value in [0, 1]: 1 = perfectly periodic, ~0 = noise.
+    // const float zeroLag = fftData[0];
+    // const float normalizedPeak = (zeroLag > 0.0f) ? (peakValue / zeroLag) : 0.0f;
+
+    // if (normalizedPeak < mThreshold)
+    // {
+    //     mCurrentPeriod = -1.0f;
+    //     return mCurrentPeriod;
+    // }
+
     // Store and return detected period
     mCurrentPeriod = static_cast<float>(peakIndex);
     return mCurrentPeriod;

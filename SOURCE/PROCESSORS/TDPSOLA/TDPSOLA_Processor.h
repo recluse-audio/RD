@@ -8,23 +8,6 @@
  *   - CircularBuffer    : stores all incoming audio; the single source of truth for audio data
  *   - PitchManager      : runs pitch detection and tracks pitch/synth marks in absolute time
  *   - TD_Granulator     : maintains a pool of TD_Grain objects that overlap-add into the output
- *
- * Processing flow per block:
- *   1. CircularBuffer::pushBuffer() stores the incoming audio
- *   2. mDetectionSampleCount accumulates; when it crosses the detection window size,
- *      pitch detection and grain generation fire over the completed window
- *   3. TD_Granulator::process() overlap-adds active grains into the output buffer
- *
- * Delayed-audio model:
- *   Detection and granulation always operate on the completed window read from the
- *   CircularBuffer. While incoming audio fills [N, N+windowSize), the grains generated
- *   from [N-windowSize, N) are being written to the output. The lookahead offset baked
- *   into each grain's write range aligns the output to the correct playback position.
- *
- * Declaration order of members is intentional:
- *   mCircularBuffer must be fully constructed before mGranulator, which holds a reference to it.
- *   apvts must be declared after mCircularBuffer, mPitchManager, and mGranulator so that
- *   _createParameterLayout() can be called safely during initialisation.
  */
 
 #pragma once

@@ -19,10 +19,13 @@ public:
 private:
     TDPSOLA_Processor& mProcessor;
 
-    juce::Slider mShiftRatioSlider { juce::Slider::LinearVertical, juce::Slider::TextBoxBelow };
+    juce::Slider mShiftRatioSlider  { juce::Slider::LinearVertical, juce::Slider::TextBoxBelow };
     juce::Label  mShiftRatioLabel;
-
     juce::AudioProcessorValueTreeState::SliderAttachment mShiftRatioAttachment;
+
+    juce::Slider mThresholdSlider   { juce::Slider::LinearVertical, juce::Slider::TextBoxBelow };
+    juce::Label  mThresholdLabel;
+    juce::AudioProcessorValueTreeState::SliderAttachment mThresholdAttachment;
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (TDPSOLA_Editor)
 };
