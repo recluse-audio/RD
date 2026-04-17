@@ -223,6 +223,13 @@ void CircularBuffer::_incrementReadPosition(int numSamples)
 
 //========================
 //
+void CircularBuffer::clear()
+{
+    mCircularBuffer.clear();
+    mWritePos = 0;
+    mReadPos  = getWrappedIndex (static_cast<juce::int64> (mWritePos) - mDelayInSamples);
+}
+
 void CircularBuffer::setDelay(int newDelayInSamples)
 {
     mDelayInSamples = newDelayInSamples;

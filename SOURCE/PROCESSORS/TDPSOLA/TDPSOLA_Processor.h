@@ -80,7 +80,9 @@ private:
     juce::int64       mAbsoluteSampleCount   = 0;
     int               mDetectionSampleCount  = 0;
     juce::Atomic<float> mShiftRatio          { 1.0f };
+    bool              mWasPlaying            = false;
 
+    bool _didTransportJustStop();
     juce::AudioProcessorValueTreeState::ParameterLayout _createParameterLayout();
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (TDPSOLA_Processor)

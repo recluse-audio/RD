@@ -61,12 +61,12 @@ public:
      */
     void setFrequencyRange(float minHz, float maxHz);
 
-    // /**
-    //  * Set the normalized autocorrelation threshold below which no pitch is reported.
-    //  * Range [0, 1]. Values below this return -1 (no pitch detected).
-    //  */
-    // void  setThreshold (float threshold) { mThreshold = threshold; }
-    // float getThreshold()           const { return mThreshold; }
+    /**
+     * Set the normalized autocorrelation threshold below which no pitch is reported.
+     * Range [0, 1]. Values below this return -1 (no pitch detected).
+     */
+    void  setThreshold (float threshold) { mThreshold = threshold; }
+    float getThreshold()           const { return mThreshold; }
 
     /**
      * Get minimum period in samples (based on maxHz).

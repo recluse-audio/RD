@@ -50,6 +50,7 @@ public:
     // increments read position
     juce::dsp::AudioBlock<float> popAudioBlock(int length);
 
+    void clear();
     void setDelay(int newDelayInSamples);
 
     // Wraps any int64 index (including negative) to valid buffer index

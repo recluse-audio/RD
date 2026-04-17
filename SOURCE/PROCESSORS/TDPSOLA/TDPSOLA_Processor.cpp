@@ -50,6 +50,7 @@ void TDPSOLA_Processor::prepareToPlay (double sampleRate, int samplesPerBlock)
     const auto lookaheadSamples = static_cast<juce::int64> (PitchManagerConstants::kDefaultDetectionWindowSize);
 
     mCircularBuffer.setSize (numChannels, circularBufSize);
+    mCircularBuffer.clear();
     mPitchManager.prepare   (sampleRate, numChannels);
     mGranulator.prepare     (sampleRate, numChannels, lookaheadSamples, TDPSOLA::kMaxGrains);
 }
@@ -64,8 +65,26 @@ void TDPSOLA_Processor::releaseResources()
 }
 
 //==============================================================================
+bool TDPSOLA_Processor::_didTransportJustStop()
+{
+    if (auto* playHead = getPlayHead())
+    {
+        if (auto pos = playHead->getPosition())
+        {
+            const bool isPlaying = pos->getIsPlaying();
+            const bool stopped   = mWasPlaying && ! isPlaying;
+            mWasPlaying = isPlaying;
+            return stopped;
+        }
+    }
+    return false;
+}
+
 void TDPSOLA_Processor::processBlock (juce::AudioBuffer<float>& buffer, juce::MidiBuffer&)
 {
+    if (_didTransportJustStop())
+        mCircularBuffer.clear();
+
     const int         numSamples = buffer.getNumSamples();
     const juce::int64 blockStart = mAbsoluteSampleCount;
     const juce::int64 blockEnd   = blockStart + numSamples;
@@ -117,8 +136,8 @@ void TDPSOLA_Processor::parameterChanged (const juce::String& parameterID, float
 {
     if (parameterID == TDPSOLA::kShiftRatioID)
         mShiftRatio.set (newValue);
-    // else if (parameterID == TDPSOLA::kThresholdID)
-    //     mPitchManager.getPitchDetector().setThreshold (newValue);
+    else if (parameterID == TDPSOLA::kThresholdID)
+        mPitchManager.getPitchDetector().setThreshold (newValue);
 }
 
 //==============================================================================
