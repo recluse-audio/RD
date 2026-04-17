@@ -13,8 +13,6 @@ set(TEST_SOURCES
     TESTS/test_CircularBuffer.cpp
     TESTS/test_Fade.cpp
     TESTS/test_GainProcessor.cpp
-    TESTS/test_Granulator.cpp
-    TESTS/test_GranulatorProcessor.cpp
     TESTS/test_PitchDetection_Arpeggios.cpp
     TESTS/test_PitchDetection_Somewhere.cpp
     TESTS/test_PitchDetector.cpp

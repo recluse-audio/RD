@@ -35,14 +35,6 @@ set(SOURCES
     SOURCE/PITCH/TD_PitchDetector.h
     SOURCE/PROCESSORS/GAIN/GainProcessor.cpp
     SOURCE/PROCESSORS/GAIN/GainProcessor.h
-    SOURCE/PROCESSORS/GRAIN/Grain.cpp
-    SOURCE/PROCESSORS/GRAIN/Grain.h
-    SOURCE/PROCESSORS/GRAIN/Granulator.cpp
-    SOURCE/PROCESSORS/GRAIN/Granulator.h
-    SOURCE/PROCESSORS/GRAIN/GranulatorProcessor.cpp
-    SOURCE/PROCESSORS/GRAIN/GranulatorProcessor.h
-    SOURCE/PROCESSORS/GRAIN/PitchMarkBuffer.h
-    SOURCE/PROCESSORS/GRAIN/PitchMarkHistory.h
     SOURCE/PROCESSORS/RD_ProcessorSwapper.cpp
     SOURCE/PROCESSORS/RD_ProcessorSwapper.h
     SOURCE/PROCESSORS/TDPSOLA/TDPSOLA_Processor.cpp
