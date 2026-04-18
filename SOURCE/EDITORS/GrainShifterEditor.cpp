@@ -1,17 +1,17 @@
 /**
- * TDPSOLA_Editor.cpp
+ * GrainShifterEditor.cpp
  * Created by Ryan Devens
  */
 
-#include "TDPSOLA_Editor.h"
+#include "GrainShifterEditor.h"
 
-TDPSOLA_Editor::TDPSOLA_Editor (TDPSOLA_Processor& processor)
+GrainShifterEditor::GrainShifterEditor (GrainShifterProcessor& processor)
     : AudioProcessorEditor (processor)
     , mProcessor (processor)
-    , mShiftRatioAttachment (processor.getAPVTS(), "shift_ratio",       mShiftRatioSlider)
-    , mThresholdAttachment  (processor.getAPVTS(), "pitch_threshold",   mThresholdSlider)
+    , mShiftRatioAttachment (processor.getAPVTS(), "shift_ratio",     mShiftRatioSlider)
+    , mThresholdAttachment  (processor.getAPVTS(), "pitch_threshold", mThresholdSlider)
 {
-    setName ("TDPSOLA_Editor_Component");
+    setName ("GrainShifterEditor_Component");
 
     mShiftRatioLabel.setText ("Shift Ratio", juce::dontSendNotification);
     mShiftRatioLabel.setJustificationType (juce::Justification::centred);
@@ -26,14 +26,14 @@ TDPSOLA_Editor::TDPSOLA_Editor (TDPSOLA_Processor& processor)
     setSize (240, 280);
 }
 
-TDPSOLA_Editor::~TDPSOLA_Editor() {}
+GrainShifterEditor::~GrainShifterEditor() {}
 
-void TDPSOLA_Editor::paint (juce::Graphics& g)
+void GrainShifterEditor::paint (juce::Graphics& g)
 {
     g.fillAll (getLookAndFeel().findColour (juce::ResizableWindow::backgroundColourId));
 }
 
-void TDPSOLA_Editor::resized()
+void GrainShifterEditor::resized()
 {
     auto area = getLocalBounds().reduced (10);
 

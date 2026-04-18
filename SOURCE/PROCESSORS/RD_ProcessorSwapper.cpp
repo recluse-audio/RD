@@ -26,14 +26,14 @@ void RD_ProcessorSwapper::_buildGraph()
         juce::AudioProcessorGraph::AudioGraphIOProcessor::audioOutputNode))->nodeID;
 
     mGainNodeID    = mGraph.addNode (std::make_unique<GainProcessor>())->nodeID;
-    mTDPSOLANodeID = mGraph.addNode (std::make_unique<TDPSOLA_Processor>())->nodeID;
+    mGrainShifterNodeID = mGraph.addNode (std::make_unique<GrainShifterProcessor>())->nodeID;
 
-    // Series chain: Input → Gain → TDPSOLA → Output
+    // Series chain: Input → Gain → Grain Shifter → Output
     for (int ch = 0; ch < 2; ++ch)
     {
         mGraph.addConnection ({{ mAudioInputNodeID,  ch }, { mGainNodeID,        ch }});
-        mGraph.addConnection ({{ mGainNodeID,        ch }, { mTDPSOLANodeID,     ch }});
-        mGraph.addConnection ({{ mTDPSOLANodeID,     ch }, { mAudioOutputNodeID, ch }});
+        mGraph.addConnection ({{ mGainNodeID,           ch }, { mGrainShifterNodeID, ch }});
+        mGraph.addConnection ({{ mGrainShifterNodeID,   ch }, { mAudioOutputNodeID,  ch }});
     }
 }
 
@@ -46,10 +46,10 @@ juce::AudioProcessor* RD_ProcessorSwapper::getProcessorByIndex (ProcessorIndex i
             if (auto* p = dynamic_cast<GainProcessor*> (node->getProcessor()))
                 return p;
     }
-    else if (index == ProcessorIndex::kTDPSOLA)
+    else if (index == ProcessorIndex::kGrainShifter)
     {
         for (auto* node : mGraph.getNodes())
-            if (auto* p = dynamic_cast<TDPSOLA_Processor*> (node->getProcessor()))
+            if (auto* p = dynamic_cast<GrainShifterProcessor*> (node->getProcessor()))
                 return p;
     }
     return nullptr;
@@ -122,10 +122,12 @@ juce::AudioProcessorEditor* RD_ProcessorSwapper::createEditor()
     return new RD_ProcessorSwapperEditor (*this);
 }
 
+#if BUILD_AS_PLUGIN
 juce::AudioProcessor* JUCE_CALLTYPE createPluginFilter()
 {
     return new RD_ProcessorSwapper();
 }
+#endif
 
 //==============================================================================
 void RD_ProcessorSwapper::setActiveProcessor (ProcessorIndex index)
@@ -142,11 +144,11 @@ void RD_ProcessorSwapper::_applyProcessorSwap()
     for (int ch = 0; ch < 2; ++ch)
     {
         mGraph.removeConnection ({{ mAudioInputNodeID,  ch }, { mGainNodeID,        ch }});
-        mGraph.removeConnection ({{ mGainNodeID,        ch }, { mTDPSOLANodeID,     ch }});
-        mGraph.removeConnection ({{ mTDPSOLANodeID,     ch }, { mAudioOutputNodeID, ch }});
+        mGraph.removeConnection ({{ mGainNodeID,          ch }, { mGrainShifterNodeID, ch }});
+        mGraph.removeConnection ({{ mGrainShifterNodeID,  ch }, { mAudioOutputNodeID,  ch }});
     }
 
-    auto activeNodeID = (mActiveProcessorIndex == ProcessorIndex::kGain) ? mGainNodeID : mTDPSOLANodeID;
+    auto activeNodeID = (mActiveProcessorIndex == ProcessorIndex::kGain) ? mGainNodeID : mGrainShifterNodeID;
 
     for (int ch = 0; ch < 2; ++ch)
     {

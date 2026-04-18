@@ -37,7 +37,7 @@ Source list for tests is managed in `CMAKE/TESTS.cmake` — add new test files t
 ### Signal Flow
 
 ```
-Audio In → CircularBuffer → PitchManager (detect) → TD_Granulator (synthesize) → Audio Out
+Audio In → CircularBuffer → PitchManager (detect) → Granulator (synthesize) → Audio Out
 ```
 
 The `CircularBuffer` is the **single source of truth** for all audio. Everything reads from it using absolute sample indices; it never discards audio until overwritten by new input.
@@ -46,22 +46,23 @@ The `CircularBuffer` is the **single source of truth** for all audio. Everything
 
 `RD_ProcessorSwapper` hosts all processors inside a `juce::AudioProcessorGraph`. Currently supports two processor slots:
 - **GainProcessor** — simple gain adjustment
-- **TDPSOLA_Processor** — pitch shifter (main engine)
+- **GrainShifterProcessor** — TD-PSOLA pitch shifter (main engine)
 
 `Fade` handles crossfading when switching between processors.
 
-### TDPSOLA_Processor Internals
+### GrainShifterProcessor Internals
 
 | Component | Role |
 |-----------|------|
 | `CircularBuffer` | Ring buffer storing all incoming audio |
-| `PitchManager` | Coordinates pitch detection; owns `TD_PitchDetector`, `PitchMarker`, `SynthMarker` |
-| `TD_PitchDetector` | Runs time-domain pitch detection algorithm |
+| `PitchManager` | Coordinates pitch detection; owns `FFT_PitchDetector`, `PitchMarker`, `SynthMarker` |
+| `FFT_PitchDetector` | FFT-based autocorrelation pitch detection (the active detector used for grain shifting) |
+| `YIN_PitchDetector` | YIN/CMND algorithm pitch detector (legacy, available separately) |
 | `PitchMarker` | Tracks detected pitch mark positions in the circular buffer (30-second FIFO) |
 | `SynthMarker` | Tracks synthesis event positions relative to pitch marks |
-| `TD_Granulator` | Pre-allocated pool of `TD_Grain` objects; voice-pool pattern (reuses finished grains) |
-| `TD_Grain` | Single windowed grain; applies Hann window and overlap-adds into output |
-| `Window` | Generates Hann and other window functions |
+| `Granulator` | Pre-allocated pool of `Grain` objects; voice-pool pattern (reuses finished grains) |
+| `Grain` | Single windowed grain using TD-PSOLA technique; applies Hann/Tukey window and overlap-adds into output |
+| `Window` | Generates Hann, Tukey, and other window functions |
 
 ### Real-Time Safety
 
@@ -88,10 +89,10 @@ Two-layer system documented in `INSTRUCTIONS/DEBUG_LOGGING_GUIDE.md` and `INSTRU
 | Source list | `CMAKE/SOURCES.cmake` |
 | Test list | `CMAKE/TESTS.cmake` |
 | Plugin container | `SOURCE/PROCESSORS/RD_ProcessorSwapper.h/cpp` |
-| Pitch shifter | `SOURCE/PROCESSORS/TDPSOLA/TDPSOLA_Processor.h/cpp` |
+| Grain shifter (TD-PSOLA) | `SOURCE/PROCESSORS/GRAIN/GrainShifterProcessor.h/cpp` |
 | Circular buffer | `SOURCE/CircularBuffer.h/cpp` |
 | Pitch detection | `SOURCE/PITCH/` |
-| Granulator | `SOURCE/PROCESSORS/TDPSOLA/TD_Granulator.h/cpp` |
+| Granulator | `SOURCE/PROCESSORS/GRAIN/Granulator.h/cpp` |
 | Debug macros | `SOURCE/Util/DebugLog.h` |
 | JUCE includes | `SOURCE/Util/Juce_Header.h` (include this, not JUCE directly) |
 | Version | `VERSION.txt` (auto-generates `SOURCE/Util/Version.h`) |

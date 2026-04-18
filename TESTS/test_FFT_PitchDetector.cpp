@@ -1,11 +1,11 @@
 /**
- * test_TD_PitchDetector.cpp
- * Tests for TD_PitchDetector class (FFT-based autocorrelation)
+ * test_FFT_PitchDetector.cpp
+ * Tests for FFT_PitchDetector class (FFT-based autocorrelation)
  */
 
 #include <catch2/catch_test_macros.hpp>
 #include <catch2/matchers/catch_matchers_floating_point.hpp>
-#include "../SOURCE/PITCH/TD_PitchDetector.h"
+#include "../SOURCE/PITCH/FFT_PitchDetector.h"
 #include "../SOURCE/BufferFiller.h"
 #include <cmath>
 
@@ -18,9 +18,9 @@ static float getExpectedPeriod(float frequency, double sampleRate)
 }
 
 //=======================================
-TEST_CASE("TD_PitchDetector - Basic Construction", "[TD_PitchDetector]")
+TEST_CASE("FFT_PitchDetector - Basic Construction", "[FFT_PitchDetector]")
 {
-    TD_PitchDetector detector;
+    FFT_PitchDetector detector;
 
     SECTION("Initial state")
     {
@@ -49,12 +49,12 @@ TEST_CASE("TD_PitchDetector - Basic Construction", "[TD_PitchDetector]")
 }
 
 //=======================================
-TEST_CASE("TD_PitchDetector - Sine Wave Detection", "[TD_PitchDetector]")
+TEST_CASE("FFT_PitchDetector - Sine Wave Detection", "[FFT_PitchDetector]")
 {
     const double sampleRate = 44100.0;
     const int bufferSize = 2048;
 
-    TD_PitchDetector detector;
+    FFT_PitchDetector detector;
     detector.prepare(sampleRate);
 
     SECTION("Detect 440 Hz (A4)")
@@ -71,7 +71,6 @@ TEST_CASE("TD_PitchDetector - Sine Wave Detection", "[TD_PitchDetector]")
         REQUIRE(detectedPeriod > 0.0f);
         REQUIRE(detector.getCurrentPeriod() == detectedPeriod);
 
-        // Allow 5% error tolerance for FFT-based detection
         float error = std::abs(detectedPeriod - expectedPeriod);
         REQUIRE(error < expectedPeriod * 0.05f);
     }
@@ -112,12 +111,12 @@ TEST_CASE("TD_PitchDetector - Sine Wave Detection", "[TD_PitchDetector]")
 }
 
 //=======================================
-TEST_CASE("TD_PitchDetector - Multiple Detections", "[TD_PitchDetector]")
+TEST_CASE("FFT_PitchDetector - Multiple Detections", "[FFT_PitchDetector]")
 {
     const double sampleRate = 44100.0;
     const int bufferSize = 2048;
 
-    TD_PitchDetector detector;
+    FFT_PitchDetector detector;
     detector.prepare(sampleRate);
 
     SECTION("Consecutive detections on same frequency")
@@ -134,7 +133,6 @@ TEST_CASE("TD_PitchDetector - Multiple Detections", "[TD_PitchDetector]")
         REQUIRE(period1 > 0.0f);
         REQUIRE(period2 > 0.0f);
 
-        // Both detections should be similar
         float diff = std::abs(period1 - period2);
         REQUIRE(diff < expectedPeriod * 0.05f);
     }
@@ -143,12 +141,10 @@ TEST_CASE("TD_PitchDetector - Multiple Detections", "[TD_PitchDetector]")
     {
         juce::AudioBuffer<float> testBuffer(1, bufferSize);
 
-        // First frequency
         float period220 = getExpectedPeriod(220.0f, sampleRate);
         BufferFiller::generateSineCycles(testBuffer, static_cast<int>(period220));
         float period1 = detector.process(testBuffer);
 
-        // Second frequency
         float period440 = getExpectedPeriod(440.0f, sampleRate);
         BufferFiller::generateSineCycles(testBuffer, static_cast<int>(period440));
         float period2 = detector.process(testBuffer);
@@ -156,21 +152,20 @@ TEST_CASE("TD_PitchDetector - Multiple Detections", "[TD_PitchDetector]")
         REQUIRE(period1 > 0.0f);
         REQUIRE(period2 > 0.0f);
 
-        // 440 Hz should have roughly half the period of 220 Hz
         REQUIRE(period2 < period1);
         REQUIRE(std::abs(period1 / period2 - 2.0f) < 0.2f);
     }
 }
 
 //=======================================
-TEST_CASE("TD_PitchDetector - Amplitude Independence", "[TD_PitchDetector]")
+TEST_CASE("FFT_PitchDetector - Amplitude Independence", "[FFT_PitchDetector]")
 {
     const double sampleRate = 44100.0;
     const int bufferSize = 2048;
     const float frequency = 440.0f;
     const float expectedPeriod = getExpectedPeriod(frequency, sampleRate);
 
-    TD_PitchDetector detector;
+    FFT_PitchDetector detector;
     detector.prepare(sampleRate);
 
     SECTION("Quiet signal (amplitude 0.1)")
@@ -202,12 +197,12 @@ TEST_CASE("TD_PitchDetector - Amplitude Independence", "[TD_PitchDetector]")
 }
 
 //=======================================
-TEST_CASE("TD_PitchDetector - Buffer Size Handling", "[TD_PitchDetector]")
+TEST_CASE("FFT_PitchDetector - Buffer Size Handling", "[FFT_PitchDetector]")
 {
     const double sampleRate = 44100.0;
     const float frequency = 440.0f;
 
-    TD_PitchDetector detector;
+    FFT_PitchDetector detector;
     detector.prepare(sampleRate);
 
     SECTION("Small buffer (512 samples)")
@@ -242,10 +237,10 @@ TEST_CASE("TD_PitchDetector - Buffer Size Handling", "[TD_PitchDetector]")
 }
 
 //=======================================
-TEST_CASE("TD_PitchDetector - Edge Cases", "[TD_PitchDetector]")
+TEST_CASE("FFT_PitchDetector - Edge Cases", "[FFT_PitchDetector]")
 {
     const double sampleRate = 44100.0;
-    TD_PitchDetector detector;
+    FFT_PitchDetector detector;
     detector.prepare(sampleRate);
 
     SECTION("Silence should not crash")
@@ -253,9 +248,8 @@ TEST_CASE("TD_PitchDetector - Edge Cases", "[TD_PitchDetector]")
         juce::AudioBuffer<float> testBuffer(1, 2048);
         testBuffer.clear();
 
-        // Should not crash, may or may not detect a period
         float detectedPeriod = detector.process(testBuffer);
-        (void)detectedPeriod; // May be -1 or some value
+        (void)detectedPeriod;
     }
 
     SECTION("Noise should not crash")
@@ -268,7 +262,6 @@ TEST_CASE("TD_PitchDetector - Edge Cases", "[TD_PitchDetector]")
             testBuffer.setSample(0, i, random.nextFloat() * 2.0f - 1.0f);
         }
 
-        // Should not crash
         float detectedPeriod = detector.process(testBuffer);
         (void)detectedPeriod;
     }

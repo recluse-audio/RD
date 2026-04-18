@@ -453,7 +453,7 @@ TEST_CASE("PitchManager - Configuration Access", "[PitchManager]")
 
     SECTION("Can access pitch detector for configuration")
     {
-        TD_PitchDetector& detector = manager.getPitchDetector();
+        FFT_PitchDetector& detector = manager.getPitchDetector();
         detector.setFrequencyRange(100.0f, 500.0f);
         REQUIRE(detector.getMinPeriod() > 0);
     }

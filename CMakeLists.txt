@@ -30,24 +30,35 @@ option(JUCE_ENABLE_MODULE_SOURCE_GROUPS "Show all module sources in IDE projects
 # JUCE submodule
 add_subdirectory(SUBMODULES/JUCE)
 
-# Plugin formats
-set(FORMATS VST3 Standalone)
+# Auto-detect top-level vs submodule context
+if(CMAKE_SOURCE_DIR STREQUAL CMAKE_CURRENT_SOURCE_DIR)
+    set(_RD_PLUGIN_DEFAULT ON)
+else()
+    set(_RD_PLUGIN_DEFAULT OFF)
+endif()
+option(BUILD_AS_PLUGIN "Build RD as a VST3/Standalone plugin" ${_RD_PLUGIN_DEFAULT})
 
-# Plugin target
-juce_add_plugin("${PROJECT_NAME}"
-    COMPANY_NAME "Recluse-Audio"
-    BUNDLE_ID com.recluseaudio.rd
-    PLUGIN_MANUFACTURER_CODE Recl
-    PLUGIN_CODE RDrd
-    FORMATS "${FORMATS}"
-    PRODUCT_NAME "${PROJECT_NAME}"
-    COPY_PLUGIN_AFTER_BUILD FALSE
-    VST3_CATEGORIES Fx
-    NEEDS_MIDI_INPUT FALSE
-    NEEDS_MIDI_OUTPUT FALSE
-    IS_MIDI_EFFECT FALSE
-    EDITOR_WANTS_KEYBOARD_FOCUS FALSE
-)
+if(BUILD_AS_PLUGIN)
+    # Plugin target
+    set(FORMATS VST3 Standalone)
+    juce_add_plugin("${PROJECT_NAME}"
+        COMPANY_NAME "Recluse-Audio"
+        BUNDLE_ID com.recluseaudio.rd
+        PLUGIN_MANUFACTURER_CODE Recl
+        PLUGIN_CODE RDrd
+        FORMATS "${FORMATS}"
+        PRODUCT_NAME "${PROJECT_NAME}"
+        COPY_PLUGIN_AFTER_BUILD FALSE
+        VST3_CATEGORIES Fx
+        NEEDS_MIDI_INPUT FALSE
+        NEEDS_MIDI_OUTPUT FALSE
+        IS_MIDI_EFFECT FALSE
+        EDITOR_WANTS_KEYBOARD_FOCUS FALSE
+    )
+else()
+    # Static library target for use as a submodule
+    add_library("${PROJECT_NAME}" STATIC)
+endif()
 
 # Source files
 include(CMAKE/SOURCES.cmake)
@@ -67,6 +78,7 @@ endif()
 
 target_compile_definitions("${PROJECT_NAME}"
     PUBLIC
+        BUILD_AS_PLUGIN=$<BOOL:${BUILD_AS_PLUGIN}>
         JUCE_WEB_BROWSER=0
         JUCE_USE_CURL=0
         JUCE_VST3_CAN_REPLACE_VST2=0

@@ -18,3 +18,9 @@ The would be test plug-in will include `RD` as a submodules.  In addition to thi
 The problem is, if you want to use a different version of the juce repo than the test plug-in, then you risk a loss in test coverage.  And you don't get it automatically.  You'd have to update the test plug-in's juce submodule to whereever, build it, build the tests target, then run the tests again.  
 
 Or, perhaps you can include the TestFiles.cmake from `RD` into your test target.
+
+
+### Building RD.vst3 (and other formats) ###
+This library can be built as a plug-in, by changing the BUILD_AS_PLUGIN compile definition to 1.
+This will unhide the code for returning the plugin factory to the host.
+By default it will not do this and allow your plugin which owns this RD repo as a submodule to return the real plug-in.

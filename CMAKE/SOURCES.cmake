@@ -11,17 +11,17 @@ set(SOURCES
     SOURCE/CircularBuffer.h
     SOURCE/EDITORS/GainEditor.cpp
     SOURCE/EDITORS/GainEditor.h
+    SOURCE/EDITORS/GrainShifterEditor.cpp
+    SOURCE/EDITORS/GrainShifterEditor.h
     SOURCE/EDITORS/RD_ProcessorSwapperEditor.cpp
     SOURCE/EDITORS/RD_ProcessorSwapperEditor.h
-    SOURCE/EDITORS/TDPSOLA_Editor.cpp
-    SOURCE/EDITORS/TDPSOLA_Editor.h
     SOURCE/FX/Fade.cpp
     SOURCE/FX/Fade.h
     SOURCE/Interpolator.h
     SOURCE/MarkWriter.cpp
     SOURCE/MarkWriter.h
-    SOURCE/PITCH/PitchDetector.cpp
-    SOURCE/PITCH/PitchDetector.h
+    SOURCE/PITCH/FFT_PitchDetector.cpp
+    SOURCE/PITCH/FFT_PitchDetector.h
     SOURCE/PITCH/PitchManager.cpp
     SOURCE/PITCH/PitchManager.h
     SOURCE/PITCH/PitchMark.h
@@ -31,17 +31,17 @@ set(SOURCES
     SOURCE/PITCH/SynthMark.h
     SOURCE/PITCH/SynthMarker.cpp
     SOURCE/PITCH/SynthMarker.h
-    SOURCE/PITCH/TD_PitchDetector.cpp
-    SOURCE/PITCH/TD_PitchDetector.h
+    SOURCE/PITCH/YIN_PitchDetector.cpp
+    SOURCE/PITCH/YIN_PitchDetector.h
     SOURCE/PROCESSORS/GAIN/GainProcessor.cpp
     SOURCE/PROCESSORS/GAIN/GainProcessor.h
+    SOURCE/PROCESSORS/GRAIN/Grain.h
+    SOURCE/PROCESSORS/GRAIN/GrainShifterProcessor.cpp
+    SOURCE/PROCESSORS/GRAIN/GrainShifterProcessor.h
+    SOURCE/PROCESSORS/GRAIN/Granulator.cpp
+    SOURCE/PROCESSORS/GRAIN/Granulator.h
     SOURCE/PROCESSORS/RD_ProcessorSwapper.cpp
     SOURCE/PROCESSORS/RD_ProcessorSwapper.h
-    SOURCE/PROCESSORS/TDPSOLA/TDPSOLA_Processor.cpp
-    SOURCE/PROCESSORS/TDPSOLA/TDPSOLA_Processor.h
-    SOURCE/PROCESSORS/TDPSOLA/TD_Grain.h
-    SOURCE/PROCESSORS/TDPSOLA/TD_Granulator.cpp
-    SOURCE/PROCESSORS/TDPSOLA/TD_Granulator.h
     SOURCE/RelativeFilePath.h
     SOURCE/Util/DebugLog.h
     SOURCE/Util/DebugLogger.cpp

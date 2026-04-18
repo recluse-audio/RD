@@ -22,17 +22,17 @@ TEST_CASE("RD_ProcessorSwapperEditor _onProcessorSelected updates active process
     RD_ProcessorSwapper swapper;
     RD_ProcessorSwapperEditor editor (swapper);
 
-    SECTION("Selecting kTDPSOLA updates the active processor index")
+    SECTION("Selecting kGrainShifter updates the active processor index")
     {
-        const int id = static_cast<int> (RD_ProcessorSwapper::ProcessorIndex::kTDPSOLA) + 1;
+        const int id = static_cast<int> (RD_ProcessorSwapper::ProcessorIndex::kGrainShifter) + 1;
         RD_ProcessorSwapperEditorTests::onProcessorSelected (editor, id);
 
-        REQUIRE(swapper.getActiveProcessorIndex() == RD_ProcessorSwapper::ProcessorIndex::kTDPSOLA);
+        REQUIRE(swapper.getActiveProcessorIndex() == RD_ProcessorSwapper::ProcessorIndex::kGrainShifter);
     }
 
-    SECTION("Selecting kGain after kTDPSOLA updates the active processor index")
+    SECTION("Selecting kGain after kGrainShifter updates the active processor index")
     {
-        const int tdpsolaId = static_cast<int> (RD_ProcessorSwapper::ProcessorIndex::kTDPSOLA) + 1;
+        const int tdpsolaId = static_cast<int> (RD_ProcessorSwapper::ProcessorIndex::kGrainShifter) + 1;
         const int gainId    = static_cast<int> (RD_ProcessorSwapper::ProcessorIndex::kGain)    + 1;
 
         RD_ProcessorSwapperEditorTests::onProcessorSelected (editor, tdpsolaId);
@@ -41,15 +41,15 @@ TEST_CASE("RD_ProcessorSwapperEditor _onProcessorSelected updates active process
         REQUIRE(swapper.getActiveProcessorIndex() == RD_ProcessorSwapper::ProcessorIndex::kGain);
     }
 
-    SECTION("Selecting kTDPSOLA makes the TDPSOLA editor visible and Gain editor hidden")
+    SECTION("Selecting kGrainShifter makes the GrainShifter editor visible and Gain editor hidden")
     {
-        const int id = static_cast<int> (RD_ProcessorSwapper::ProcessorIndex::kTDPSOLA) + 1;
+        const int id = static_cast<int> (RD_ProcessorSwapper::ProcessorIndex::kGrainShifter) + 1;
         RD_ProcessorSwapperEditorTests::onProcessorSelected (editor, id);
 
         const int gainIndex    = static_cast<int> (RD_ProcessorSwapper::ProcessorIndex::kGain);
-        const int tdpsolaIndex = static_cast<int> (RD_ProcessorSwapper::ProcessorIndex::kTDPSOLA);
+        const int grainShifterIndex = static_cast<int> (RD_ProcessorSwapper::ProcessorIndex::kGrainShifter);
 
-        REQUIRE(RD_ProcessorSwapperEditorTests::isEditorVisible (editor, tdpsolaIndex) == true);
+        REQUIRE(RD_ProcessorSwapperEditorTests::isEditorVisible (editor, grainShifterIndex) == true);
         REQUIRE(RD_ProcessorSwapperEditorTests::isEditorVisible (editor, gainIndex)    == false);
     }
 }

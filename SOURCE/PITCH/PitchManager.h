@@ -3,14 +3,14 @@
  * Created by Ryan Devens
  *
  * Manages pitch detection and pitch mark tracking.
- * Coordinates TD_PitchDetector and PitchMarker, and stores pitch marks in a FIFO buffer.
+ * Coordinates FFT_PitchDetector and PitchMarker, and stores pitch marks in a FIFO buffer.
  */
 
 #pragma once
 #include <vector>
 
 #include "Util/Juce_Header.h"
-#include "TD_PitchDetector.h"
+#include "FFT_PitchDetector.h"
 #include "../CircularBuffer.h"
 #include "PitchMarker.h"
 #include "SynthMarker.h"
@@ -109,7 +109,7 @@ public:
     /**
      * Get access to the pitch detector for configuration.
      */
-    TD_PitchDetector& getPitchDetector() { return mPitchDetector; }
+    FFT_PitchDetector& getPitchDetector() { return mPitchDetector; }
 
     /**
      * Get access to the pitch marker for configuration.
@@ -123,7 +123,7 @@ public:
 
 private:
     // Pitch detection and marking
-    TD_PitchDetector mPitchDetector;
+    FFT_PitchDetector mPitchDetector;
     std::unique_ptr<PitchMarker> mPitchMarker;
     std::unique_ptr<SynthMarker> mSynthMarker;
 

@@ -13,15 +13,15 @@ TEST_CASE("RD_ProcessorSwapper active processor index get and set", "[RD_Process
         REQUIRE(swapper.getActiveProcessorIndex() == RD_ProcessorSwapper::ProcessorIndex::kGain);
     }
 
-    SECTION("Setting active processor to kTDPSOLA is reflected by getter")
+    SECTION("Setting active processor to kGrainShifter is reflected by getter")
     {
-        swapper.setActiveProcessor (RD_ProcessorSwapper::ProcessorIndex::kTDPSOLA);
-        REQUIRE(swapper.getActiveProcessorIndex() == RD_ProcessorSwapper::ProcessorIndex::kTDPSOLA);
+        swapper.setActiveProcessor (RD_ProcessorSwapper::ProcessorIndex::kGrainShifter);
+        REQUIRE(swapper.getActiveProcessorIndex() == RD_ProcessorSwapper::ProcessorIndex::kGrainShifter);
     }
 
     SECTION("Setting active processor back to kGain is reflected by getter")
     {
-        swapper.setActiveProcessor (RD_ProcessorSwapper::ProcessorIndex::kTDPSOLA);
+        swapper.setActiveProcessor (RD_ProcessorSwapper::ProcessorIndex::kGrainShifter);
         swapper.setActiveProcessor (RD_ProcessorSwapper::ProcessorIndex::kGain);
         REQUIRE(swapper.getActiveProcessorIndex() == RD_ProcessorSwapper::ProcessorIndex::kGain);
     }
@@ -32,9 +32,9 @@ TEST_CASE("RD_ProcessorSwapper active processor index get and set", "[RD_Process
         REQUIRE(swapper.getActiveProcessor() != nullptr);
     }
 
-    SECTION("getActiveProcessor returns a non-null pointer for kTDPSOLA")
+    SECTION("getActiveProcessor returns a non-null pointer for kGrainShifter")
     {
-        swapper.setActiveProcessor (RD_ProcessorSwapper::ProcessorIndex::kTDPSOLA);
+        swapper.setActiveProcessor (RD_ProcessorSwapper::ProcessorIndex::kGrainShifter);
         REQUIRE(swapper.getActiveProcessor() != nullptr);
     }
 
@@ -44,10 +44,10 @@ TEST_CASE("RD_ProcessorSwapper active processor index get and set", "[RD_Process
         REQUIRE(dynamic_cast<GainProcessor*> (swapper.getActiveProcessor()) != nullptr);
     }
 
-    SECTION("getActiveProcessor returns the correct concrete type for kTDPSOLA")
+    SECTION("getActiveProcessor returns the correct concrete type for kGrainShifter")
     {
-        swapper.setActiveProcessor (RD_ProcessorSwapper::ProcessorIndex::kTDPSOLA);
-        REQUIRE(dynamic_cast<TDPSOLA_Processor*> (swapper.getActiveProcessor()) != nullptr);
+        swapper.setActiveProcessor (RD_ProcessorSwapper::ProcessorIndex::kGrainShifter);
+        REQUIRE(dynamic_cast<GrainShifterProcessor*> (swapper.getActiveProcessor()) != nullptr);
     }
 }
 
@@ -70,7 +70,7 @@ TEST_CASE("RD_ProcessorSwapper fade and swap", "[RD_ProcessorSwapper]")
 
     SECTION("Fade state transitions to kFadingOut on first processBlock after setActiveProcessor")
     {
-        swapper.setActiveProcessor (RD_ProcessorSwapper::ProcessorIndex::kTDPSOLA);
+        swapper.setActiveProcessor (RD_ProcessorSwapper::ProcessorIndex::kGrainShifter);
 
         BufferFiller::fillWithAllOnes (buffer);
         swapper.processBlock (buffer, midi);
@@ -80,7 +80,7 @@ TEST_CASE("RD_ProcessorSwapper fade and swap", "[RD_ProcessorSwapper]")
 
     SECTION("Processor swap occurs after kFadeLength samples have been processed")
     {
-        swapper.setActiveProcessor (RD_ProcessorSwapper::ProcessorIndex::kTDPSOLA);
+        swapper.setActiveProcessor (RD_ProcessorSwapper::ProcessorIndex::kGrainShifter);
 
         // kFadeLength samples / blockSize samples per call = number of calls to complete fade
         const int numCalls = Fade::kFadeLength / blockSize;

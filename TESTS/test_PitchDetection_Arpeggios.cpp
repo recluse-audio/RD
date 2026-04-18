@@ -2,7 +2,7 @@
 #include <catch2/matchers/catch_matchers_floating_point.hpp>
 #include <catch2/catch_approx.hpp>
 
-#include "../SOURCE/PITCH/PitchDetector.h"
+#include "../SOURCE/PITCH/YIN_PitchDetector.h"
 #include "../SOURCE/BufferFiller.h"
 #include "../SOURCE/BufferHelper.h"
 #include "TEST_UTILS/TestUtils.h"
@@ -66,16 +66,16 @@ TEST_CASE("PitchDetector accurately detects known pitches in arpeggio test file"
     BufferFiller::loadFromWavFile(testFile, fileBuffer);
 
     juce::dsp::AudioBlock<float> oneNoteBlock = BufferHelper::getRangeAsBlock(fileBuffer, 0, 191999);
-    juce::dsp::AudioBlock<float> detectionBlock = oneNoteBlock.getSubBlock(48000, PitchDetectorMagicNumbers::DefaultDetectionSize);
+    juce::dsp::AudioBlock<float> detectionBlock = oneNoteBlock.getSubBlock(48000, YIN_PitchDetectorConstants::DefaultDetectionSize);
 
     // each note is 4 sec, re-use this for each note
-    juce::AudioBuffer<float> detectionBuffer(2, PitchDetectorMagicNumbers::DefaultDetectionSize); detectionBuffer.clear();
+    juce::AudioBuffer<float> detectionBuffer(2, YIN_PitchDetectorConstants::DefaultDetectionSize); detectionBuffer.clear();
 
     BufferHelper::cloneBlockToBuffer(detectionBuffer, detectionBlock);
 
     // Run pitch detection
-    PitchDetector pitchDetector;
-    pitchDetector.prepareToPlay(PitchDetectorMagicNumbers::DefaultDetectionSize);
+    YIN_PitchDetector pitchDetector;
+    pitchDetector.prepareToPlay(YIN_PitchDetectorConstants::DefaultDetectionSize);
     pitchDetector.setThreshold(0.001f);
     float detectedPeriod = pitchDetector.process(detectionBuffer);
 

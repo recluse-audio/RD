@@ -1,7 +1,7 @@
 #pragma once
 #include "Util/Juce_Header.h"
 #include "GAIN/GainProcessor.h"
-#include "TDPSOLA/TDPSOLA_Processor.h"
+#include "GRAIN/GrainShifterProcessor.h"
 #include "FX/Fade.h"
 
 class RD_ProcessorSwapper : public juce::AudioProcessor
@@ -10,7 +10,7 @@ public:
     enum class ProcessorIndex
     {
         kGain    = 0,
-        kTDPSOLA = 1,
+        kGrainShifter = 1,
         kCount
     };
 
@@ -54,7 +54,7 @@ private:
     juce::AudioProcessorGraph::NodeID mAudioInputNodeID;
     juce::AudioProcessorGraph::NodeID mAudioOutputNodeID;
     juce::AudioProcessorGraph::NodeID mGainNodeID;
-    juce::AudioProcessorGraph::NodeID mTDPSOLANodeID;
+    juce::AudioProcessorGraph::NodeID mGrainShifterNodeID;
 
     ProcessorIndex mActiveProcessorIndex { ProcessorIndex::kGain };
 

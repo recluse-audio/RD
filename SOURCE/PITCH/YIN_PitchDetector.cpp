@@ -1,21 +1,21 @@
-#include "PitchDetector.h"
+#include "YIN_PitchDetector.h"
 #include "../BufferMath.h" // YIN stuff is here
 
 //
-PitchDetector::PitchDetector()
+YIN_PitchDetector::YIN_PitchDetector()
 {
-	differenceBuffer.setSize(1, PitchDetectorMagicNumbers::DefaultDetectionSize / 2);
-	cmndBuffer.setSize(1, PitchDetectorMagicNumbers::DefaultDetectionSize / 2);
+	differenceBuffer.setSize(1, YIN_PitchDetectorConstants::DefaultDetectionSize / 2);
+	cmndBuffer.setSize(1, YIN_PitchDetectorConstants::DefaultDetectionSize / 2);
 }
 
 //
-PitchDetector::~PitchDetector()
+YIN_PitchDetector::~YIN_PitchDetector()
 {
 
 }
 
 //
-void PitchDetector::prepareToPlay(int detectionSize)
+void YIN_PitchDetector::prepareToPlay(int detectionSize)
 {
 	mHalfBlock = (detectionSize / 2);
 
@@ -27,7 +27,7 @@ void PitchDetector::prepareToPlay(int detectionSize)
 
 
 //
-float PitchDetector::process(juce::AudioBuffer<float>& buffer)
+float YIN_PitchDetector::process(juce::AudioBuffer<float>& buffer)
 {
 	float periodEstimate = -1.f;
 	differenceBuffer.clear();
@@ -44,22 +44,18 @@ float PitchDetector::process(juce::AudioBuffer<float>& buffer)
 		// Parabolic interpolation to refine period estimate
 		periodEstimate = BufferMath::yin_parabolic_interpolation(cmndBuffer, tauEstimate);
 		mCurrentPeriod.store(periodEstimate);
-		// pitchInHertz = mSampleRate / bestTauEstimate;
 	}
 
 	return periodEstimate;
-
-	// mCurrentPitchHz.store(pitchInHertz);
-	// return pitchInHertz;
 }
 
 //
-const double PitchDetector::getCurrentPitch()
+const double YIN_PitchDetector::getCurrentPitch()
 {
 	return mCurrentPitchHz.load();
 }
 
-const double PitchDetector::getCurrentPeriod()
+const double YIN_PitchDetector::getCurrentPeriod()
 {
 	return mCurrentPeriod.load();
 }

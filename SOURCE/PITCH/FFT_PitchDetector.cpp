@@ -1,33 +1,33 @@
 /**
- * TD_PitchDetector.cpp
+ * FFT_PitchDetector.cpp
  * Created by Ryan Devens
  *
  * FFT-based autocorrelation pitch detection extracted from TD-PSOLA.
  */
 
-#include "TD_PitchDetector.h"
+#include "FFT_PitchDetector.h"
 #include <cmath>
 #include <algorithm>
 
 //=======================================
-TD_PitchDetector::TD_PitchDetector()
+FFT_PitchDetector::FFT_PitchDetector()
 {
 }
 
 //=======================================
-TD_PitchDetector::~TD_PitchDetector()
+FFT_PitchDetector::~FFT_PitchDetector()
 {
 }
 
 //=======================================
-void TD_PitchDetector::prepare(double sampleRate)
+void FFT_PitchDetector::prepare(double sampleRate)
 {
     mSampleRate = sampleRate;
     _updatePeriodBounds();
 }
 
 //=======================================
-void TD_PitchDetector::setFrequencyRange(float minHz, float maxHz)
+void FFT_PitchDetector::setFrequencyRange(float minHz, float maxHz)
 {
     mMinHz = minHz;
     mMaxHz = maxHz;
@@ -35,14 +35,14 @@ void TD_PitchDetector::setFrequencyRange(float minHz, float maxHz)
 }
 
 //=======================================
-void TD_PitchDetector::_updatePeriodBounds()
+void FFT_PitchDetector::_updatePeriodBounds()
 {
     mMinPeriod = static_cast<int>(mSampleRate / mMaxHz);
     mMaxPeriod = static_cast<int>(mSampleRate / mMinHz);
 }
 
 //=======================================
-float TD_PitchDetector::process(const juce::AudioBuffer<float>& buffer)
+float FFT_PitchDetector::process(const juce::AudioBuffer<float>& buffer)
 {
     const int numSamples = buffer.getNumSamples();
     const float* signalData = buffer.getReadPointer(0);
@@ -75,22 +75,20 @@ float TD_PitchDetector::process(const juce::AudioBuffer<float>& buffer)
     fftData[0] = 0.0f;
 
     // Compute power spectrum: fourier * conj(fourier) = |fourier|^2
-    // After real-only forward transform, data is in frequency domain
     for (int i = 0; i < fftSize; i++)
     {
         float real = fftData[i * 2];
         float imag = fftData[i * 2 + 1];
         float powerSpec = real * real + imag * imag;
-        fftData[i * 2] = powerSpec;
+        fftData[i * 2]     = powerSpec;
         fftData[i * 2 + 1] = 0.0f;
     }
 
     // Inverse FFT to get autocorrelation
     mFFT->performRealOnlyInverseTransform(fftData);
 
-    // After inverse transform, autocorrelation is in first half of buffer
     // Find peak in autocorrelation within period range
-    int peakIndex = mMinPeriod;
+    int peakIndex   = mMinPeriod;
     float peakValue = fftData[mMinPeriod];
 
     for (int i = mMinPeriod + 1; i < std::min(mMaxPeriod, fftSize / 2); i++)
@@ -103,18 +101,6 @@ float TD_PitchDetector::process(const juce::AudioBuffer<float>& buffer)
         }
     }
 
-    // Normalize peak by zero-lag autocorrelation (signal energy).
-    // Gives a value in [0, 1]: 1 = perfectly periodic, ~0 = noise.
-    // const float zeroLag = fftData[0];
-    // const float normalizedPeak = (zeroLag > 0.0f) ? (peakValue / zeroLag) : 0.0f;
-
-    // if (normalizedPeak < mThreshold)
-    // {
-    //     mCurrentPeriod = -1.0f;
-    //     return mCurrentPeriod;
-    // }
-
-    // Store and return detected period
     mCurrentPeriod = static_cast<float>(peakIndex);
     return mCurrentPeriod;
 }

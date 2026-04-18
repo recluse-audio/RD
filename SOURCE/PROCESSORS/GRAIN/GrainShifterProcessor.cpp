@@ -1,50 +1,50 @@
-#include "TDPSOLA_Processor.h"
-#include "EDITORS/TDPSOLA_Editor.h"
+#include "GrainShifterProcessor.h"
+#include "EDITORS/GrainShifterEditor.h"
 
-namespace TDPSOLA
+namespace GrainShifter
 {
     // Circular buffer holds this many seconds of audio.
     // Must be larger than the lookahead + longest expected grain period.
     constexpr double kCircularBufferSeconds = 2.0;
 
-    // Lookahead is now calculated directly from the pitch detection window size
+    // Lookahead is calculated directly from the pitch detection window size
     // (PitchManagerConstants::kDefaultDetectionWindowSize = 2048 samples = 2^11)
     // This ensures proper alignment and uses a power-of-two value.
 
     constexpr int kMaxGrains = 64;
 
-    static const juce::String kShiftRatioID  = "shift_ratio";
-    static const juce::String kThresholdID   = "pitch_threshold";
+    static const juce::String kShiftRatioID = "shift_ratio";
+    static const juce::String kThresholdID  = "pitch_threshold";
 }
 
 //==============================================================================
-TDPSOLA_Processor::TDPSOLA_Processor()
+GrainShifterProcessor::GrainShifterProcessor()
     : AudioProcessor (BusesProperties()
                         .withInput  ("Input",  juce::AudioChannelSet::stereo(), true)
                         .withOutput ("Output", juce::AudioChannelSet::stereo(), true))
     , mGranulator (mCircularBuffer)
     , apvts (*this, nullptr, "Parameters", _createParameterLayout())
 {
-    apvts.addParameterListener (TDPSOLA::kShiftRatioID, this);
-    apvts.addParameterListener (TDPSOLA::kThresholdID,  this);
+    apvts.addParameterListener (GrainShifter::kShiftRatioID, this);
+    apvts.addParameterListener (GrainShifter::kThresholdID,  this);
 }
 
-TDPSOLA_Processor::~TDPSOLA_Processor()
+GrainShifterProcessor::~GrainShifterProcessor()
 {
-    apvts.removeParameterListener (TDPSOLA::kShiftRatioID, this);
-    apvts.removeParameterListener (TDPSOLA::kThresholdID,  this);
+    apvts.removeParameterListener (GrainShifter::kShiftRatioID, this);
+    apvts.removeParameterListener (GrainShifter::kThresholdID,  this);
 }
 
 //==============================================================================
-void TDPSOLA_Processor::prepareToPlay (double sampleRate, int samplesPerBlock)
+void GrainShifterProcessor::prepareToPlay (double sampleRate, int samplesPerBlock)
 {
-    mSampleRate            = sampleRate;
-    mBlockSize             = samplesPerBlock;
-    mAbsoluteSampleCount   = 0;
-    mDetectionSampleCount  = 0;
+    mSampleRate           = sampleRate;
+    mBlockSize            = samplesPerBlock;
+    mAbsoluteSampleCount  = 0;
+    mDetectionSampleCount = 0;
 
-    const int  numChannels      = getTotalNumInputChannels();
-    const int  circularBufSize  = static_cast<int> (sampleRate * TDPSOLA::kCircularBufferSeconds);
+    const int  numChannels     = getTotalNumInputChannels();
+    const int  circularBufSize = static_cast<int> (sampleRate * GrainShifter::kCircularBufferSeconds);
 
     // Use the detection window size from PitchManager as lookahead (power of two: 2048 = 2^11)
     const auto lookaheadSamples = static_cast<juce::int64> (PitchManagerConstants::kDefaultDetectionWindowSize);
@@ -52,11 +52,11 @@ void TDPSOLA_Processor::prepareToPlay (double sampleRate, int samplesPerBlock)
     mCircularBuffer.setSize (numChannels, circularBufSize);
     mCircularBuffer.clear();
     mPitchManager.prepare   (sampleRate, numChannels);
-    mGranulator.prepare     (sampleRate, numChannels, lookaheadSamples, TDPSOLA::kMaxGrains);
+    mGranulator.prepare     (sampleRate, numChannels, lookaheadSamples, GrainShifter::kMaxGrains);
 }
 
 //==============================================================================
-void TDPSOLA_Processor::releaseResources()
+void GrainShifterProcessor::releaseResources()
 {
     mPitchManager.reset();
     mGranulator.reset();
@@ -65,7 +65,7 @@ void TDPSOLA_Processor::releaseResources()
 }
 
 //==============================================================================
-bool TDPSOLA_Processor::_didTransportJustStop()
+bool GrainShifterProcessor::_didTransportJustStop()
 {
     if (auto* playHead = getPlayHead())
     {
@@ -80,7 +80,7 @@ bool TDPSOLA_Processor::_didTransportJustStop()
     return false;
 }
 
-void TDPSOLA_Processor::processBlock (juce::AudioBuffer<float>& buffer, juce::MidiBuffer&)
+void GrainShifterProcessor::processBlock (juce::AudioBuffer<float>& buffer, juce::MidiBuffer&)
 {
     if (_didTransportJustStop())
         mCircularBuffer.clear();
@@ -101,7 +101,7 @@ void TDPSOLA_Processor::processBlock (juce::AudioBuffer<float>& buffer, juce::Mi
 
         [[maybe_unused]] float detectedPeriod = mPitchManager.detect (mCircularBuffer, detectionWindowStart, mShiftRatio.get());
 
-        auto synthMarks = mPitchManager.getSynthMarksInRange ( juce::Range<juce::int64> (detectionWindowStart, detectionWindowEnd));
+        auto synthMarks = mPitchManager.getSynthMarksInRange (juce::Range<juce::int64> (detectionWindowStart, detectionWindowEnd));
 
         if (!synthMarks.empty())
             mGranulator.generateGrains (synthMarks);
@@ -116,13 +116,13 @@ void TDPSOLA_Processor::processBlock (juce::AudioBuffer<float>& buffer, juce::Mi
 }
 
 //==============================================================================
-juce::AudioProcessorEditor* TDPSOLA_Processor::createEditor()
+juce::AudioProcessorEditor* GrainShifterProcessor::createEditor()
 {
-    return new TDPSOLA_Editor (*this);
+    return new GrainShifterEditor (*this);
 }
 
 //==============================================================================
-bool TDPSOLA_Processor::isBusesLayoutSupported (const BusesLayout& layouts) const
+bool GrainShifterProcessor::isBusesLayoutSupported (const BusesLayout& layouts) const
 {
     if (layouts.getMainInputChannelSet() != layouts.getMainOutputChannelSet())
         return false;
@@ -132,30 +132,30 @@ bool TDPSOLA_Processor::isBusesLayoutSupported (const BusesLayout& layouts) cons
 }
 
 //==============================================================================
-void TDPSOLA_Processor::parameterChanged (const juce::String& parameterID, float newValue)
+void GrainShifterProcessor::parameterChanged (const juce::String& parameterID, float newValue)
 {
-    if (parameterID == TDPSOLA::kShiftRatioID)
+    if (parameterID == GrainShifter::kShiftRatioID)
         mShiftRatio.set (newValue);
-    else if (parameterID == TDPSOLA::kThresholdID)
+    else if (parameterID == GrainShifter::kThresholdID)
         mPitchManager.getPitchDetector().setThreshold (newValue);
 }
 
 //==============================================================================
-juce::AudioProcessorValueTreeState::ParameterLayout TDPSOLA_Processor::_createParameterLayout()
+juce::AudioProcessorValueTreeState::ParameterLayout GrainShifterProcessor::_createParameterLayout()
 {
     std::vector<std::unique_ptr<juce::RangedAudioParameter>> params;
 
     params.push_back (std::make_unique<juce::AudioParameterFloat> (
-        TDPSOLA::kShiftRatioID,
+        GrainShifter::kShiftRatioID,
         "Shift Ratio",
         juce::NormalisableRange<float> (0.5f, 2.0f, 0.01f),
         1.0f));
 
     params.push_back (std::make_unique<juce::AudioParameterFloat> (
-        TDPSOLA::kThresholdID,
+        GrainShifter::kThresholdID,
         "Pitch Threshold",
         juce::NormalisableRange<float> (0.0f, 1.0f, 0.01f),
-        TD_PitchDetectorConstants::kDefaultThreshold));
+        FFT_PitchDetectorConstants::kDefaultThreshold));
 
     return { params.begin(), params.end() };
 }

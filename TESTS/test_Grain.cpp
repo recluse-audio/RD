@@ -1,28 +1,27 @@
 /**
- * test_TD_Grain.cpp
- * Tests for TD_Grain class
+ * test_Grain.cpp
+ * Tests for Grain class
  */
 
 #include <catch2/catch_test_macros.hpp>
 #include <catch2/matchers/catch_matchers_floating_point.hpp>
-#include "../SOURCE/PROCESSORS/TDPSOLA/TD_Grain.h"
+#include "../SOURCE/PROCESSORS/GRAIN/Grain.h"
 #include "../SOURCE/CircularBuffer.h"
 #include "../SOURCE/Window.h"
 #include "../SOURCE/PITCH/SynthMark.h"
 #include "../SOURCE/BufferFiller.h"
 
-TEST_CASE("TD_Grain - Instantiation", "[TD_Grain]")
+TEST_CASE("Grain - Instantiation", "[Grain]")
 {
     Window window;
     CircularBuffer sourceBuffer;
 
     SECTION("Constructor with SynthMark creates a valid grain")
     {
-        // Pitch mark at 128, period of 128 samples, no shift
         SynthMark mark(128, 0, 255, 128);
         constexpr juce::int64 lookahead = 512;
 
-        TD_Grain grain(mark, window, sourceBuffer, lookahead);
+        Grain grain(mark, window, sourceBuffer, lookahead);
 
         REQUIRE(grain.isValid());
         REQUIRE_FALSE(grain.isFinished());
@@ -31,11 +30,10 @@ TEST_CASE("TD_Grain - Instantiation", "[TD_Grain]")
 
     SECTION("Write range is synth range offset by lookahead")
     {
-        // synthRangeStart = 128 - 128 = 0, synthRangeEnd = 128 + 128 - 1 = 255
         SynthMark mark(128, 0, 255, 128);
         constexpr juce::int64 lookahead = 2048;
 
-        TD_Grain grain(mark, window, sourceBuffer, lookahead);
+        Grain grain(mark, window, sourceBuffer, lookahead);
 
         REQUIRE(grain.getWriteRangeStart() == mark.synthRangeStart + lookahead);
         REQUIRE(grain.getWriteRangeEnd()   == mark.synthRangeEnd   + lookahead);
@@ -47,7 +45,7 @@ TEST_CASE("TD_Grain - Instantiation", "[TD_Grain]")
         SynthMark newMark(512, 256, 767, 512);
         constexpr juce::int64 lookahead = 512;
 
-        TD_Grain grain(firstMark, window, sourceBuffer, lookahead);
+        Grain grain(firstMark, window, sourceBuffer, lookahead);
         grain.setGrain(newMark, lookahead);
 
         REQUIRE(grain.isValid());
@@ -57,7 +55,7 @@ TEST_CASE("TD_Grain - Instantiation", "[TD_Grain]")
     }
 }
 
-TEST_CASE("TD_Grain - getOverlapWithBlock()", "[TD_Grain]")
+TEST_CASE("Grain - getOverlapWithBlock()", "[Grain]")
 {
     Window window;
     CircularBuffer sourceBuffer;
@@ -66,9 +64,7 @@ TEST_CASE("TD_Grain - getOverlapWithBlock()", "[TD_Grain]")
     //        → writeRangeStart=512, writeRangeEnd=767
     SynthMark mark(128, 0, 255, 128);
     constexpr juce::int64 lookahead = 512;
-    TD_Grain grain(mark, window, sourceBuffer, lookahead);
-
-    // writeRangeStart = 512, writeRangeEnd = 767
+    Grain grain(mark, window, sourceBuffer, lookahead);
 
     SECTION("Block entirely before grain - no overlap")
     {
@@ -112,7 +108,6 @@ TEST_CASE("TD_Grain - getOverlapWithBlock()", "[TD_Grain]")
 
     SECTION("Block overlaps start of grain - partial overlap")
     {
-        // Block [256, 640) overlaps grain [512, 768) → overlap [512, 640)
         auto overlap = grain.getOverlapWithBlock(256, 640);
         REQUIRE_FALSE(overlap.isEmpty());
         REQUIRE(overlap.getStart() == 512);
@@ -121,7 +116,6 @@ TEST_CASE("TD_Grain - getOverlapWithBlock()", "[TD_Grain]")
 
     SECTION("Block overlaps end of grain - partial overlap")
     {
-        // Block [640, 1024) overlaps grain [512, 768) → overlap [640, 768)
         auto overlap = grain.getOverlapWithBlock(640, 1024);
         REQUIRE_FALSE(overlap.isEmpty());
         REQUIRE(overlap.getStart() == 640);
@@ -163,30 +157,20 @@ static CircularBuffer makeOnesBuffer(int numSamples)
 }
 
 // Helper: build a SynthMark whose synth range is [0, grainSize-1] and pitch range starts at 0
-// pitchPeriod = grainSize / 2  →  synthRangeLength = grainSize (matches pitch range length)
 static SynthMark makeGrainMark(int grainSize)
 {
     juce::int64 half = grainSize / 2;
-    // SynthMark(pitchMark, pitchStart, pitchEnd, synthMark)
-    // Synth range length will match pitch range length
-    // synthRangeStart = synthMark - pitchPeriod = half - half = 0
-    // synthRangeEnd   = synthMark + pitchPeriod - 1 = half + half - 1 = grainSize - 1
     return SynthMark(half, 0, grainSize - 1, half);
 }
 
-TEST_CASE("TD_Grain - process() with ones buffer shows only window coefficients", "[TD_Grain][Window]")
+TEST_CASE("Grain - process() with ones buffer shows only window coefficients", "[Grain][Window]")
 {
-    // With CircularBuffer full of 1.0f, the output equals the window values directly.
-    // grainSize = synthRangeLength, which is what TD_Grain uses as grainPeriod internally.
     constexpr int grainSize = 512;
 
     SynthMark mark       = makeGrainMark(grainSize);
     CircularBuffer source = makeOnesBuffer(grainSize * 2);
 
     juce::AudioBuffer<float> output(1, grainSize);
-
-    // All sections use window sized to grainSize so phaseIncrement = 1.0 (1:1 lookup).
-    // This lets us compare against a same-sized reference buffer from BufferFiller directly.
 
     SECTION("kNone (rectangular) - output is all ones")
     {
@@ -196,7 +180,7 @@ TEST_CASE("TD_Grain - process() with ones buffer shows only window coefficients"
         window.setPeriod(grainSize);
 
         output.clear();
-        TD_Grain grain(mark, window, source, 0);
+        Grain grain(mark, window, source, 0);
         grain.process(output, 0, grainSize);
 
         for (int i = 0; i < grainSize; ++i)
@@ -214,13 +198,13 @@ TEST_CASE("TD_Grain - process() with ones buffer shows only window coefficients"
         BufferFiller::generateHanning(ref);
 
         output.clear();
-        TD_Grain grain(mark, window, source, 0);
+        Grain grain(mark, window, source, 0);
         grain.process(output, 0, grainSize);
 
         for (int i = 0; i < grainSize; ++i)
         {
             INFO("sample " << i);
-            REQUIRE_THAT(output.getSample(0, i),  Catch::Matchers::WithinAbs(ref.getSample(0, i), 1e-5f));
+            REQUIRE_THAT(output.getSample(0, i), Catch::Matchers::WithinAbs(ref.getSample(0, i), 1e-5f));
         }
     }
 
@@ -235,7 +219,7 @@ TEST_CASE("TD_Grain - process() with ones buffer shows only window coefficients"
         BufferFiller::generateTukey(ref);
 
         output.clear();
-        TD_Grain grain(mark, window, source, 0);
+        Grain grain(mark, window, source, 0);
         grain.process(output, 0, grainSize);
 
         for (int i = 0; i < grainSize; ++i)
@@ -253,14 +237,11 @@ TEST_CASE("TD_Grain - process() with ones buffer shows only window coefficients"
         window.setPeriod(grainSize);
 
         output.clear();
-        TD_Grain grain(mark, window, source, 0);
+        Grain grain(mark, window, source, 0);
         grain.process(output, 0, grainSize);
 
-        // Edges should taper to zero (alpha=0.5 → 25% taper each side = 128 samples)
-        REQUIRE(output.getSample(0, 0)            < 0.01f);
+        REQUIRE(output.getSample(0, 0)             < 0.01f);
         REQUIRE(output.getSample(0, grainSize - 1) < 0.01f);
-
-        // Flat top should be 1.0
         REQUIRE_THAT(output.getSample(0, grainSize / 2), Catch::Matchers::WithinAbs(1.0f, 1e-5f));
     }
 }
