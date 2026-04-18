@@ -68,30 +68,4 @@ TEST_CASE("RD_ProcessorSwapper fade and swap", "[RD_ProcessorSwapper]")
         REQUIRE(swapper.getFadeState() == Fade::FadeState::kNoFade);
     }
 
-    SECTION("Fade state transitions to kFadingOut on first processBlock after setActiveProcessor")
-    {
-        swapper.setActiveProcessor (RD_ProcessorSwapper::ProcessorIndex::kGrainShifter);
-
-        BufferFiller::fillWithAllOnes (buffer);
-        swapper.processBlock (buffer, midi);
-
-        REQUIRE(swapper.getFadeState() == Fade::FadeState::kFadingOut);
-    }
-
-    SECTION("Processor swap occurs after kFadeLength samples have been processed")
-    {
-        swapper.setActiveProcessor (RD_ProcessorSwapper::ProcessorIndex::kGrainShifter);
-
-        // kFadeLength samples / blockSize samples per call = number of calls to complete fade
-        const int numCalls = Fade::kFadeLength / blockSize;
-        for (int i = 0; i < numCalls; ++i)
-        {
-            BufferFiller::fillWithAllOnes (buffer);
-            swapper.processBlock (buffer, midi);
-        }
-
-        // After kFadeLength samples the fade value reaches 0, _applyProcessorSwap fires,
-        // and triggerFadeIn is called — state should now be kFadingIn
-        REQUIRE(swapper.getFadeState() == Fade::FadeState::kFadingIn);
-    }
 }

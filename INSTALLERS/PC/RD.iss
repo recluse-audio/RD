@@ -1,5 +1,5 @@
 #define MyAppName "RD"
-#define MyAppVersion "0.0.29"
+#define MyAppVersion "0.0.34"
 #define MyAppPublisher "recluse-audio"
 #define MyAppURL "https://recluse-audio.com"
 #define VST3Source SourcePath + "\..\..\BUILD\RD_artefacts\Release\VST3\RD.vst3"
