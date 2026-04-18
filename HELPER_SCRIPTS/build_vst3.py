@@ -1,13 +1,10 @@
 #!/usr/bin/env python3
-"""Build the VST3 target."""
-
 from __future__ import annotations
-
-import subprocess
-import sys
+import argparse, subprocess, sys
 from pathlib import Path
+from build_complete import find_cmake, beep
 
-PLUGIN_NAME = "RD"
+PLUGIN_NAME = Path(__file__).resolve().parents[1].name
 
 
 def run(cmd: list[str], cwd: Path) -> None:
@@ -24,21 +21,47 @@ def regenerate_cmake_lists() -> None:
         print("Warning: regenSource.py not found, skipping regeneration")
 
 
+def parse_args() -> argparse.Namespace:
+    ap = argparse.ArgumentParser()
+    ap.add_argument(
+        "--config",
+        choices=["Debug", "Release"],
+        default="Debug",
+        help="Build config (default: Debug)",
+    )
+    return ap.parse_args()
+
+
 def main() -> int:
+    args = parse_args()
     regenerate_cmake_lists()
 
-    build_dir = Path("BUILD").resolve()
-    build_dir.mkdir(exist_ok=True)
+    root = Path(__file__).resolve().parents[1]
+    build_dir = root / "BUILD"
+    build_dir.mkdir(parents=True, exist_ok=True)
 
-    run(["cmake", ".."], cwd=build_dir)
+    cmake = find_cmake()
+    print(f"Using cmake: {cmake}")
+    print(f"Using config: {args.config}")
 
-    build_cmd = ["cmake", "--build", ".", "--target", f"{PLUGIN_NAME}_VST3"]
+    configure_cmd = [cmake, "-S", str(root), "-B", str(build_dir)]
+    if not sys.platform.startswith("win"):
+        configure_cmd += [f"-DCMAKE_BUILD_TYPE={args.config}"]
+    run(configure_cmd, cwd=root)
+
+    build_cmd = [cmake, "--build", str(build_dir), "--target", f"{PLUGIN_NAME}_VST3"]
     if sys.platform.startswith("win"):
-        build_cmd += ["--config", "Debug"]
-
-    run(build_cmd, cwd=build_dir)
+        build_cmd += ["--config", args.config]
+    run(build_cmd, cwd=root)
     return 0
 
 
 if __name__ == "__main__":
-    raise SystemExit(main())
+    try:
+        raise SystemExit(main())
+    except subprocess.CalledProcessError:
+        beep(success=False)
+        raise
+    except Exception:
+        beep(success=False)
+        raise
