@@ -23,14 +23,32 @@ PitchManager::~PitchManager()
 void PitchManager::prepare(double sampleRate, int numChannels, int detectionWindowSize)
 {
     mSampleRate = sampleRate;
-    mDetectionWindowSize = detectionWindowSize;
+    mDetectionWindowSize.set(detectionWindowSize);
 
     mPitchDetector.prepare(sampleRate);
 
-    mDetectionBuffer.setSize(numChannels, mDetectionWindowSize);
+    // Allocate to max so subsequent setDetectionWindowSize calls never reallocate.
+    mDetectionBuffer.setSize(numChannels, PitchManagerConstants::kMaxDetectionWindowSize);
     mDetectionBuffer.clear();
+    mDetectionBuffer.setSize(numChannels, detectionWindowSize, false, false, true);
 
     reset();
+}
+
+void PitchManager::setDetectionWindowSize(int newSize)
+{
+    newSize = juce::jlimit(64, PitchManagerConstants::kMaxDetectionWindowSize, newSize);
+    mDetectionWindowSize.set(newSize);
+
+    const int numChannels = mDetectionBuffer.getNumChannels();
+    if (numChannels > 0)
+        mDetectionBuffer.setSize(numChannels, newSize, false, false, true);
+}
+
+void PitchManager::setHopSize(int newSize)
+{
+    newSize = juce::jmax(1, newSize);
+    mHopSize.set(newSize);
 }
 
 //=======================================
@@ -54,9 +72,10 @@ float PitchManager::detect(CircularBuffer& circularBuffer, juce::int64 startAbsI
     //     return mCurrentPeriod;
 
     // Generate pitch marks across this detection window
-    const juce::int64 windowEnd = startAbsIndex + mDetectionWindowSize;
+    const int windowSize = mDetectionWindowSize.get();
+    const juce::int64 windowEnd = startAbsIndex + windowSize;
     const juce::Range<juce::int64> windowRange(startAbsIndex, windowEnd);
-    const int maxIterations = static_cast<int>(mDetectionWindowSize / mCurrentPeriod) + 4;
+    const int maxIterations = static_cast<int>(windowSize / mCurrentPeriod) + 4;
 
     for (int i = 0; i < maxIterations; ++i)
     {

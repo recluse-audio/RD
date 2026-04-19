@@ -19,6 +19,8 @@
 namespace PitchManagerConstants
 {
     static constexpr int kDefaultDetectionWindowSize = 2048;
+    static constexpr int kMaxDetectionWindowSize     = 8192;
+    static constexpr int kDefaultHopSize             = 2048;
     static constexpr double kPitchMarkBufferSeconds = 30.0;  // 30 seconds of pitch marks
 }
 
@@ -121,15 +123,28 @@ public:
      */
     SynthMarker& getSynthMarker() { return *mSynthMarker; }
 
+    //==============================================================================
+    /** Set the detection window size (must be a power of two, <= kMaxDetectionWindowSize).
+     *  Safe to call from the message thread while audio is running. */
+    void setDetectionWindowSize (int newSize);
+    int  getDetectionWindowSize() const { return mDetectionWindowSize.get(); }
+
+    /** Set the pitch-detection hop size (how often detection runs, in samples).
+     *  Safe to call from the message thread while audio is running. */
+    void setHopSize (int newSize);
+    int  getHopSize() const { return mHopSize.get(); }
+
 private:
     // Pitch detection and marking
     FFT_PitchDetector mPitchDetector;
     std::unique_ptr<PitchMarker> mPitchMarker;
     std::unique_ptr<SynthMarker> mSynthMarker;
 
-    // Scratch buffer for extracting a detection window from the circular buffer
+    // Scratch buffer for extracting a detection window from the circular buffer.
+    // Pre-allocated to kMaxDetectionWindowSize so runtime size changes never reallocate.
     juce::AudioBuffer<float> mDetectionBuffer;
-    int mDetectionWindowSize = PitchManagerConstants::kDefaultDetectionWindowSize;
+    juce::Atomic<int> mDetectionWindowSize { PitchManagerConstants::kDefaultDetectionWindowSize };
+    juce::Atomic<int> mHopSize             { PitchManagerConstants::kDefaultHopSize };
 
     // State
     double mSampleRate = 44100.0;

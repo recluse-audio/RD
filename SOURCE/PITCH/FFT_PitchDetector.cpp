@@ -47,6 +47,15 @@ float FFT_PitchDetector::process(const juce::AudioBuffer<float>& buffer)
     const int numSamples = buffer.getNumSamples();
     const float* signalData = buffer.getReadPointer(0);
 
+    // If the analysis window cannot fit two full periods at mMinHz, autocorrelation
+    // inside [mMinPeriod, mMaxPeriod] is unreliable — report "no pitch" rather than
+    // letting an out-of-range spurious peak drive synthesis.
+    if (numSamples < 2 * mMaxPeriod)
+    {
+        mCurrentPeriod = -1.0f;
+        return mCurrentPeriod;
+    }
+
     // Ensure FFT size accommodates buffer length
     int fftOrder = static_cast<int>(std::ceil(std::log2(numSamples)));
     int fftSize = 1 << fftOrder;

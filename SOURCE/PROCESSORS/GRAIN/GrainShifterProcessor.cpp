@@ -13,8 +13,31 @@ namespace GrainShifter
 
     constexpr int kMaxGrains = 64;
 
-    static const juce::String kShiftRatioID = "shift_ratio";
-    static const juce::String kThresholdID  = "pitch_threshold";
+    static const juce::String kShiftRatioID       = "shift_ratio";
+    static const juce::String kThresholdID        = "pitch_threshold";
+    static const juce::String kPitchWindowSizeID  = "pitch_window_size";
+    static const juce::String kPitchHopSizeID     = "pitch_hop_size";
+
+    static const juce::StringArray kPitchWindowSizeChoices { "512", "1024", "2048", "4096", "8192" };
+    static const juce::StringArray kPitchHopSizeChoices    { "256", "512", "1024", "2048", "4096" };
+
+    static constexpr int kPitchWindowSizeDefaultIndex = 2; // "2048"
+    static constexpr int kPitchHopSizeDefaultIndex    = 3; // "2048"
+
+    // Lowest pitch we expect the detector to track. Lookahead / max grain length
+    // is derived from this: one period at kLowestDetectableHz, doubled, then rounded
+    // up to the next power of two.
+    static constexpr double kLowestDetectableHz = 40.0;
+
+    static int calcLookaheadSamples (double sampleRate)
+    {
+        const double periodSamples = sampleRate / kLowestDetectableHz;
+        const double minNeeded     = periodSamples * 2.0;
+        int p = 1;
+        while (static_cast<double> (p) < minNeeded)
+            p <<= 1;
+        return p;
+    }
 }
 
 //==============================================================================
@@ -25,14 +48,18 @@ GrainShifterProcessor::GrainShifterProcessor()
     , mGranulator (mCircularBuffer)
     , apvts (*this, nullptr, "Parameters", _createParameterLayout())
 {
-    apvts.addParameterListener (GrainShifter::kShiftRatioID, this);
-    apvts.addParameterListener (GrainShifter::kThresholdID,  this);
+    apvts.addParameterListener (GrainShifter::kShiftRatioID,      this);
+    apvts.addParameterListener (GrainShifter::kThresholdID,       this);
+    apvts.addParameterListener (GrainShifter::kPitchWindowSizeID, this);
+    apvts.addParameterListener (GrainShifter::kPitchHopSizeID,    this);
 }
 
 GrainShifterProcessor::~GrainShifterProcessor()
 {
-    apvts.removeParameterListener (GrainShifter::kShiftRatioID, this);
-    apvts.removeParameterListener (GrainShifter::kThresholdID,  this);
+    apvts.removeParameterListener (GrainShifter::kShiftRatioID,      this);
+    apvts.removeParameterListener (GrainShifter::kThresholdID,       this);
+    apvts.removeParameterListener (GrainShifter::kPitchWindowSizeID, this);
+    apvts.removeParameterListener (GrainShifter::kPitchHopSizeID,    this);
 }
 
 //==============================================================================
@@ -46,12 +73,20 @@ void GrainShifterProcessor::prepareToPlay (double sampleRate, int samplesPerBloc
     const int  numChannels     = getTotalNumInputChannels();
     const int  circularBufSize = static_cast<int> (sampleRate * GrainShifter::kCircularBufferSeconds);
 
-    // Use the detection window size from PitchManager as lookahead (power of two: 2048 = 2^11)
-    const auto lookaheadSamples = static_cast<juce::int64> (PitchManagerConstants::kDefaultDetectionWindowSize);
+    // Pull initial window / hop sizes from APVTS so they match user state.
+    const int initialWindowSize = GrainShifter::kPitchWindowSizeChoices
+                                    [static_cast<int> (*apvts.getRawParameterValue (GrainShifter::kPitchWindowSizeID))]
+                                    .getIntValue();
+    const int initialHopSize    = GrainShifter::kPitchHopSizeChoices
+                                    [static_cast<int> (*apvts.getRawParameterValue (GrainShifter::kPitchHopSizeID))]
+                                    .getIntValue();
+
+    const auto lookaheadSamples = static_cast<juce::int64> (GrainShifter::calcLookaheadSamples (sampleRate));
 
     mCircularBuffer.setSize (numChannels, circularBufSize);
     mCircularBuffer.clear();
-    mPitchManager.prepare   (sampleRate, numChannels);
+    mPitchManager.prepare   (sampleRate, numChannels, initialWindowSize);
+    mPitchManager.setHopSize (initialHopSize);
     mGranulator.prepare     (sampleRate, numChannels, lookaheadSamples, GrainShifter::kMaxGrains);
 }
 
@@ -94,10 +129,13 @@ void GrainShifterProcessor::processBlock (juce::AudioBuffer<float>& buffer, juce
 
     mDetectionSampleCount += numSamples;
 
-    if (mDetectionSampleCount >= PitchManagerConstants::kDefaultDetectionWindowSize)
+    const int currentHopSize    = mPitchManager.getHopSize();
+    const int currentWindowSize = mPitchManager.getDetectionWindowSize();
+
+    if (mDetectionSampleCount >= currentHopSize)
     {
         const juce::int64 detectionWindowEnd   = blockEnd;
-        const juce::int64 detectionWindowStart = detectionWindowEnd - PitchManagerConstants::kDefaultDetectionWindowSize;
+        const juce::int64 detectionWindowStart = detectionWindowEnd - currentWindowSize;
 
         [[maybe_unused]] float detectedPeriod = mPitchManager.detect (mCircularBuffer, detectionWindowStart, mShiftRatio.get());
 
@@ -106,7 +144,7 @@ void GrainShifterProcessor::processBlock (juce::AudioBuffer<float>& buffer, juce
         if (!synthMarks.empty())
             mGranulator.generateGrains (synthMarks);
 
-        mDetectionSampleCount -= PitchManagerConstants::kDefaultDetectionWindowSize;
+        mDetectionSampleCount -= currentHopSize;
     }
 
     buffer.clear();
@@ -138,6 +176,18 @@ void GrainShifterProcessor::parameterChanged (const juce::String& parameterID, f
         mShiftRatio.set (newValue);
     else if (parameterID == GrainShifter::kThresholdID)
         mPitchManager.getPitchDetector().setThreshold (newValue);
+    else if (parameterID == GrainShifter::kPitchWindowSizeID)
+    {
+        const int idx = juce::jlimit (0, GrainShifter::kPitchWindowSizeChoices.size() - 1,
+                                      static_cast<int> (newValue));
+        mPitchManager.setDetectionWindowSize (GrainShifter::kPitchWindowSizeChoices[idx].getIntValue());
+    }
+    else if (parameterID == GrainShifter::kPitchHopSizeID)
+    {
+        const int idx = juce::jlimit (0, GrainShifter::kPitchHopSizeChoices.size() - 1,
+                                      static_cast<int> (newValue));
+        mPitchManager.setHopSize (GrainShifter::kPitchHopSizeChoices[idx].getIntValue());
+    }
 }
 
 //==============================================================================
@@ -156,6 +206,18 @@ juce::AudioProcessorValueTreeState::ParameterLayout GrainShifterProcessor::_crea
         "Pitch Threshold",
         juce::NormalisableRange<float> (0.0f, 1.0f, 0.01f),
         FFT_PitchDetectorConstants::kDefaultThreshold));
+
+    params.push_back (std::make_unique<juce::AudioParameterChoice> (
+        GrainShifter::kPitchWindowSizeID,
+        "Pitch Window Size",
+        GrainShifter::kPitchWindowSizeChoices,
+        GrainShifter::kPitchWindowSizeDefaultIndex));
+
+    params.push_back (std::make_unique<juce::AudioParameterChoice> (
+        GrainShifter::kPitchHopSizeID,
+        "Pitch Hop Size",
+        GrainShifter::kPitchHopSizeChoices,
+        GrainShifter::kPitchHopSizeDefaultIndex));
 
     return { params.begin(), params.end() };
 }
