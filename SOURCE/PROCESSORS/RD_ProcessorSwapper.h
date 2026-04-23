@@ -59,7 +59,6 @@ private:
     ProcessorIndex mActiveProcessorIndex { ProcessorIndex::kGain };
 
     Fade mFade;
-    bool mGraphUpdateNeeded = false;
     void _buildGraph();
     void _applyProcessorSwap();
 

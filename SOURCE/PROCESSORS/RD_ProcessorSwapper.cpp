@@ -28,13 +28,7 @@ void RD_ProcessorSwapper::_buildGraph()
     mGainNodeID    = mGraph.addNode (std::make_unique<GainProcessor>())->nodeID;
     mGrainShifterNodeID = mGraph.addNode (std::make_unique<GrainShifterProcessor>())->nodeID;
 
-    // Series chain: Input → Gain → Grain Shifter → Output
-    for (int ch = 0; ch < 2; ++ch)
-    {
-        mGraph.addConnection ({{ mAudioInputNodeID,  ch }, { mGainNodeID,        ch }});
-        mGraph.addConnection ({{ mGainNodeID,           ch }, { mGrainShifterNodeID, ch }});
-        mGraph.addConnection ({{ mGrainShifterNodeID,   ch }, { mAudioOutputNodeID,  ch }});
-    }
+    _applyProcessorSwap();
 }
 
 //==============================================================================
@@ -93,12 +87,6 @@ void RD_ProcessorSwapper::processBlock (juce::AudioBuffer<float>& buffer, juce::
     juce::ScopedNoDenormals noDenormals;
     mGraph.processBlock (buffer, midiMessages);
 
-    if (mGraphUpdateNeeded)
-    {
-        mGraphUpdateNeeded = false;
-        _applyProcessorSwap();
-    }
-
     // if (mFade.getCurrentState() == Fade::FadeState::kFadingIn ||
     //     mFade.getCurrentState() == Fade::FadeState::kFadingOut)
     // {
@@ -135,7 +123,7 @@ void RD_ProcessorSwapper::setActiveProcessor (ProcessorIndex index)
     if (index != mActiveProcessorIndex)
     {
         mActiveProcessorIndex = index;
-        mGraphUpdateNeeded = true;
+        _applyProcessorSwap();
     }
 }
 
@@ -143,9 +131,10 @@ void RD_ProcessorSwapper::_applyProcessorSwap()
 {
     for (int ch = 0; ch < 2; ++ch)
     {
-        mGraph.removeConnection ({{ mAudioInputNodeID,  ch }, { mGainNodeID,        ch }});
-        mGraph.removeConnection ({{ mGainNodeID,          ch }, { mGrainShifterNodeID, ch }});
-        mGraph.removeConnection ({{ mGrainShifterNodeID,  ch }, { mAudioOutputNodeID,  ch }});
+        mGraph.removeConnection ({{ mAudioInputNodeID, ch }, { mGainNodeID,         ch }});
+        mGraph.removeConnection ({{ mAudioInputNodeID, ch }, { mGrainShifterNodeID, ch }});
+        mGraph.removeConnection ({{ mGainNodeID,         ch }, { mAudioOutputNodeID, ch }});
+        mGraph.removeConnection ({{ mGrainShifterNodeID, ch }, { mAudioOutputNodeID, ch }});
     }
 
     auto activeNodeID = (mActiveProcessorIndex == ProcessorIndex::kGain) ? mGainNodeID : mGrainShifterNodeID;
@@ -155,6 +144,4 @@ void RD_ProcessorSwapper::_applyProcessorSwap()
         mGraph.addConnection ({{ mAudioInputNodeID, ch }, { activeNodeID,        ch }});
         mGraph.addConnection ({{ activeNodeID,      ch }, { mAudioOutputNodeID,  ch }});
     }
-
-    //mFade.triggerFadeIn();
 }
