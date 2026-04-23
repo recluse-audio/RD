@@ -27,6 +27,30 @@ set(CMAKE_OSX_DEPLOYMENT_TARGET "10.13" CACHE STRING "Support macOS down to High
 set_property(GLOBAL PROPERTY USE_FOLDERS YES)
 option(JUCE_ENABLE_MODULE_SOURCE_GROUPS "Show all module sources in IDE projects" ON)
 
+# Detect: is RD being configured as top-level, but actually living inside
+# another project's SUBMODULES/ folder? That means the user cd'd into the
+# nested RD and tried to build it standalone — won't work, since JUCE is
+# at the parent's SUBMODULES/JUCE, not RD's.
+if(CMAKE_SOURCE_DIR STREQUAL CMAKE_CURRENT_SOURCE_DIR)
+    get_filename_component(_RD_PARENT_DIR "${CMAKE_CURRENT_SOURCE_DIR}" DIRECTORY)
+    get_filename_component(_RD_PARENT_NAME "${_RD_PARENT_DIR}" NAME)
+    if(_RD_PARENT_NAME STREQUAL "SUBMODULES")
+        message(FATAL_ERROR
+            "\n"
+            "============================================================\n"
+            "  YOU ARE TRYING TO BUILD RD SUBMODULE AS A PLUGIN,\n"
+            "  INSIDE A PLUGIN. NOT GONNA HAPPEN.\n"
+            "============================================================\n"
+            "  RD lives at: ${CMAKE_CURRENT_SOURCE_DIR}\n"
+            "  Parent dir:  ${_RD_PARENT_DIR}\n"
+            "\n"
+            "  To build the parent project, run the build from there.\n"
+            "  To build RD standalone, clone it as its own repo.\n"
+            "============================================================\n"
+        )
+    endif()
+endif()
+
 # JUCE submodule
 add_subdirectory(SUBMODULES/JUCE)
 
