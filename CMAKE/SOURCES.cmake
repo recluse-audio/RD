@@ -42,6 +42,11 @@ set(SOURCES
     SOURCE/PROCESSORS/GRAIN/Granulator.h
     SOURCE/PROCESSORS/RD_ProcessorSwapper.cpp
     SOURCE/PROCESSORS/RD_ProcessorSwapper.h
+    SOURCE/PROCESSORS/SANNAWAG/GrainExport.h
+    SOURCE/PROCESSORS/SANNAWAG/Sannawag_TDPSOLA_Processor.cpp
+    SOURCE/PROCESSORS/SANNAWAG/Sannawag_TDPSOLA_Processor.h
+    SOURCE/PROCESSORS/SANNAWAG/TD_PSOLA.cpp
+    SOURCE/PROCESSORS/SANNAWAG/TD_PSOLA.h
     SOURCE/RelativeFilePath.h
     SOURCE/Util/DebugLog.h
     SOURCE/Util/DebugLogger.cpp
