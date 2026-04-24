@@ -16,7 +16,6 @@
 #include "TD_PSOLA.h"
 
 class Sannawag_TDPSOLA_Processor : public RD_Processor
-                                 , public juce::AudioProcessorValueTreeState::Listener
 {
 public:
     Sannawag_TDPSOLA_Processor();
@@ -40,7 +39,6 @@ public:
     void parameterChanged (const juce::String& parameterID, float newValue) override;
 
     //==============================================================================
-    juce::AudioProcessorValueTreeState& getAPVTS()  { return apvts; }
     TD_PSOLA::TDPSOLA&                  getEngine() { return mEngine; }
     TD_PSOLA::TDPSOLA::Config&          getConfig() { return mConfig; }
 
@@ -52,19 +50,23 @@ public:
                         juce::AudioBuffer<float>&       output,
                         float                           shiftRatio);
 
+    juce::AudioProcessorValueTreeState& getAPVTS() override { return mAPVTS; }
+
+    static juce::AudioProcessorValueTreeState::ParameterLayout createParameterLayout();
+
 private:
     TD_PSOLA::TDPSOLA          mEngine;
     TD_PSOLA::TDPSOLA::Config  mConfig;
     juce::AudioBuffer<float>   mScratchBuffer;
 
-    juce::AudioProcessorValueTreeState apvts;
+    // Different than mBaseAPVTS in RD_Processor
+    juce::AudioProcessorValueTreeState mAPVTS;
 
     juce::int64         mAbsoluteSampleCount = 0;
     juce::Atomic<float> mShiftRatio          { 1.0f };
     bool                mWasPlaying          = false;
 
     bool _didTransportJustStop();
-    juce::AudioProcessorValueTreeState::ParameterLayout _createParameterLayout();
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (Sannawag_TDPSOLA_Processor)
 };

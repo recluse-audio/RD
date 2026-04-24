@@ -44,20 +44,20 @@ namespace GrainShifter
 GrainShifterProcessor::GrainShifterProcessor()
     : RD_Processor()
     , mGranulator (mCircularBuffer)
-    , apvts (*this, nullptr, "Parameters", _createParameterLayout())
+    , mAPVTS (*this, nullptr, "Parameters", createParameterLayout())
 {
-    apvts.addParameterListener (GrainShifter::kShiftRatioID,      this);
-    apvts.addParameterListener (GrainShifter::kThresholdID,       this);
-    apvts.addParameterListener (GrainShifter::kPitchWindowSizeID, this);
-    apvts.addParameterListener (GrainShifter::kPitchHopSizeID,    this);
+    mAPVTS.addParameterListener (GrainShifter::kShiftRatioID,      this);
+    mAPVTS.addParameterListener (GrainShifter::kThresholdID,       this);
+    mAPVTS.addParameterListener (GrainShifter::kPitchWindowSizeID, this);
+    mAPVTS.addParameterListener (GrainShifter::kPitchHopSizeID,    this);
 }
 
 GrainShifterProcessor::~GrainShifterProcessor()
 {
-    apvts.removeParameterListener (GrainShifter::kShiftRatioID,      this);
-    apvts.removeParameterListener (GrainShifter::kThresholdID,       this);
-    apvts.removeParameterListener (GrainShifter::kPitchWindowSizeID, this);
-    apvts.removeParameterListener (GrainShifter::kPitchHopSizeID,    this);
+    mAPVTS.removeParameterListener (GrainShifter::kShiftRatioID,      this);
+    mAPVTS.removeParameterListener (GrainShifter::kThresholdID,       this);
+    mAPVTS.removeParameterListener (GrainShifter::kPitchWindowSizeID, this);
+    mAPVTS.removeParameterListener (GrainShifter::kPitchHopSizeID,    this);
 }
 
 //==============================================================================
@@ -72,10 +72,10 @@ void GrainShifterProcessor::prepareToPlay (double sampleRate, int samplesPerBloc
 
     // Pull initial window / hop sizes from APVTS so they match user state.
     const int initialWindowSize = GrainShifter::kPitchWindowSizeChoices
-                                    [static_cast<int> (*apvts.getRawParameterValue (GrainShifter::kPitchWindowSizeID))]
+                                    [static_cast<int> (*mAPVTS.getRawParameterValue (GrainShifter::kPitchWindowSizeID))]
                                     .getIntValue();
     const int initialHopSize    = GrainShifter::kPitchHopSizeChoices
-                                    [static_cast<int> (*apvts.getRawParameterValue (GrainShifter::kPitchHopSizeID))]
+                                    [static_cast<int> (*mAPVTS.getRawParameterValue (GrainShifter::kPitchHopSizeID))]
                                     .getIntValue();
 
     const auto lookaheadSamples = static_cast<juce::int64> (GrainShifter::calcLookaheadSamples (sampleRate));
@@ -188,7 +188,7 @@ void GrainShifterProcessor::parameterChanged (const juce::String& parameterID, f
 }
 
 //==============================================================================
-juce::AudioProcessorValueTreeState::ParameterLayout GrainShifterProcessor::_createParameterLayout()
+juce::AudioProcessorValueTreeState::ParameterLayout GrainShifterProcessor::createParameterLayout()
 {
     std::vector<std::unique_ptr<juce::RangedAudioParameter>> params;
 

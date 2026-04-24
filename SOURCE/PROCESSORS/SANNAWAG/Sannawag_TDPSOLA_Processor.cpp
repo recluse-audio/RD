@@ -8,14 +8,14 @@ namespace Sannawag
 //==============================================================================
 Sannawag_TDPSOLA_Processor::Sannawag_TDPSOLA_Processor()
     : RD_Processor()
-    , apvts (*this, nullptr, "Parameters", _createParameterLayout())
+    , mAPVTS (*this, nullptr, "Parameters", createParameterLayout())
 {
-    apvts.addParameterListener (Sannawag::kShiftRatioID, this);
+    mAPVTS.addParameterListener (Sannawag::kShiftRatioID, this);
 }
 
 Sannawag_TDPSOLA_Processor::~Sannawag_TDPSOLA_Processor()
 {
-    apvts.removeParameterListener (Sannawag::kShiftRatioID, this);
+    mAPVTS.removeParameterListener (Sannawag::kShiftRatioID, this);
 }
 
 //==============================================================================
@@ -107,7 +107,7 @@ void Sannawag_TDPSOLA_Processor::parameterChanged (const juce::String& parameter
 }
 
 //==============================================================================
-juce::AudioProcessorValueTreeState::ParameterLayout Sannawag_TDPSOLA_Processor::_createParameterLayout()
+juce::AudioProcessorValueTreeState::ParameterLayout Sannawag_TDPSOLA_Processor::createParameterLayout()
 {
     std::vector<std::unique_ptr<juce::RangedAudioParameter>> params;
 

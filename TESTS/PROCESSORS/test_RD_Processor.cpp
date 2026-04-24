@@ -24,7 +24,7 @@ TEST_CASE("RD_Processor caches sample rate and block size from prepareToPlay", "
     {
         processor.prepareToPlay(48000.0, 256);
         processor.prepareToPlay(96000.0, 1024);
-        REQUIRE(processor.getLastSampleRateFromPrepareToPlay() == 97000.0);
+        REQUIRE(processor.getLastSampleRateFromPrepareToPlay() == 96000.0);
         REQUIRE(processor.getLastBlockSizeFromPrepareToPlay()  == 1024);
     }
 }

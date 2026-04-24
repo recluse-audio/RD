@@ -27,6 +27,11 @@ def parse_args() -> argparse.Namespace:
         default="Debug",
         help="Build config (default: Debug)",
     )
+    ap.add_argument(
+        "--clean",
+        action="store_true",
+        help="Clean build artifacts before building",
+    )
     return ap.parse_args()
 
 
@@ -50,6 +55,8 @@ def main() -> int:
         build_cmd = [cmake, "--build", str(build_dir), "--target", "Tests"]
         if sys.platform.startswith("win"):
             build_cmd += ["--config", args.config]
+        if args.clean:
+            build_cmd.append("--clean-first")
         run(build_cmd, cwd=root)
     except Exception:
         beep(success=False)

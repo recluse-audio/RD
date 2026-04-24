@@ -4,81 +4,72 @@
  *
  * Base class from which all my processors shall inherit until I regret doing so.
  *
- * Absorbs the boilerplate that every juce::AudioProcessor in RD ends up writing
- * by hand: program/state no-ops, MIDI flags, tail length, sample-rate caching
- * from prepareToPlay, and a default stereo BusesProperties.
+ * Owns `mBaseAPVTS` (a default APVTS carrying a "gain" parameter) so that
+ * RD_Processor is not abstract and can be instantiated on its own.
  *
- * Derived classes still own:
- *   - getName()
- *   - processBlock()
- *   - createEditor() / hasEditor()
- *   - any parameter/APVTS setup
- *   - prepareToPlay()/releaseResources() specifics (call base prepareToPlay to
- *     keep the cached sample rate and block size in sync)
+ * Derived classes declare their own `mAPVTS` and override getAPVTS() to
+ * return a reference to it.
  */
 
 #pragma once
 #include "Util/Juce_Header.h"
 
 class RD_Processor : public juce::AudioProcessor
+                   , public juce::AudioProcessorValueTreeState::Listener
 {
 public:
     RD_Processor();
-    explicit RD_Processor (const BusesProperties& busesProperties);
-    ~RD_Processor() override = default;
+    ~RD_Processor() override;
 
     //==============================================================================
-    // Caches sampleRate and samplesPerBlock. Override in derived classes and call
-    // RD_Processor::prepareToPlay(sampleRate, samplesPerBlock) to keep the getters
-    // below working.
     void prepareToPlay (double sampleRate, int samplesPerBlock) override;
-    void releaseResources() override {}
+    void releaseResources() override;
 
-    bool isBusesLayoutSupported (const BusesLayout& layouts) const override
-    {
-        juce::ignoreUnused (layouts);
-        return true;
-    }
+    bool isBusesLayoutSupported (const BusesLayout& layouts) const override;
 
     //==============================================================================
-    // Boilerplate that every RD processor shares. Override in derived classes when
-    // the defaults don't fit (e.g. hasEditor()).
-    const juce::String getName() const override                 { return "RD_Processor"; }
-    void processBlock (juce::AudioBuffer<float>&, juce::MidiBuffer&) override {}
-    juce::AudioProcessorEditor* createEditor() override         { return nullptr; }
-    bool hasEditor() const override                             { return false; }
+    const juce::String getName() const override;
+    void processBlock (juce::AudioBuffer<float>&, juce::MidiBuffer&) override;
+    juce::AudioProcessorEditor* createEditor() override;
+    bool hasEditor() const override;
 
-    bool acceptsMidi() const override                           { return false; }
-    bool producesMidi() const override                          { return false; }
-    double getTailLengthSeconds() const override                { return 0.0; }
+    bool acceptsMidi() const override;
+    bool producesMidi() const override;
+    double getTailLengthSeconds() const override;
 
-    int getNumPrograms() override                               { return 1; }
-    int getCurrentProgram() override                            { return 0; }
-    void setCurrentProgram (int) override                       {}
-    const juce::String getProgramName (int) override            { return "None"; }
-    void changeProgramName (int, const juce::String&) override  {}
+    int getNumPrograms() override;
+    int getCurrentProgram() override;
+    void setCurrentProgram (int) override;
+    const juce::String getProgramName (int) override;
+    void changeProgramName (int, const juce::String&) override;
 
-    void getStateInformation (juce::MemoryBlock& destData) override
-    {
-        juce::ignoreUnused (destData);
-    }
-
-    void setStateInformation (const void* data, int sizeInBytes) override
-    {
-        juce::ignoreUnused (data, sizeInBytes);
-    }
+    void getStateInformation (juce::MemoryBlock& destData) override;
+    void setStateInformation (const void* data, int sizeInBytes) override;
 
     //==============================================================================
-    // Sample rate / block size retrieval — the original motivation for this class.
-    const double getLastSampleRateFromPrepareToPlay() const { return mSampleRate; }
-    const int    getLastBlockSizeFromPrepareToPlay()  const { return mBlockSize; }
+    const double getLastSampleRateFromPrepareToPlay() const;
+    const int    getLastBlockSizeFromPrepareToPlay()  const;
+
+    //==============================================================================
+    /** Returns the APVTS for this processor. Derived classes override to
+        return a reference to their own `mAPVTS`. */
+    virtual juce::AudioProcessorValueTreeState& getAPVTS();
+
+    void parameterChanged (const juce::String& parameterID, float newValue) override;
+
+    void setGain (float newGain);
 
 protected:
     double mSampleRate = 44100.0;
     int    mBlockSize  = 512;
 
+    juce::Atomic<float>                mGainValue;
+    juce::AudioProcessorValueTreeState mBaseAPVTS;
+
 private:
     static BusesProperties _getDefaultBusesProperties();
+    static juce::AudioProcessorValueTreeState::ParameterLayout _createParameterLayout();
+    void _updateGainValue (float newValue);
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (RD_Processor)
 };

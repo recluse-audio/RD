@@ -20,7 +20,6 @@
 class GrainShifterEditor;
 
 class GrainShifterProcessor : public RD_Processor
-                            , public juce::AudioProcessorValueTreeState::Listener
 {
 public:
     GrainShifterProcessor();
@@ -48,10 +47,12 @@ public:
     PitchManager&   getPitchManager()   { return mPitchManager; }
     Granulator&     getGranulator()     { return mGranulator; }
 
-    juce::AudioProcessorValueTreeState& getAPVTS() { return apvts; }
-
     juce::int64 getAbsoluteSampleCount() const { return mAbsoluteSampleCount; }
     float       getShiftRatio()          const { return mShiftRatio.get(); }
+
+    juce::AudioProcessorValueTreeState& getAPVTS() override { return mAPVTS; }
+
+    static juce::AudioProcessorValueTreeState::ParameterLayout createParameterLayout();
 
 private:
     // mCircularBuffer MUST be declared before mGranulator —
@@ -60,8 +61,8 @@ private:
     PitchManager   mPitchManager;
     Granulator     mGranulator;
 
-    // apvts must come after the audio components so _createParameterLayout() is safe to call.
-    juce::AudioProcessorValueTreeState apvts;
+    // Different than mBaseAPVTS in RD_Processor
+    juce::AudioProcessorValueTreeState mAPVTS;
 
     juce::int64         mAbsoluteSampleCount  = 0;
     int                 mDetectionSampleCount = 0;
@@ -69,7 +70,6 @@ private:
     bool                mWasPlaying           = false;
 
     bool _didTransportJustStop();
-    juce::AudioProcessorValueTreeState::ParameterLayout _createParameterLayout();
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (GrainShifterProcessor)
 };
