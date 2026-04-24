@@ -12,13 +12,14 @@
 
 #pragma once
 #include "Util/Juce_Header.h"
+#include "PROCESSORS/BASE/RD_Processor.h"
 #include "CircularBuffer.h"
 #include "PITCH/PitchManager.h"
 #include "Granulator.h"
 
 class GrainShifterEditor;
 
-class GrainShifterProcessor : public juce::AudioProcessor
+class GrainShifterProcessor : public RD_Processor
                             , public juce::AudioProcessorValueTreeState::Listener
 {
 public:
@@ -38,16 +39,6 @@ public:
 
     //==============================================================================
     const juce::String getName() const override                 { return "Grain Shifter"; }
-    bool acceptsMidi() const override                           { return false; }
-    bool producesMidi() const override                          { return false; }
-    double getTailLengthSeconds() const override                { return 0.0; }
-    int getNumPrograms() override                               { return 1; }
-    int getCurrentProgram() override                            { return 0; }
-    void setCurrentProgram (int) override                       {}
-    const juce::String getProgramName (int) override            { return "None"; }
-    void changeProgramName (int, const juce::String&) override  {}
-    void getStateInformation (juce::MemoryBlock& d) override    { juce::ignoreUnused(d); }
-    void setStateInformation (const void* d, int n) override    { juce::ignoreUnused(d, n); }
 
     //==============================================================================
     void parameterChanged (const juce::String& parameterID, float newValue) override;
@@ -72,8 +63,6 @@ private:
     // apvts must come after the audio components so _createParameterLayout() is safe to call.
     juce::AudioProcessorValueTreeState apvts;
 
-    double              mSampleRate           = 44100.0;
-    int                 mBlockSize            = 512;
     juce::int64         mAbsoluteSampleCount  = 0;
     int                 mDetectionSampleCount = 0;
     juce::Atomic<float> mShiftRatio           { 1.0f };

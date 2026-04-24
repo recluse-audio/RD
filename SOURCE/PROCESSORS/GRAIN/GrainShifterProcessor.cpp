@@ -42,9 +42,7 @@ namespace GrainShifter
 
 //==============================================================================
 GrainShifterProcessor::GrainShifterProcessor()
-    : AudioProcessor (BusesProperties()
-                        .withInput  ("Input",  juce::AudioChannelSet::stereo(), true)
-                        .withOutput ("Output", juce::AudioChannelSet::stereo(), true))
+    : RD_Processor()
     , mGranulator (mCircularBuffer)
     , apvts (*this, nullptr, "Parameters", _createParameterLayout())
 {
@@ -65,8 +63,7 @@ GrainShifterProcessor::~GrainShifterProcessor()
 //==============================================================================
 void GrainShifterProcessor::prepareToPlay (double sampleRate, int samplesPerBlock)
 {
-    mSampleRate           = sampleRate;
-    mBlockSize            = samplesPerBlock;
+    RD_Processor::prepareToPlay (sampleRate, samplesPerBlock);
     mAbsoluteSampleCount  = 0;
     mDetectionSampleCount = 0;
 

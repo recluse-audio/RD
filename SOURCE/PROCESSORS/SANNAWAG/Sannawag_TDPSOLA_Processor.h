@@ -12,9 +12,10 @@
 
 #pragma once
 #include "Util/Juce_Header.h"
+#include "PROCESSORS/BASE/RD_Processor.h"
 #include "TD_PSOLA.h"
 
-class Sannawag_TDPSOLA_Processor : public juce::AudioProcessor
+class Sannawag_TDPSOLA_Processor : public RD_Processor
                                  , public juce::AudioProcessorValueTreeState::Listener
 {
 public:
@@ -34,16 +35,6 @@ public:
 
     //==============================================================================
     const juce::String getName() const override                 { return "Sannawag TD-PSOLA"; }
-    bool acceptsMidi() const override                           { return false; }
-    bool producesMidi() const override                          { return false; }
-    double getTailLengthSeconds() const override                { return 0.0; }
-    int getNumPrograms() override                               { return 1; }
-    int getCurrentProgram() override                            { return 0; }
-    void setCurrentProgram (int) override                       {}
-    const juce::String getProgramName (int) override            { return "None"; }
-    void changeProgramName (int, const juce::String&) override  {}
-    void getStateInformation (juce::MemoryBlock& d) override    { juce::ignoreUnused(d); }
-    void setStateInformation (const void* d, int n) override    { juce::ignoreUnused(d, n); }
 
     //==============================================================================
     void parameterChanged (const juce::String& parameterID, float newValue) override;
@@ -68,8 +59,6 @@ private:
 
     juce::AudioProcessorValueTreeState apvts;
 
-    double              mSampleRate          = 44100.0;
-    int                 mBlockSize           = 512;
     juce::int64         mAbsoluteSampleCount = 0;
     juce::Atomic<float> mShiftRatio          { 1.0f };
     bool                mWasPlaying          = false;

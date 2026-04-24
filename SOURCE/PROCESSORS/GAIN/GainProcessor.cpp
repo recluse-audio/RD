@@ -2,7 +2,7 @@
 #include "EDITORS/GainEditor.h"
 
 GainProcessor::GainProcessor()
-: AudioProcessor (_getBusesProperties())
+: RD_Processor()
 , apvts(*this, nullptr, "Parameters", _createParameterLayout())
 {
     apvts.addParameterListener ("gain", this);
@@ -14,13 +14,10 @@ GainProcessor::~GainProcessor()
     apvts.removeParameterListener ("gain", this);
 }
 
-void GainProcessor::prepareToPlay(double sampleRate, int samplesPerBlock) 
+void GainProcessor::prepareToPlay(double sampleRate, int samplesPerBlock)
 {
-    mSampleRate = sampleRate;
-    mBlockSize = samplesPerBlock;
+    RD_Processor::prepareToPlay (sampleRate, samplesPerBlock);
 }
-
-void GainProcessor::releaseResources() {}
 
 void GainProcessor::processBlock(juce::AudioBuffer<float>& buffer, juce::MidiBuffer& midiMessages)
 {
@@ -92,15 +89,6 @@ juce::AudioProcessorValueTreeState::ParameterLayout GainProcessor::_createParame
 
 //====================
 //
-juce::AudioProcessor::BusesProperties GainProcessor::_getBusesProperties()
-{
-    return BusesProperties()
-                .withInput("Input", juce::AudioChannelSet::stereo(), true)
-                .withOutput("Output", juce::AudioChannelSet::stereo(), true);
-}
-
-//====================
-//
 void GainProcessor::setGain(float newGain)
 {
     mGainValue.set(newGain);
@@ -109,18 +97,4 @@ void GainProcessor::setGain(float newGain)
     // gainParam->beginChangeGesture();
     // gainParam->setValueNotifyingHost(newGain);
     // gainParam->endChangeGesture();
-}
-
-//====================
-//
-const int GainProcessor::getLastBlockSizeFromPrepareToPlay()
-{
-    return mBlockSize;
-}
-
-//====================
-//
-const double GainProcessor::getLastSampleRateFromPrepareToPlay()
-{
-    return mSampleRate;
 }

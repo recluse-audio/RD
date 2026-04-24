@@ -7,9 +7,7 @@ namespace Sannawag
 
 //==============================================================================
 Sannawag_TDPSOLA_Processor::Sannawag_TDPSOLA_Processor()
-    : AudioProcessor (BusesProperties()
-                        .withInput  ("Input",  juce::AudioChannelSet::stereo(), true)
-                        .withOutput ("Output", juce::AudioChannelSet::stereo(), true))
+    : RD_Processor()
     , apvts (*this, nullptr, "Parameters", _createParameterLayout())
 {
     apvts.addParameterListener (Sannawag::kShiftRatioID, this);
@@ -23,8 +21,7 @@ Sannawag_TDPSOLA_Processor::~Sannawag_TDPSOLA_Processor()
 //==============================================================================
 void Sannawag_TDPSOLA_Processor::prepareToPlay (double sampleRate, int samplesPerBlock)
 {
-    mSampleRate          = sampleRate;
-    mBlockSize           = samplesPerBlock;
+    RD_Processor::prepareToPlay (sampleRate, samplesPerBlock);
     mAbsoluteSampleCount = 0;
 
     mScratchBuffer.setSize (getTotalNumInputChannels(), samplesPerBlock, false, true, false);

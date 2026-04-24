@@ -9,6 +9,8 @@ set(SOURCES
     SOURCE/BufferWriter.h
     SOURCE/CircularBuffer.cpp
     SOURCE/CircularBuffer.h
+    SOURCE/DATA_LOGGER/ProcessorDataLogger.cpp
+    SOURCE/DATA_LOGGER/ProcessorDataLogger.h
     SOURCE/EDITORS/GainEditor.cpp
     SOURCE/EDITORS/GainEditor.h
     SOURCE/EDITORS/GrainShifterEditor.cpp
