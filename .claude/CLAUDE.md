@@ -26,11 +26,46 @@ cd BUILD && ctest
 
 Release builds strip all debug code at compile time (zero overhead).
 
+### Build Mode: Plugin vs Static Library
+
+RD auto-detects context in `CMakeLists.txt`:
+- **Top-level build** → `BUILD_AS_PLUGIN=ON` → produces VST3 + Standalone targets via `juce_add_plugin`.
+- **Included as submodule** → `BUILD_AS_PLUGIN=OFF` → produces static library target named `RD`.
+
+Override explicitly with `-DBUILD_AS_PLUGIN=ON/OFF` if needed.
+
+### Submodule-in-Parent Guardrail
+
+If RD lives inside another project's `SUBMODULES/` directory, CMake will **fatal-error** on any attempt to configure RD standalone from that nested path. The parent project must drive the build. Do not work around this — clone RD as its own repo for standalone work.
+
+### Optional Intel IPP (Windows)
+
+`find_package(IPP)` is attempted on MSVC. If found, links `IPP::ipps/ippcore/ippi/ippcv` and defines `PAMPLEJUCE_IPP=1`. Silently skipped otherwise; build still succeeds.
+
+### Helper Scripts
+
+Python automation in `HELPER_SCRIPTS/`:
+- `build_vst3.py`, `build_tests.py`, `rebuild_all.py` — build drivers
+- `build_installer.py`, `sign_builds.py`, `sign_installers.py` — packaging/signing
+- `release_workflow.py`, `build_and_release_workflow.py` — end-to-end release
+- `update_version.py` — invoked by CMake custom target `update_version_header` to regenerate `SOURCE/Util/Version.h` from `VERSION.txt`
+
 ## Testing
 
 Framework: **Catch2 v3** (auto-fetched via FetchContent). Test files live in `TESTS/`, test utilities in `TESTS/TEST_UTILS/`, golden reference audio in `TESTS/GOLDEN/`.
 
 Source list for tests is managed in `CMAKE/TESTS.cmake` — add new test files there.
+
+### Running a single test
+
+From `BUILD/` after building:
+
+```bash
+./Tests --list-tests              # enumerate all test cases
+./Tests "[tag]"                   # run all tests with given tag
+./Tests "exact test case name"    # run one case
+ctest -R <regex>                  # ctest-level filter
+```
 
 ## Architecture
 
@@ -57,12 +92,16 @@ The `CircularBuffer` is the **single source of truth** for all audio. Everything
 | `CircularBuffer` | Ring buffer storing all incoming audio |
 | `PitchManager` | Coordinates pitch detection; owns `FFT_PitchDetector`, `PitchMarker`, `SynthMarker` |
 | `FFT_PitchDetector` | FFT-based autocorrelation pitch detection (the active detector used for grain shifting) |
-| `YIN_PitchDetector` | YIN/CMND algorithm pitch detector (legacy, available separately) |
+| `YIN_PitchDetector` | YIN/CMND reference implementation — not wired into `PitchManager`. Do not swap in without benchmarking. |
 | `PitchMarker` | Tracks detected pitch mark positions in the circular buffer (30-second FIFO) |
 | `SynthMarker` | Tracks synthesis event positions relative to pitch marks |
 | `Granulator` | Pre-allocated pool of `Grain` objects; voice-pool pattern (reuses finished grains) |
 | `Grain` | Single windowed grain using TD-PSOLA technique; applies Hann/Tukey window and overlap-adds into output |
 | `Window` | Generates Hann, Tukey, and other window functions |
+
+### Parameter Wiring (APVTS)
+
+Each processor owns its own `mAPVTS` via override, rather than sharing a single `mBaseAPVTS` on `RD_Processor`. When adding or touching parameters on a processor subclass, define them on that subclass's APVTS — do not route through the base class.
 
 ### Real-Time Safety
 

@@ -1,5 +1,5 @@
 set(TEST_SOURCES
-    TESTS/DATA_LOGGER/test_ProcessorDataLogger.cpp
+    TESTS/DATA_LOGGER/test_DataLogger.cpp
     TESTS/PROCESSORS/test_RD_Processor.cpp
     TESTS/TEST_UTILS/BufferGenerator.h
     TESTS/TEST_UTILS/TestUtils.cpp
