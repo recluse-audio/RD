@@ -207,6 +207,11 @@ TEST_CASE("FFT_PitchDetector - Buffer Size Handling", "[FFT_PitchDetector]")
 
     SECTION("Small buffer (512 samples)")
     {
+        // A 512-sample window cannot fit 2 periods at the default 80 Hz floor
+        // (2 * 44100/80 = 1102 samples). Narrow the range so the detector's
+        // "window must fit 2 periods at mMinHz" guard is satisfied.
+        detector.setFrequencyRange(200.0f, 1000.0f);
+
         const float expectedPeriod = getExpectedPeriod(frequency, sampleRate);
         juce::AudioBuffer<float> testBuffer(1, 512);
         BufferFiller::generateSineCycles(testBuffer, static_cast<int>(expectedPeriod));

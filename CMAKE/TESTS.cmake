@@ -25,6 +25,7 @@ set(TEST_SOURCES
     TESTS/test_PitchMarker.cpp
     TESTS/test_RDProcessorSwapper.cpp
     TESTS/test_RDProcessorSwapperEditor.cpp
+    TESTS/test_RD_Processor.cpp
     TESTS/test_RelativeFilePath.cpp
     TESTS/test_SynthMark.cpp
     TESTS/test_SynthMarker.cpp

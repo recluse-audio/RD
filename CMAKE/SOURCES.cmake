@@ -35,6 +35,8 @@ set(SOURCES
     SOURCE/PITCH/SynthMarker.h
     SOURCE/PITCH/YIN_PitchDetector.cpp
     SOURCE/PITCH/YIN_PitchDetector.h
+    SOURCE/PROCESSORS/BASE/RD_Processor.cpp
+    SOURCE/PROCESSORS/BASE/RD_Processor.h
     SOURCE/PROCESSORS/GAIN/GainProcessor.cpp
     SOURCE/PROCESSORS/GAIN/GainProcessor.h
     SOURCE/PROCESSORS/GRAIN/Grain.h
