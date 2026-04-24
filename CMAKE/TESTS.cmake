@@ -1,5 +1,6 @@
 set(TEST_SOURCES
     TESTS/DATA_LOGGER/test_ProcessorDataLogger.cpp
+    TESTS/PROCESSORS/test_RD_Processor.cpp
     TESTS/TEST_UTILS/BufferGenerator.h
     TESTS/TEST_UTILS/TestUtils.cpp
     TESTS/TEST_UTILS/TestUtils.h
@@ -25,7 +26,6 @@ set(TEST_SOURCES
     TESTS/test_PitchMarker.cpp
     TESTS/test_RDProcessorSwapper.cpp
     TESTS/test_RDProcessorSwapperEditor.cpp
-    TESTS/test_RD_Processor.cpp
     TESTS/test_RelativeFilePath.cpp
     TESTS/test_SynthMark.cpp
     TESTS/test_SynthMarker.cpp

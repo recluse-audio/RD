@@ -1,7 +1,10 @@
 {
   "permissions": {
     "allow": [
-      "Bash(xargs grep *)"
+      "Bash(xargs grep *)",
+      "Read(//c/REPOS/PLUGIN_PROJECTS/AudioFileTransformer/**)",
+      "Read(//c/REPOS/PLUGIN_PROJECTS/AudioFileTransformer/SUBMODULES/RD/CMAKE/**)",
+      "Bash(git submodule *)"
     ]
   }
 }

@@ -43,6 +43,11 @@ public:
     //==============================================================================
     // Boilerplate that every RD processor shares. Override in derived classes when
     // the defaults don't fit (e.g. hasEditor()).
+    const juce::String getName() const override                 { return "RD_Processor"; }
+    void processBlock (juce::AudioBuffer<float>&, juce::MidiBuffer&) override {}
+    juce::AudioProcessorEditor* createEditor() override         { return nullptr; }
+    bool hasEditor() const override                             { return false; }
+
     bool acceptsMidi() const override                           { return false; }
     bool producesMidi() const override                          { return false; }
     double getTailLengthSeconds() const override                { return 0.0; }

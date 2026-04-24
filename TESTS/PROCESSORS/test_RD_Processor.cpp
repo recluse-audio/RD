@@ -1,23 +1,11 @@
 #include <catch2/catch_test_macros.hpp>
-#include "TEST_UTILS/TestUtils.h"
-#include "../SOURCE/PROCESSORS/BASE/RD_Processor.h"
-
-namespace
-{
-    class TestProcessor : public RD_Processor
-    {
-    public:
-        const juce::String getName() const override { return "TestProcessor"; }
-        void processBlock (juce::AudioBuffer<float>&, juce::MidiBuffer&) override {}
-        juce::AudioProcessorEditor* createEditor() override { return nullptr; }
-        bool hasEditor() const override { return false; }
-    };
-}
+#include "../TEST_UTILS/TestUtils.h"
+#include "../../SOURCE/PROCESSORS/BASE/RD_Processor.h"
 
 TEST_CASE("RD_Processor caches sample rate and block size from prepareToPlay", "[RD_Processor]")
 {
     TestUtils::SetupAndTeardown setup;
-    TestProcessor processor;
+    RD_Processor processor;
 
     SECTION("Defaults before prepareToPlay")
     {
@@ -36,7 +24,7 @@ TEST_CASE("RD_Processor caches sample rate and block size from prepareToPlay", "
     {
         processor.prepareToPlay(48000.0, 256);
         processor.prepareToPlay(96000.0, 1024);
-        REQUIRE(processor.getLastSampleRateFromPrepareToPlay() == 96000.0);
+        REQUIRE(processor.getLastSampleRateFromPrepareToPlay() == 97000.0);
         REQUIRE(processor.getLastBlockSizeFromPrepareToPlay()  == 1024);
     }
 }
