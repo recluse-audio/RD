@@ -31,7 +31,8 @@ public:
 
     //==============================================================================
     const juce::String getName() const override;
-    void processBlock (juce::AudioBuffer<float>&, juce::MidiBuffer&) override;
+    // Child classes should override `doProcessBlock()`, see below
+    void processBlock (juce::AudioBuffer<float>&, juce::MidiBuffer&) final override;
     juce::AudioProcessorEditor* createEditor() override;
     bool hasEditor() const override;
 
@@ -55,9 +56,17 @@ public:
     juce::int64 getProcessSampleCount() const;
 
     //==============================================================================
+    //========================= VIRTUAL FUNCTIONS ==================================
+    //==============================================================================
+
+    // Called by RD_Processor::processBlock(), override this instead of base processBlock()
+    // So RD_Processor base class can keep some data logging logic and other stuff
+    // out of your child class. If you don't want to do this, then you may not want to use this processor.
+    virtual void doProcessBlock (juce::AudioBuffer<float>& buffer, juce::MidiBuffer& midiBuffer);
     /** Returns the APVTS for this processor. Derived classes override to
         return a reference to their own `mAPVTS`. */
     virtual juce::AudioProcessorValueTreeState& getAPVTS();
+
 
     juce::File createProcessorDataLogFile();
     juce::File createProcessBlockDataLogFile(juce::AudioBuffer<float> processBuffer, bool isPreProcessing = true);

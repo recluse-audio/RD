@@ -112,7 +112,7 @@ bool GrainShifterProcessor::_didTransportJustStop()
     return false;
 }
 
-void GrainShifterProcessor::processBlock (juce::AudioBuffer<float>& buffer, juce::MidiBuffer&)
+void GrainShifterProcessor::doProcessBlock (juce::AudioBuffer<float>& buffer, juce::MidiBuffer&)
 {
     if (_didTransportJustStop())
         mCircularBuffer.clear();

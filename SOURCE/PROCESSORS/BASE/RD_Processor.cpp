@@ -35,8 +35,21 @@ const juce::String RD_Processor::getName() const
     return "RD_Processor";
 }
 
-void RD_Processor::processBlock (juce::AudioBuffer<float>&, juce::MidiBuffer&)
+void RD_Processor::processBlock (juce::AudioBuffer<float>& buffer, juce::MidiBuffer& midiBuffer)
 {
+    if(this->getIsLogging())
+        this->createProcessBlockDataLogFile(buffer, true);
+
+    // This is where child class processors will do their magic
+    doProcessBlock (buffer, midiBuffer);
+
+    if(this->getIsLogging())
+        this->createProcessBlockDataLogFile(buffer, false);
+}
+
+void RD_Processor::doProcessBlock (juce::AudioBuffer<float>& buffer, juce::MidiBuffer& midiBuffer)
+{
+    juce::ignoreUnused (buffer, midiBuffer);
 }
 
 juce::AudioProcessorEditor* RD_Processor::createEditor()

@@ -1,9 +1,11 @@
 set(TEST_SOURCES
     TESTS/DATA_LOGGER/test_DataLogger.cpp
     TESTS/PROCESSORS/GAIN_PROCESSOR/test_GainProcessor.cpp
+    TESTS/PROCESSORS/GAIN_PROCESSOR/test_GainProcessor_DataLogger.cpp
     TESTS/PROCESSORS/GRAIN_SHIFTER_PROCESSOR/test_GrainShifterProcessor.cpp
     TESTS/PROCESSORS/GRAIN_SHIFTER_PROCESSOR/test_GrainShifter_Female_Scale.cpp
     TESTS/PROCESSORS/RD_PROCESSOR/test_RD_Processor.cpp
+    TESTS/PROCESSORS/RD_PROCESSOR/test_RD_Processor_DataLogger.cpp
     TESTS/PROCESSORS/RD_PROCESSOR_SWAPPER/test_RDProcessorSwapper.cpp
     TESTS/PROCESSORS/RD_PROCESSOR_SWAPPER/test_RDProcessorSwapperEditor.cpp
     TESTS/TEST_UTILS/BufferGenerator.h

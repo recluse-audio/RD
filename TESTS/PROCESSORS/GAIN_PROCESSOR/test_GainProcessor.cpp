@@ -4,59 +4,8 @@
 #include "../../TEST_UTILS/TestUtils.h"
 #include "../../TEST_UTILS/BufferGenerator.h"
 #include "../../../SOURCE/PROCESSORS/GAIN/GainProcessor.h"
-#include "../../../SOURCE/BufferFiller.h"
 
-TEST_CASE("GainProcessor applies gain and writes DataLogger output", "[GainProcessor][DataLogger]")
-{
-    TestUtils::SetupAndTeardown setup;
-    GainProcessor processor;
 
-    auto timestamp = juce::Time::getCurrentTime().formatted ("%Y-%m-%d_%H-%M-%S");
-    juce::File outputDir = juce::File ("c:/REPOS/PLUGIN_PROJECTS/RD/TESTS/PROCESSORS/GAIN_PROCESSOR/OUTPUT/GainProcessor applies gain and writes DataLogger output")
-                               .getChildFile (timestamp);
-    processor.createOutputDirectory (outputDir);
-
-    const int numChannels = 2;
-    const int numSamples  = 256;
-
-    auto runGainSection = [&] (float gain, const juce::String& sectionName)
-    {
-        auto sectionDir = outputDir.getChildFile (sectionName);
-        processor.createOutputDirectory (sectionDir);
-        processor.setOutputFile (sectionDir);
-
-        processor.setGain (gain);
-
-        juce::AudioBuffer<float> buffer (numChannels, numSamples);
-        BufferFiller::fillWithAllOnes (buffer);
-
-        auto preLog = processor.createProcessBlockDataLogFile (buffer, true);
-        REQUIRE(preLog.existsAsFile());
-
-        juce::MidiBuffer midi;
-        processor.processBlock (buffer, midi);
-
-        auto postLog = processor.createProcessBlockDataLogFile (buffer, false);
-        REQUIRE(postLog.existsAsFile());
-
-        auto stateLog = processor.createProcessorDataLogFile();
-        REQUIRE(stateLog.existsAsFile());
-
-        for (int ch = 0; ch < numChannels; ++ch)
-            for (int s = 0; s < numSamples; ++s)
-                REQUIRE(buffer.getSample (ch, s) == Catch::Approx (gain).margin (1e-6));
-    };
-
-    SECTION("Gain 1.0 leaves all-ones buffer unchanged")
-    {
-        runGainSection (1.0f, "gain-1.0");
-    }
-
-    SECTION("Gain 0.5 halves all-ones buffer")
-    {
-        runGainSection (0.5f, "gain-0.5");
-    }
-}
 
 TEST_CASE("GainProcessor applies gain exactly to unity input", "[GainProcessor]")
 {

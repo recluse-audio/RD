@@ -26,7 +26,7 @@ public:
     GainProcessor();
     ~GainProcessor() override = default;
 
-    void processBlock (juce::AudioBuffer<float>&, juce::MidiBuffer&) override;
+    void doProcessBlock (juce::AudioBuffer<float>&, juce::MidiBuffer&) override;
 
     juce::AudioProcessorEditor* createEditor() override;
     bool hasEditor() const override                        { return true;   }

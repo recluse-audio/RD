@@ -51,7 +51,7 @@ bool Sannawag_TDPSOLA_Processor::_didTransportJustStop()
     return false;
 }
 
-void Sannawag_TDPSOLA_Processor::processBlock (juce::AudioBuffer<float>& buffer, juce::MidiBuffer&)
+void Sannawag_TDPSOLA_Processor::doProcessBlock (juce::AudioBuffer<float>& buffer, juce::MidiBuffer&)
 {
     juce::ignoreUnused (_didTransportJustStop());
 
