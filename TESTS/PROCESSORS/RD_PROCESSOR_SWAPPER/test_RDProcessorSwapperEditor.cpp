@@ -1,7 +1,7 @@
 #include <catch2/catch_test_macros.hpp>
-#include "../SOURCE/PROCESSORS/RD_ProcessorSwapper.h"
-#include "../SOURCE/EDITORS/RD_ProcessorSwapperEditor.h"
-#include "TEST_UTILS/TestUtils.h"
+#include "../../../SOURCE/PROCESSORS/RD_ProcessorSwapper.h"
+#include "../../../SOURCE/EDITORS/RD_ProcessorSwapperEditor.h"
+#include "../../TEST_UTILS/TestUtils.h"
 
 struct RD_ProcessorSwapperEditorTests
 {

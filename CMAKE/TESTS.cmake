@@ -2,7 +2,10 @@ set(TEST_SOURCES
     TESTS/DATA_LOGGER/test_DataLogger.cpp
     TESTS/PROCESSORS/GAIN_PROCESSOR/test_GainProcessor.cpp
     TESTS/PROCESSORS/GRAIN_SHIFTER_PROCESSOR/test_GrainShifterProcessor.cpp
+    TESTS/PROCESSORS/GRAIN_SHIFTER_PROCESSOR/test_GrainShifter_Female_Scale.cpp
     TESTS/PROCESSORS/RD_PROCESSOR/test_RD_Processor.cpp
+    TESTS/PROCESSORS/RD_PROCESSOR_SWAPPER/test_RDProcessorSwapper.cpp
+    TESTS/PROCESSORS/RD_PROCESSOR_SWAPPER/test_RDProcessorSwapperEditor.cpp
     TESTS/TEST_UTILS/BufferGenerator.h
     TESTS/TEST_UTILS/TestUtils.cpp
     TESTS/TEST_UTILS/TestUtils.h
@@ -17,17 +20,12 @@ set(TEST_SOURCES
     TESTS/test_CircularBuffer.cpp
     TESTS/test_FFT_PitchDetector.cpp
     TESTS/test_Fade.cpp
-    TESTS/test_GainProcessor.cpp
     TESTS/test_Grain.cpp
-    TESTS/test_GrainShifterProcessor.cpp
-    TESTS/test_GrainShifter_Female_Scale.cpp
     TESTS/test_Granulator.cpp
     TESTS/test_PitchDetection_Arpeggios.cpp
     TESTS/test_PitchDetection_Somewhere.cpp
     TESTS/test_PitchManager.cpp
     TESTS/test_PitchMarker.cpp
-    TESTS/test_RDProcessorSwapper.cpp
-    TESTS/test_RDProcessorSwapperEditor.cpp
     TESTS/test_RelativeFilePath.cpp
     TESTS/test_SynthMark.cpp
     TESTS/test_SynthMarker.cpp

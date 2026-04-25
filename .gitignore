@@ -44,6 +44,8 @@ Thumbs.db
 # Test and script output
 TESTS/OUTPUT/*
 TESTS/DATA_LOGGER/OUTPUT/*
+TESTS/PROCESSORS/**/OUTPUT/*
+!TESTS/PROCESSORS/**/OUTPUT/.gitkeep
 SCRIPTS/venv/*
 
 # Signing and release output

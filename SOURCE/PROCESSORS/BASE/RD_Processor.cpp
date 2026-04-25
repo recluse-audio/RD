@@ -134,6 +134,7 @@ juce::File RD_Processor::createProcessorDataLogFile()
     return logFile;
 }
 
+
 juce::File RD_Processor::createProcessBlockDataLogFile (juce::AudioBuffer<float> processBuffer, bool isPreProcessing)
 {
     createOutputDirectory (getOutputFile());
@@ -157,12 +158,12 @@ juce::File RD_Processor::createProcessBlockDataLogFile (juce::AudioBuffer<float>
     }
     csv << "\n";
 
-    for (int s = 0; s < numSamples; ++s)
+    for (int sampleIndex = 0; sampleIndex < numSamples; ++sampleIndex)
     {
         for (int ch = 0; ch < numChannels; ++ch)
         {
             if (ch > 0) csv << ",";
-            csv << juce::String (processBuffer.getSample (ch, s), 8);
+            csv << juce::String (processBuffer.getSample (ch, sampleIndex), 8);
         }
         csv << "\n";
     }

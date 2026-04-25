@@ -4,7 +4,10 @@
       "Bash(xargs grep *)",
       "Read(//c/REPOS/PLUGIN_PROJECTS/AudioFileTransformer/**)",
       "Read(//c/REPOS/PLUGIN_PROJECTS/AudioFileTransformer/SUBMODULES/RD/CMAKE/**)",
-      "Bash(git submodule *)"
+      "Bash(git submodule *)",
+      "Bash(git check-ignore *)",
+      "Bash(grep -zv '\\\\.gitkeep$')",
+      "Bash(xargs -0 git rm --cached --ignore-unmatch)"
     ]
   }
 }

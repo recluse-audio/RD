@@ -1,7 +1,7 @@
 #include <catch2/catch_test_macros.hpp>
-#include "../SOURCE/PROCESSORS/RD_ProcessorSwapper.h"
-#include "../SOURCE/BufferFiller.h"
-#include "TEST_UTILS/TestUtils.h"
+#include "../../../SOURCE/PROCESSORS/RD_ProcessorSwapper.h"
+#include "../../../SOURCE/BufferFiller.h"
+#include "../../TEST_UTILS/TestUtils.h"
 
 TEST_CASE("RD_ProcessorSwapper active processor index get and set", "[RD_ProcessorSwapper]")
 {
