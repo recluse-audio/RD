@@ -3,13 +3,25 @@
 
 TEST_CASE("DataLogger constructs without error", "[DataLogger]")
 {
+    auto timestamp = juce::Time::getCurrentTime().formatted ("%Y-%m-%d_%H-%M-%S");
+    juce::File outputDir = juce::File ("c:/REPOS/PLUGIN_PROJECTS/RD/TESTS/DATA_LOGGER/OUTPUT/DataLogger constructs without error")
+                               .getChildFile (timestamp);
+
     DataLogger logger;
+    logger.createOutputDirectory (outputDir);
+    logger.setOutputFile (outputDir);
     SUCCEED();
 }
 
 TEST_CASE("DataLogger mIsLogging getter and setter", "[DataLogger]")
 {
+    auto timestamp = juce::Time::getCurrentTime().formatted ("%Y-%m-%d_%H-%M-%S");
+    juce::File outputDir = juce::File ("c:/REPOS/PLUGIN_PROJECTS/RD/TESTS/DATA_LOGGER/OUTPUT/DataLogger mIsLogging getter and setter")
+                               .getChildFile (timestamp);
+
     DataLogger logger;
+    logger.createOutputDirectory (outputDir);
+    logger.setOutputFile (outputDir);
 
     SECTION("Default is false")
     {
@@ -32,11 +44,15 @@ TEST_CASE("DataLogger mIsLogging getter and setter", "[DataLogger]")
 
 TEST_CASE("DataLogger output file getter and setter", "[DataLogger]")
 {
+    auto timestamp = juce::Time::getCurrentTime().formatted ("%Y-%m-%d_%H-%M-%S");
+    juce::File outputDir = juce::File ("c:/REPOS/PLUGIN_PROJECTS/RD/TESTS/DATA_LOGGER/OUTPUT/DataLogger output file getter and setter")
+                               .getChildFile (timestamp);
+
     DataLogger logger;
+    logger.createOutputDirectory (outputDir);
 
     SECTION("Set and get output file round-trips correctly")
     {
-        juce::File outputDir ("c:/REPOS/PLUGIN_PROJECTS/RD/TESTS/DATA_LOGGER/OUTPUT");
         logger.setOutputFile (outputDir);
         REQUIRE(logger.getOutputFile() == outputDir);
     }
@@ -44,9 +60,12 @@ TEST_CASE("DataLogger output file getter and setter", "[DataLogger]")
 
 TEST_CASE("DataLogger createDataLogFile writes expected content", "[DataLogger]")
 {
-    juce::File outputDir ("c:/REPOS/PLUGIN_PROJECTS/RD/TESTS/DATA_LOGGER/OUTPUT");
+    auto timestamp = juce::Time::getCurrentTime().formatted ("%Y-%m-%d_%H-%M-%S");
+    juce::File outputDir = juce::File ("c:/REPOS/PLUGIN_PROJECTS/RD/TESTS/DATA_LOGGER/OUTPUT/DataLogger createDataLogFile writes expected content")
+                               .getChildFile (timestamp);
 
     DataLogger logger;
+    logger.createOutputDirectory (outputDir);
     logger.setOutputFile (outputDir);
 
     auto logFile = logger.createDataLogFile();
@@ -57,9 +76,12 @@ TEST_CASE("DataLogger createDataLogFile writes expected content", "[DataLogger]"
 
 TEST_CASE("DataLogger logData returns false and creates no file when not logging", "[DataLogger]")
 {
-    juce::File outputDir ("c:/REPOS/PLUGIN_PROJECTS/RD/TESTS/DATA_LOGGER/OUTPUT");
+    auto timestamp = juce::Time::getCurrentTime().formatted ("%Y-%m-%d_%H-%M-%S");
+    juce::File outputDir = juce::File ("c:/REPOS/PLUGIN_PROJECTS/RD/TESTS/DATA_LOGGER/OUTPUT/DataLogger logData returns false and creates no file when not logging")
+                               .getChildFile (timestamp);
 
     DataLogger logger;
+    logger.createOutputDirectory (outputDir);
     logger.setOutputFile (outputDir);
     // mIsLogging defaults to false — no explicit set needed
 

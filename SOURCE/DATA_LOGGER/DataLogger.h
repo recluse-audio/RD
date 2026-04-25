@@ -23,6 +23,8 @@ public:
     void setOutputFile (const juce::File& newOutputFile);
     const juce::File& getOutputFile() const;
 
+    bool createOutputDirectory (const juce::File& file);
+
     // This function calls the overridden   createDataLogfile()` if the boolean allows
     bool logData();
     virtual juce::File createDataLogFile();

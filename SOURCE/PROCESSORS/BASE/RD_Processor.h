@@ -52,6 +52,8 @@ public:
     const double getLastSampleRateFromPrepareToPlay() const;
     const int    getLastBlockSizeFromPrepareToPlay()  const;
 
+    juce::int64 getProcessSampleCount() const;
+
     //==============================================================================
     /** Returns the APVTS for this processor. Derived classes override to
         return a reference to their own `mAPVTS`. */
@@ -64,8 +66,9 @@ public:
     void setGain (float newGain);
 
 protected:
-    double mSampleRate = 44100.0;
-    int    mBlockSize  = 512;
+    double      mSampleRate         = 44100.0;
+    int         mBlockSize           = 512;
+    juce::int64 mProcessSampleCount  = 0;
 
     juce::Atomic<float>                mGainValue;
     juce::AudioProcessorValueTreeState mBaseAPVTS;

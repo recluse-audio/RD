@@ -1,15 +1,21 @@
 #include <catch2/catch_test_macros.hpp>
 #include <catch2/catch_approx.hpp>
-#include "../TEST_UTILS/TestUtils.h"
-#include "../../SOURCE/PROCESSORS/BASE/RD_Processor.h"
+#include "../../TEST_UTILS/TestUtils.h"
+#include "../../../SOURCE/PROCESSORS/BASE/RD_Processor.h"
+#include "../../../SOURCE/BufferFiller.h"
 
 TEST_CASE("RD_Processor createDataLogFile writes processor name and APVTS XML", "[RD_Processor][DataLogger]")
 {
     TestUtils::SetupAndTeardown setup;
     RD_Processor processor;
 
-    juce::File outputDir ("c:/REPOS/PLUGIN_PROJECTS/RD/TESTS/DATA_LOGGER/OUTPUT");
-    processor.setOutputFile (outputDir);
+    auto timestamp = juce::Time::getCurrentTime().formatted ("%Y-%m-%d_%H-%M-%S");
+    juce::File outputDir = juce::File ("c:/REPOS/PLUGIN_PROJECTS/RD/TESTS/PROCESSORS/RD_PROCESSOR/OUTPUT/RD_Processor createDataLogFile writes processor name and APVTS XML")
+                               .getChildFile (timestamp);
+
+    auto initialDir = outputDir.getChildFile ("initial");
+    processor.createOutputDirectory (initialDir);
+    processor.setOutputFile (initialDir);
 
     auto logFile = processor.createProcessorDataLogFile();
 
@@ -33,6 +39,10 @@ TEST_CASE("RD_Processor createDataLogFile writes processor name and APVTS XML", 
     juce::AudioBuffer<float> dummyBuffer (2, 512);
     juce::MidiBuffer dummyMidi;
     processor.processBlock (dummyBuffer, dummyMidi);
+
+    auto afterGainDir = outputDir.getChildFile ("after-gain-change");
+    processor.createOutputDirectory (afterGainDir);
+    processor.setOutputFile (afterGainDir);
 
     auto logFile2 = processor.createProcessorDataLogFile();
     REQUIRE(logFile2.existsAsFile());
@@ -73,24 +83,61 @@ TEST_CASE("RD_Processor caches sample rate and block size from prepareToPlay", "
     }
 }
 
+TEST_CASE("RD_Processor tracks process sample count and resets on prepareToPlay", "[RD_Processor]")
+{
+    TestUtils::SetupAndTeardown setup;
+    RD_Processor processor;
+
+    SECTION("Default is zero before any prepareToPlay")
+    {
+        REQUIRE(processor.getProcessSampleCount() == 0);
+    }
+
+    SECTION("prepareToPlay resets count to zero")
+    {
+        processor.prepareToPlay (44100.0, 512);
+        REQUIRE(processor.getProcessSampleCount() == 0);
+    }
+
+    SECTION("prepareToPlay clears a non-zero count")
+    {
+        // Simulate work done by subclasses bumping the count via the protected
+        // member — exercised here through a derived test fixture.
+        struct CountingProcessor : public RD_Processor
+        {
+            void bump (int n) { mProcessSampleCount += n; }
+        };
+
+        CountingProcessor counter;
+        counter.bump (1024);
+        REQUIRE(counter.getProcessSampleCount() == 1024);
+
+        counter.prepareToPlay (48000.0, 256);
+        REQUIRE(counter.getProcessSampleCount() == 0);
+    }
+}
+
 TEST_CASE("RD_Processor createProcessBlockDataLogFile writes audio buffer as CSV", "[RD_Processor][DataLogger]")
 {
     TestUtils::SetupAndTeardown setup;
     RD_Processor processor;
 
-    juce::File outputDir ("c:/REPOS/PLUGIN_PROJECTS/RD/TESTS/DATA_LOGGER/OUTPUT");
-    processor.setOutputFile (outputDir);
+    auto timestamp = juce::Time::getCurrentTime().formatted ("%Y-%m-%d_%H-%M-%S");
+    juce::File outputDir = juce::File ("c:/REPOS/PLUGIN_PROJECTS/RD/TESTS/PROCESSORS/RD_PROCESSOR/OUTPUT/RD_Processor createProcessBlockDataLogFile writes audio buffer as CSV")
+                               .getChildFile (timestamp);
+    processor.createOutputDirectory (outputDir);
 
     const int numChannels = 2;
-    const int numSamples  = 8;
+    const int numSamples  = 256;
     juce::AudioBuffer<float> buffer (numChannels, numSamples);
+    BufferFiller::fillIncremental (buffer);
 
-    for (int ch = 0; ch < numChannels; ++ch)
-        for (int s = 0; s < numSamples; ++s)
-            buffer.setSample (ch, s, static_cast<float> (ch) + static_cast<float> (s) * 0.1f);
-
-    SECTION("Pre-processing flag produces preprocess_ file")
+    SECTION("Pre-processing flag produces preprocess_ file with index-equal samples")
     {
+        auto sectionDir = outputDir.getChildFile ("preprocess");
+        processor.createOutputDirectory (sectionDir);
+        processor.setOutputFile (sectionDir);
+
         auto logFile = processor.createProcessBlockDataLogFile (buffer, true);
 
         REQUIRE(logFile.existsAsFile());
@@ -98,24 +145,24 @@ TEST_CASE("RD_Processor createProcessBlockDataLogFile writes audio buffer as CSV
         REQUIRE(logFile.getFileExtension() == ".csv");
 
         auto lines = juce::StringArray::fromLines (logFile.loadFileAsString());
-        // header + numSamples rows + possible trailing empty line
         REQUIRE(lines[0] == "ch0,ch1");
         REQUIRE(lines.size() >= numSamples + 1);
 
-        // Spot-check first data row: ch0=0.0, ch1=1.0
-        auto firstRow = juce::StringArray::fromTokens (lines[1], ",", "");
-        REQUIRE(firstRow.size() == numChannels);
-        REQUIRE(firstRow[0].getFloatValue() == Catch::Approx (0.0f).margin (1e-5));
-        REQUIRE(firstRow[1].getFloatValue() == Catch::Approx (1.0f).margin (1e-5));
-
-        // Last data row: ch0 = 0.7, ch1 = 1.7
-        auto lastRow = juce::StringArray::fromTokens (lines[numSamples], ",", "");
-        REQUIRE(lastRow[0].getFloatValue() == Catch::Approx (0.7f).margin (1e-5));
-        REQUIRE(lastRow[1].getFloatValue() == Catch::Approx (1.7f).margin (1e-5));
+        for (int s = 0; s < numSamples; ++s)
+        {
+            auto row = juce::StringArray::fromTokens (lines[s + 1], ",", "");
+            REQUIRE(row.size() == numChannels);
+            for (int ch = 0; ch < numChannels; ++ch)
+                REQUIRE(row[ch].getFloatValue() == Catch::Approx (static_cast<float> (s)).margin (1e-4));
+        }
     }
 
     SECTION("Post-processing flag produces postprocess_ file")
     {
+        auto sectionDir = outputDir.getChildFile ("postprocess");
+        processor.createOutputDirectory (sectionDir);
+        processor.setOutputFile (sectionDir);
+
         auto logFile = processor.createProcessBlockDataLogFile (buffer, false);
 
         REQUIRE(logFile.existsAsFile());
@@ -124,6 +171,10 @@ TEST_CASE("RD_Processor createProcessBlockDataLogFile writes audio buffer as CSV
 
     SECTION("Empty buffer writes header only")
     {
+        auto sectionDir = outputDir.getChildFile ("empty-buffer");
+        processor.createOutputDirectory (sectionDir);
+        processor.setOutputFile (sectionDir);
+
         juce::AudioBuffer<float> empty (1, 0);
         auto logFile = processor.createProcessBlockDataLogFile (empty, true);
 

@@ -15,8 +15,9 @@ RD_Processor::~RD_Processor()
 
 void RD_Processor::prepareToPlay (double sampleRate, int samplesPerBlock)
 {
-    mSampleRate = sampleRate;
-    mBlockSize  = samplesPerBlock;
+    mSampleRate         = sampleRate;
+    mBlockSize          = samplesPerBlock;
+    mProcessSampleCount = 0;
 }
 
 void RD_Processor::releaseResources()
@@ -106,6 +107,11 @@ const int RD_Processor::getLastBlockSizeFromPrepareToPlay() const
     return mBlockSize;
 }
 
+juce::int64 RD_Processor::getProcessSampleCount() const
+{
+    return mProcessSampleCount;
+}
+
 juce::AudioProcessorValueTreeState& RD_Processor::getAPVTS()
 {
     return mBaseAPVTS;
@@ -113,9 +119,7 @@ juce::AudioProcessorValueTreeState& RD_Processor::getAPVTS()
 
 juce::File RD_Processor::createProcessorDataLogFile()
 {
-    auto timestamp  = juce::Time::getCurrentTime().formatted ("%Y-%m-%d_%H-%M-%S");
-    auto sessionDir = getOutputFile().getChildFile (timestamp);
-    sessionDir.createDirectory();
+    createOutputDirectory (getOutputFile());
 
     auto xmlState   = getAPVTS().copyState().createXml();
     juce::String apvtsXml = xmlState != nullptr ? xmlState->toString() : "";
@@ -124,7 +128,7 @@ juce::File RD_Processor::createProcessorDataLogFile()
     obj->setProperty ("processorName", getName());
     obj->setProperty ("apvts",         apvtsXml);
 
-    auto logFile = sessionDir.getChildFile ("processor_state.json");
+    auto logFile = getOutputFile().getChildFile ("processor_state.json");
     logFile.replaceWithText (juce::JSON::toString (juce::var (obj.get())));
 
     return logFile;
@@ -132,17 +136,13 @@ juce::File RD_Processor::createProcessorDataLogFile()
 
 juce::File RD_Processor::createProcessBlockDataLogFile (juce::AudioBuffer<float> processBuffer, bool isPreProcessing)
 {
-    auto now        = juce::Time::getCurrentTime();
-    auto timestamp  = now.formatted ("%Y-%m-%d_%H-%M-%S")
-                    + "_" + juce::String (now.getMilliseconds()).paddedLeft ('0', 3);
-    auto sessionDir = getOutputFile().getChildFile (timestamp);
-    sessionDir.createDirectory();
+    createOutputDirectory (getOutputFile());
 
     juce::String fileName = (isPreProcessing ? "preprocess_" : "postprocess_")
                           + juce::String (processBuffer.getNumChannels()) + "ch_"
                           + juce::String (processBuffer.getNumSamples())  + "smp.csv";
 
-    auto logFile = sessionDir.getChildFile (fileName);
+    auto logFile = getOutputFile().getChildFile (fileName);
 
     const int numChannels = processBuffer.getNumChannels();
     const int numSamples  = processBuffer.getNumSamples();

@@ -29,13 +29,20 @@ bool DataLogger::logData()
     return file.exists();
 }
 
+bool DataLogger::createOutputDirectory (const juce::File& file)
+{
+    if (file.exists() && file.isDirectory())
+        return true;
+
+    auto result = file.createDirectory();
+    return result.wasOk() && file.isDirectory();
+}
+
 juce::File DataLogger::createDataLogFile()
 {
-    auto timestamp = juce::Time::getCurrentTime().formatted ("%Y-%m-%d_%H-%M-%S");
-    auto sessionDir = mOutputFile.getChildFile (timestamp);
-    sessionDir.createDirectory();
+    createOutputDirectory (mOutputFile);
 
-    auto logFile = sessionDir.getChildFile ("output.txt");
+    auto logFile = mOutputFile.getChildFile ("output.txt");
     logFile.replaceWithText ("DataLogger Default Output");
 
     return logFile;
