@@ -52,9 +52,28 @@ Python automation in `HELPER_SCRIPTS/`:
 
 ## Testing
 
-Framework: **Catch2 v3** (auto-fetched via FetchContent). Test files live in `TESTS/`, test utilities in `TESTS/TEST_UTILS/`, golden reference audio in `TESTS/GOLDEN/`.
+Framework: **Catch2 v3** (auto-fetched via FetchContent). Test utilities in `TESTS/TEST_UTILS/`, golden reference audio in `TESTS/GOLDEN/`.
 
 Source list for tests is managed in `CMAKE/TESTS.cmake` — add new test files there.
+
+### Test Layout Convention
+
+Processor tests live under `TESTS/PROCESSORS/<PROCESSOR_NAME>/`. Each processor folder has:
+
+- `test_<Processor>.cpp` — behavior/unit tests (tagged `[<Processor>]`).
+- `test_<Processor>_DataLogger.cpp` — DataLogger output tests (tagged `[<Processor>][DataLogger]`).
+- `OUTPUT/` — gitignored, holds timestamped log artifacts. A `.gitkeep` keeps the directory tracked.
+
+Keep `[DataLogger]` cases out of the main behavior test file — separate file per processor.
+
+### DataLogger Test Protocol
+
+For any processor inheriting `RD_Processor` / `DataLogger`, the `_DataLogger.cpp` file follows this pattern (see `TESTS/PROCESSORS/GAIN_PROCESSOR/test_GainProcessor_DataLogger.cpp` for canonical example):
+
+1. Build a timestamped `outputDir` under `TESTS/PROCESSORS/<PROCESSOR>/OUTPUT/<TEST CASE NAME>/<timestamp>`.
+2. Call `processor.createOutputDirectory(outputDir)` once per test case.
+3. Per `SECTION`, create a `sectionDir` under `outputDir`, then `setOutputFile(sectionDir)` so each section's logs are isolated.
+4. Log pre-process buffer → run `processBlock` → log post-process buffer → log processor state. `REQUIRE` each returned `juce::File` exists.
 
 ### Running a single test
 
@@ -102,6 +121,16 @@ The `CircularBuffer` is the **single source of truth** for all audio. Everything
 ### Parameter Wiring (APVTS)
 
 Each processor owns its own `mAPVTS` via override, rather than sharing a single `mBaseAPVTS` on `RD_Processor`. When adding or touching parameters on a processor subclass, define them on that subclass's APVTS — do not route through the base class.
+
+### RD_Processor Template Method (`processBlock` / `doProcessBlock`)
+
+`RD_Processor::processBlock` is `final` — child classes **cannot** override it. Instead, override `virtual void doProcessBlock(buffer, midi)`. The base `processBlock` wraps the child call with shared concerns:
+
+1. If `getIsLogging()` is true, write a pre-process CSV via `createProcessBlockDataLogFile(buffer, true)`.
+2. Call `doProcessBlock(buffer, midi)` — child does its DSP work in place on `buffer`.
+3. If `getIsLogging()` is true, write a post-process CSV via `createProcessBlockDataLogFile(buffer, false)`.
+
+When adding a new processor, override `doProcessBlock`, not `processBlock`. `RD_ProcessorSwapper` is the exception — it inherits `juce::AudioProcessor` directly, not `RD_Processor`.
 
 ### Real-Time Safety
 
