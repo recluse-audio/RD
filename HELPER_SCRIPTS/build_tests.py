@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 from __future__ import annotations
-import argparse, subprocess, sys
+import argparse, shutil, subprocess, sys
 from pathlib import Path
 from build_complete import find_cmake, beep
 
@@ -8,6 +8,22 @@ from build_complete import find_cmake, beep
 def run(cmd: list[str], cwd: Path) -> None:
     print("+", " ".join(cmd))
     subprocess.run(cmd, cwd=str(cwd), check=True)
+
+
+def clean_test_output_dirs(tests_root: Path) -> None:
+    if not tests_root.is_dir():
+        return
+    for output_dir in tests_root.rglob("OUTPUT"):
+        if not output_dir.is_dir():
+            continue
+        print(f"Cleaning {output_dir}")
+        for child in output_dir.iterdir():
+            if child.name == ".gitkeep":
+                continue
+            if child.is_dir():
+                shutil.rmtree(child)
+            else:
+                child.unlink()
 
 
 def regenerate_cmake_lists() -> None:
@@ -42,6 +58,8 @@ def main() -> int:
     root = Path(__file__).resolve().parents[1]
     build_dir = root / "BUILD"
     build_dir.mkdir(parents=True, exist_ok=True)
+
+    clean_test_output_dirs(root / "TESTS")
 
     cmake = find_cmake()
     print(f"Using cmake: {cmake}")
