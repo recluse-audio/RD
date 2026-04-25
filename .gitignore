@@ -43,6 +43,7 @@ Thumbs.db
 
 # Test and script output
 TESTS/OUTPUT/*
+TESTS/DATA_LOGGER/OUTPUT/*
 SCRIPTS/venv/*
 
 # Signing and release output

@@ -3,10 +3,12 @@
  */
 #pragma once
 
+#include "../Util/Juce_Header.h"
+
 /**
  * This class is meant to handle state and output of all sorts of data.
  * Primarily json, csv, xml
- * 
+ *
  * THIS IS NOT MEANT TO BE REAL TIME SAFE
  */
 class DataLogger
@@ -18,6 +20,13 @@ public:
     void setIsLogging (bool isLogging);
     bool getIsLogging() const;
 
+    void setOutputFile (const juce::File& newOutputFile);
+    const juce::File& getOutputFile() const;
+
+    // This function calls the overridden   createDataLogfile()` if the boolean allows
+    bool logData();
+    virtual juce::File createDataLogFile();
 private:
     bool mIsLogging = false;
+    juce::File mOutputFile { juce::File::getSpecialLocation (juce::File::userDocumentsDirectory).getChildFile ("RD_DataLogger") };
 };

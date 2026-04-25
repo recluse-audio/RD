@@ -111,6 +111,66 @@ juce::AudioProcessorValueTreeState& RD_Processor::getAPVTS()
     return mBaseAPVTS;
 }
 
+juce::File RD_Processor::createProcessorDataLogFile()
+{
+    auto timestamp  = juce::Time::getCurrentTime().formatted ("%Y-%m-%d_%H-%M-%S");
+    auto sessionDir = getOutputFile().getChildFile (timestamp);
+    sessionDir.createDirectory();
+
+    auto xmlState   = getAPVTS().copyState().createXml();
+    juce::String apvtsXml = xmlState != nullptr ? xmlState->toString() : "";
+
+    juce::DynamicObject::Ptr obj = new juce::DynamicObject();
+    obj->setProperty ("processorName", getName());
+    obj->setProperty ("apvts",         apvtsXml);
+
+    auto logFile = sessionDir.getChildFile ("processor_state.json");
+    logFile.replaceWithText (juce::JSON::toString (juce::var (obj.get())));
+
+    return logFile;
+}
+
+juce::File RD_Processor::createProcessBlockDataLogFile (juce::AudioBuffer<float> processBuffer, bool isPreProcessing)
+{
+    auto now        = juce::Time::getCurrentTime();
+    auto timestamp  = now.formatted ("%Y-%m-%d_%H-%M-%S")
+                    + "_" + juce::String (now.getMilliseconds()).paddedLeft ('0', 3);
+    auto sessionDir = getOutputFile().getChildFile (timestamp);
+    sessionDir.createDirectory();
+
+    juce::String fileName = (isPreProcessing ? "preprocess_" : "postprocess_")
+                          + juce::String (processBuffer.getNumChannels()) + "ch_"
+                          + juce::String (processBuffer.getNumSamples())  + "smp.csv";
+
+    auto logFile = sessionDir.getChildFile (fileName);
+
+    const int numChannels = processBuffer.getNumChannels();
+    const int numSamples  = processBuffer.getNumSamples();
+
+    juce::String csv;
+    csv.preallocateBytes (static_cast<size_t> (numSamples * numChannels * 12));
+
+    for (int ch = 0; ch < numChannels; ++ch)
+    {
+        if (ch > 0) csv << ",";
+        csv << "ch" << ch;
+    }
+    csv << "\n";
+
+    for (int s = 0; s < numSamples; ++s)
+    {
+        for (int ch = 0; ch < numChannels; ++ch)
+        {
+            if (ch > 0) csv << ",";
+            csv << juce::String (processBuffer.getSample (ch, s), 8);
+        }
+        csv << "\n";
+    }
+
+    logFile.replaceWithText (csv);
+    return logFile;
+}
+
 void RD_Processor::parameterChanged (const juce::String& parameterID, float newValue)
 {
     if (parameterID == "gain")
@@ -142,7 +202,7 @@ juce::AudioProcessorValueTreeState::ParameterLayout RD_Processor::_createParamet
         "Gain",
         0.0f,
         1.0f,
-        0.01f));
+        1.0f));
 
     return { params.begin(), params.end() };
 }

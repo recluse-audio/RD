@@ -13,9 +13,11 @@
 
 #pragma once
 #include "Util/Juce_Header.h"
+#include "../../DATA_LOGGER/DataLogger.h"
 
 class RD_Processor : public juce::AudioProcessor
                    , public juce::AudioProcessorValueTreeState::Listener
+                   , public DataLogger
 {
 public:
     RD_Processor();
@@ -55,6 +57,8 @@ public:
         return a reference to their own `mAPVTS`. */
     virtual juce::AudioProcessorValueTreeState& getAPVTS();
 
+    juce::File createProcessorDataLogFile();
+    juce::File createProcessBlockDataLogFile(juce::AudioBuffer<float> processBuffer, bool isPreProcessing = true);
     void parameterChanged (const juce::String& parameterID, float newValue) override;
 
     void setGain (float newGain);

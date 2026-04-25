@@ -29,3 +29,44 @@ TEST_CASE("DataLogger mIsLogging getter and setter", "[DataLogger]")
         REQUIRE(logger.getIsLogging() == false);
     }
 }
+
+TEST_CASE("DataLogger output file getter and setter", "[DataLogger]")
+{
+    DataLogger logger;
+
+    SECTION("Set and get output file round-trips correctly")
+    {
+        juce::File outputDir ("c:/REPOS/PLUGIN_PROJECTS/RD/TESTS/DATA_LOGGER/OUTPUT");
+        logger.setOutputFile (outputDir);
+        REQUIRE(logger.getOutputFile() == outputDir);
+    }
+}
+
+TEST_CASE("DataLogger createDataLogFile writes expected content", "[DataLogger]")
+{
+    juce::File outputDir ("c:/REPOS/PLUGIN_PROJECTS/RD/TESTS/DATA_LOGGER/OUTPUT");
+
+    DataLogger logger;
+    logger.setOutputFile (outputDir);
+
+    auto logFile = logger.createDataLogFile();
+
+    REQUIRE(logFile.existsAsFile());
+    REQUIRE(logFile.loadFileAsString() == "DataLogger Default Output");
+}
+
+TEST_CASE("DataLogger logData returns false and creates no file when not logging", "[DataLogger]")
+{
+    juce::File outputDir ("c:/REPOS/PLUGIN_PROJECTS/RD/TESTS/DATA_LOGGER/OUTPUT");
+
+    DataLogger logger;
+    logger.setOutputFile (outputDir);
+    // mIsLogging defaults to false — no explicit set needed
+
+    auto childrenBefore = outputDir.getNumberOfChildFiles (juce::File::findFilesAndDirectories);
+    bool result = logger.logData();
+    auto childrenAfter = outputDir.getNumberOfChildFiles (juce::File::findFilesAndDirectories);
+
+    REQUIRE(result == false);
+    REQUIRE(childrenAfter == childrenBefore);
+}
