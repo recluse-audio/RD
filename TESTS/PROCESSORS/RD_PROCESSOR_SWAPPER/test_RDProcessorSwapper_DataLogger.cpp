@@ -100,7 +100,7 @@ TEST_CASE("RD_ProcessorSwapper writes no CSV when global logging is disabled", "
         swapper.createOutputDirectory();
         auto sectionDir = swapper.getOutputDirectory();
 
-        swapper.setGlobalLoggingState (false);
+        swapper.setIsLogging (false);
         swapper.setGain (gain);
 
         juce::AudioBuffer<float> buffer (numChannels, numSamples);

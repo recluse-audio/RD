@@ -132,15 +132,6 @@ void RD_ProcessorSwapper::setActiveProcessor (ProcessorIndex index)
     }
 }
 
-void RD_ProcessorSwapper::setGlobalLoggingState (bool shouldLog)
-{
-    setIsLogging (shouldLog);
-
-    for (auto* node : mGraph.getNodes())
-        if (auto* rdProc = dynamic_cast<RD_Processor*> (node->getProcessor()))
-            rdProc->setIsLogging (shouldLog);
-}
-
 void RD_ProcessorSwapper::_applyProcessorSwap()
 {
     for (int ch = 0; ch < 2; ++ch)

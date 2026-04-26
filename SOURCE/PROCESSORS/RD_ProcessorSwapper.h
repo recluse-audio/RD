@@ -34,7 +34,6 @@ public:
     juce::AudioProcessor* getProcessorByIndex (ProcessorIndex index);
     int getNumProcessors() const { return static_cast<int> (ProcessorIndex::kCount); }
     void setActiveProcessor (ProcessorIndex index);
-    void setGlobalLoggingState (bool shouldLog);
     const ProcessorIndex& getActiveProcessorIndex() const { return mActiveProcessorIndex; }
     Fade::FadeState getFadeState() const { return mFade.getCurrentState(); }
 
