@@ -432,7 +432,78 @@ public:
         return true;
     }
 
-    
+    //===========================================
+    /** Loads up to maxSamples from a WAV file into a pre-sized destBuffer.
+     *  Does NOT resize destBuffer. samplesRead = min(file length, maxSamples, destBuffer.getNumSamples()).
+     *  If destBuffer has 2 channels and the file is mono, ch0 is duplicated into ch1.
+     *  Optional progressCallback fires during chunked reads (0.0 -> 1.0).
+     */
+    static bool loadFromWavFile(const juce::File& wavFile,
+                                juce::AudioBuffer<float>& destBuffer,
+                                int maxSamples,
+                                double& sampleRateOut,
+                                int& numChannelsRead,
+                                int& samplesRead,
+                                std::function<void(float)> progressCallback = nullptr)
+    {
+        sampleRateOut = 0.0;
+        numChannelsRead = 0;
+        samplesRead = 0;
+
+        if (destBuffer.getNumSamples() <= 0 || destBuffer.getNumChannels() <= 0)
+        {
+            DBG("Destination buffer has zero size.");
+            return false;
+        }
+
+        juce::AudioFormatManager formatManager;
+        formatManager.registerBasicFormats();
+
+        std::unique_ptr<juce::AudioFormatReader> reader(formatManager.createReaderFor(wavFile));
+        if (reader.get() == nullptr)
+        {
+            DBG("Failed to create reader for WAV file.");
+            return false;
+        }
+
+        sampleRateOut = reader->sampleRate;
+        numChannelsRead = static_cast<int>(reader->numChannels);
+
+        const int fileSamples = static_cast<int>(reader->lengthInSamples);
+        const int destSamples = destBuffer.getNumSamples();
+        const int totalToRead = juce::jmin(fileSamples, maxSamples, destSamples);
+
+        destBuffer.clear();
+
+        const int chunkSize = 65536;
+        int samplesDone = 0;
+        while (samplesDone < totalToRead)
+        {
+            const int thisChunk = juce::jmin(chunkSize, totalToRead - samplesDone);
+            if (! reader->read(&destBuffer, samplesDone, thisChunk, samplesDone, true, true))
+            {
+                DBG("Reader failed mid-read.");
+                return false;
+            }
+            samplesDone += thisChunk;
+
+            if (progressCallback)
+                progressCallback(static_cast<float>(samplesDone) / static_cast<float>(totalToRead));
+        }
+
+        // Mono source duplicated into channel 1 of a stereo destination.
+        if (numChannelsRead == 1 && destBuffer.getNumChannels() >= 2)
+        {
+            destBuffer.copyFrom(1, 0, destBuffer, 0, 0, totalToRead);
+        }
+
+        samplesRead = totalToRead;
+        if (progressCallback)
+            progressCallback(1.0f);
+
+        DBG("Successfully loaded " << samplesRead << " samples from WAV file.");
+        return true;
+    }
 
     //=================================
     /** Loads an AudioBuffer from a .json file containing amplitude values */

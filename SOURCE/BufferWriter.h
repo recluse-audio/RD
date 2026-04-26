@@ -203,6 +203,87 @@ public:
 
         }
 
+        //=====================
+        /** Writes the first numSamplesToWrite samples (clamped to buffer length) to a WAV file.
+         *  Optional progressCallback fires during chunked writes (0.0 -> 1.0).
+         */
+        static BufferWriter::Result writeToWav(juce::AudioBuffer<float>& buffer,
+                                               const juce::File& outputFile,
+                                               double sampleRate,
+                                               int numSamplesToWrite,
+                                               int bitDepth,
+                                               std::function<void(float)> progressCallback)
+        {
+            const int totalToWrite = juce::jlimit(0, buffer.getNumSamples(), numSamplesToWrite);
+
+            if (outputFile.exists())
+                outputFile.deleteFile();
+
+            outputFile.create();
+
+            juce::WavAudioFormat wavFormat;
+            std::unique_ptr<juce::FileOutputStream> fileStream(outputFile.createOutputStream());
+
+            if (! fileStream)
+            {
+                DBG("Error: Could not create output stream!");
+                return BufferWriter::Result::kStreamError;
+            }
+
+            #if defined(_MSC_VER)
+                #pragma warning(push)
+                #pragma warning(disable: 4996)
+            #elif defined(__GNUC__) || defined(__clang__)
+                #pragma GCC diagnostic push
+                #pragma GCC diagnostic ignored "-Wdeprecated-declarations"
+            #endif
+
+            std::unique_ptr<juce::AudioFormatWriter> writer(
+                wavFormat.createWriterFor(fileStream.get(), sampleRate, buffer.getNumChannels(), bitDepth, {}, 0));
+
+            #if defined(_MSC_VER)
+                #pragma warning(pop)
+            #elif defined(__GNUC__) || defined(__clang__)
+                #pragma GCC diagnostic pop
+            #endif
+
+            if (! writer)
+            {
+                DBG("Error: Could not create WAV writer!");
+                return BufferWriter::Result::kStreamError;
+            }
+
+            fileStream.release();
+
+            if (totalToWrite == 0)
+            {
+                if (progressCallback)
+                    progressCallback(1.0f);
+                return BufferWriter::Result::kSuccess;
+            }
+
+            const int chunkSize = 65536;
+            int samplesDone = 0;
+            while (samplesDone < totalToWrite)
+            {
+                const int thisChunk = juce::jmin(chunkSize, totalToWrite - samplesDone);
+                if (! writer->writeFromAudioSampleBuffer(buffer, samplesDone, thisChunk))
+                {
+                    DBG("Error: writer failed mid-write.");
+                    return BufferWriter::Result::kStreamError;
+                }
+                samplesDone += thisChunk;
+
+                if (progressCallback)
+                    progressCallback(static_cast<float>(samplesDone) / static_cast<float>(totalToWrite));
+            }
+
+            if (progressCallback)
+                progressCallback(1.0f);
+
+            return BufferWriter::Result::kSuccess;
+        }
+
 private:
 
 };
