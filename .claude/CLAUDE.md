@@ -130,7 +130,7 @@ Each processor owns its own `mAPVTS` via override, rather than sharing a single 
 2. Call `doProcessBlock(buffer, midi)` — child does its DSP work in place on `buffer`.
 3. If `getIsLogging()` is true, write a post-process CSV via `createProcessBlockDataLogFile(buffer, false)`.
 
-When adding a new processor, override `doProcessBlock`, not `processBlock`. `RD_ProcessorSwapper` is the exception — it inherits `juce::AudioProcessor` directly, not `RD_Processor`.
+When adding a new processor, override `doProcessBlock`, not `processBlock`. `RD_ProcessorSwapper` also inherits `RD_Processor` and follows the same convention — its graph dispatch lives in `doProcessBlock`.
 
 ### Real-Time Safety
 

@@ -2,9 +2,6 @@
 #include "EDITORS/RD_ProcessorSwapperEditor.h"
 
 RD_ProcessorSwapper::RD_ProcessorSwapper()
-    : AudioProcessor (BusesProperties()
-        .withInput  ("Input",  juce::AudioChannelSet::stereo(), true)
-        .withOutput ("Output", juce::AudioChannelSet::stereo(), true))
 {
     _buildGraph();
 }
@@ -57,6 +54,8 @@ juce::AudioProcessor* RD_ProcessorSwapper::getActiveProcessor()
 //==============================================================================
 void RD_ProcessorSwapper::prepareToPlay (double sampleRate, int samplesPerBlock)
 {
+    RD_Processor::prepareToPlay (sampleRate, samplesPerBlock);
+
     mGraph.enableAllBuses();
 
     juce::AudioProcessor::BusesLayout layout;
@@ -70,6 +69,7 @@ void RD_ProcessorSwapper::prepareToPlay (double sampleRate, int samplesPerBlock)
 
 void RD_ProcessorSwapper::releaseResources()
 {
+    RD_Processor::releaseResources();
     mGraph.releaseResources();
 }
 
@@ -82,10 +82,15 @@ bool RD_ProcessorSwapper::isBusesLayoutSupported (const BusesLayout& layouts) co
     return true;
 }
 
-void RD_ProcessorSwapper::processBlock (juce::AudioBuffer<float>& buffer, juce::MidiBuffer& midiMessages)
+void RD_ProcessorSwapper::doProcessBlock (juce::AudioBuffer<float>& buffer, juce::MidiBuffer& midiMessages)
 {
     juce::ScopedNoDenormals noDenormals;
     mGraph.processBlock (buffer, midiMessages);
+
+    const auto gainValue = mGainValue.get();
+    for (int ch = 0; ch < buffer.getNumChannels(); ++ch)
+        for (int sampleIndex = 0; sampleIndex < buffer.getNumSamples(); ++sampleIndex)
+            buffer.setSample (ch, sampleIndex, buffer.getSample (ch, sampleIndex) * gainValue);
 
     // if (mFade.getCurrentState() == Fade::FadeState::kFadingIn ||
     //     mFade.getCurrentState() == Fade::FadeState::kFadingOut)
@@ -125,6 +130,15 @@ void RD_ProcessorSwapper::setActiveProcessor (ProcessorIndex index)
         mActiveProcessorIndex = index;
         _applyProcessorSwap();
     }
+}
+
+void RD_ProcessorSwapper::setGlobalLoggingState (bool shouldLog)
+{
+    setIsLogging (shouldLog);
+
+    for (auto* node : mGraph.getNodes())
+        if (auto* rdProc = dynamic_cast<RD_Processor*> (node->getProcessor()))
+            rdProc->setIsLogging (shouldLog);
 }
 
 void RD_ProcessorSwapper::_applyProcessorSwap()
