@@ -128,7 +128,7 @@ juce::AudioProcessorValueTreeState& RD_Processor::getAPVTS()
 
 juce::File RD_Processor::createProcessorDataLogFile()
 {
-    createOutputDirectory (getOutputFile());
+    createOutputDirectory();
 
     auto xmlState = getAPVTS().copyState().createXml();
     if (xmlState == nullptr)
@@ -136,7 +136,7 @@ juce::File RD_Processor::createProcessorDataLogFile()
 
     xmlState->setAttribute ("processorName", getName());
 
-    auto logFile = getOutputFile().getChildFile ("processor_state.xml");
+    auto logFile = getOutputDirectory().getChildFile ("processor_state.xml");
     xmlState->writeTo (logFile);
 
     return logFile;
@@ -145,13 +145,13 @@ juce::File RD_Processor::createProcessorDataLogFile()
 
 juce::File RD_Processor::createProcessBlockDataLogFile (juce::AudioBuffer<float> processBuffer, bool isPreProcessing)
 {
-    createOutputDirectory (getOutputFile());
+    createOutputDirectory();
 
     juce::String fileName = (isPreProcessing ? "preprocess_" : "postprocess_")
                           + juce::String (processBuffer.getNumChannels()) + "ch_"
                           + juce::String (processBuffer.getNumSamples())  + "smp.csv";
 
-    auto logFile = getOutputFile().getChildFile (fileName);
+    auto logFile = getOutputDirectory().getChildFile (fileName);
 
     const int numChannels = processBuffer.getNumChannels();
     const int numSamples  = processBuffer.getNumSamples();

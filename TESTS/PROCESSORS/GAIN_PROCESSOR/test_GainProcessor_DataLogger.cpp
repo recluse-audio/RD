@@ -10,10 +10,12 @@
 // Protocol for DataLogger inheriters:
 //   1. Build timestamped outputDir under
 //      TESTS/PROCESSORS/<PROCESSOR>/OUTPUT/<TEST CASE NAME>/<timestamp>.
-//   2. Call processor.createOutputDirectory(outputDir) once per test case.
-//   3. Per SECTION, create a sectionDir under outputDir, then
-//      setOutputFile(sectionDir) so each section's logs are isolated.
-//   4. Log pre-process buffer, run processBlock, log post-process buffer,
+//      Treat outputDir as the parent directory for the logger.
+//   2. Per SECTION, configure the logger:
+//        processor.setParentDirectory(outputDir);
+//        processor.setOutputDirectoryName("<section name>");
+//        processor.createOutputDirectory();
+//   3. Log pre-process buffer, run processBlock, log post-process buffer,
 //      then log processor state. REQUIRE each returned juce::File exists.
 
 TEST_CASE("GainProcessor applies gain and writes DataLogger output", "[GainProcessor][DataLogger]")
@@ -31,9 +33,9 @@ TEST_CASE("GainProcessor applies gain and writes DataLogger output", "[GainProce
 
     auto runGainSection = [&] (float gain, const juce::String& sectionName)
     {
-        auto sectionDir = outputDir.getChildFile (sectionName);
-        processor.createOutputDirectory (sectionDir);
-        processor.setOutputFile (sectionDir);
+        processor.setParentDirectory (outputDir);
+        processor.setOutputDirectoryName (sectionName);
+        processor.createOutputDirectory();
 
         processor.setGain (gain);
 

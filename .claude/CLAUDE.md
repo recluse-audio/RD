@@ -72,12 +72,19 @@ Standalone-component tests live in their own top-level test folder: `TESTS/BUFFE
 
 For any processor inheriting `RD_Processor` / `DataLogger`, the `_DataLogger.cpp` file follows this pattern (see `TESTS/PROCESSORS/GAIN_PROCESSOR/test_GainProcessor_DataLogger.cpp` for canonical example):
 
-1. Build a timestamped `outputDir` under `TESTS/PROCESSORS/<PROCESSOR>/OUTPUT/<TEST CASE NAME>/<timestamp>`.
-2. Call `processor.createOutputDirectory(outputDir)` once per test case.
-3. Per `SECTION`, create a `sectionDir` under `outputDir`, then `setOutputFile(sectionDir)` so each section's logs are isolated.
-4. Log pre-process buffer → run `processBlock` → log post-process buffer → log processor state. `REQUIRE` each returned `juce::File` exists.
+1. Build a timestamped `outputDir` under `TESTS/PROCESSORS/<PROCESSOR>/OUTPUT/<TEST CASE NAME>/<timestamp>`. Treat `outputDir` as the **parent directory** for the logger.
+2. Per `SECTION`, configure the logger:
+   ```cpp
+   processor.setParentDirectory (outputDir);
+   processor.setOutputDirectoryName ("<section name>");
+   processor.createOutputDirectory();
+   ```
+   so each section's logs are isolated under `outputDir/<section name>/`.
+3. Log pre-process buffer → run `processBlock` → log post-process buffer → log processor state. `REQUIRE` each returned `juce::File` exists.
 
-`DataLogger` owns a non-owning child registry (`addChild` / `removeChild` / `getNumChildren`). When a parent's `logData()` fires, it cascades to registered children. Tests on composite processors must verify children actually log when parent logs.
+A `DataLogger`'s output is **always a directory** containing files, never a loose file. `mParentDirectory` (container) + `mOutputDirectoryName` (string, name only — not a path) compose `getOutputDirectory()`. Files written by `createDataLogFile`, `createProcessorDataLogFile`, and `createProcessBlockDataLogFile` always land inside `getOutputDirectory()`.
+
+`DataLogger` owns a non-owning child registry (`addChild` / `removeChild` / `getNumChildren`). When a parent's `logData()` fires, it cascades to registered children. If the parent's `mIsLogging` is false, `logData()` short-circuits and children are not visited. Tests on composite processors must verify children actually log when parent logs.
 
 ### Running a single test
 

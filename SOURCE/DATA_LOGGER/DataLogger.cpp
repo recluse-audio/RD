@@ -11,14 +11,29 @@ bool DataLogger::getIsLogging() const
     return mIsLogging;
 }
 
-void DataLogger::setOutputFile (const juce::File& newOutputFile)
+void DataLogger::setParentDirectory (const juce::File& parentDirectory)
 {
-    mOutputFile = newOutputFile;
+    mParentDirectory = parentDirectory;
 }
 
-const juce::File& DataLogger::getOutputFile() const
+const juce::File& DataLogger::getParentDirectory() const
 {
-    return mOutputFile;
+    return mParentDirectory;
+}
+
+void DataLogger::setOutputDirectoryName (const juce::String& name)
+{
+    mOutputDirectoryName = name;
+}
+
+const juce::String& DataLogger::getOutputDirectoryName() const
+{
+    return mOutputDirectoryName;
+}
+
+juce::File DataLogger::getOutputDirectory() const
+{
+    return mParentDirectory.getChildFile (mOutputDirectoryName);
 }
 
 bool DataLogger::logData()
@@ -59,20 +74,25 @@ size_t DataLogger::getNumChildren() const
     return mChildren.size();
 }
 
-bool DataLogger::createOutputDirectory (const juce::File& file)
+bool DataLogger::createOutputDirectory (const juce::File& directory)
 {
-    if (file.exists() && file.isDirectory())
+    if (directory.exists() && directory.isDirectory())
         return true;
 
-    auto result = file.createDirectory();
-    return result.wasOk() && file.isDirectory();
+    auto result = directory.createDirectory();
+    return result.wasOk() && directory.isDirectory();
+}
+
+bool DataLogger::createOutputDirectory()
+{
+    return createOutputDirectory (getOutputDirectory());
 }
 
 juce::File DataLogger::createDataLogFile()
 {
-    createOutputDirectory (mOutputFile);
+    createOutputDirectory();
 
-    auto logFile = mOutputFile.getChildFile ("output.txt");
+    auto logFile = getOutputDirectory().getChildFile ("output.txt");
     logFile.replaceWithText ("DataLogger Default Output");
 
     return logFile;

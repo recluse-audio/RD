@@ -1,27 +1,35 @@
 #include <catch2/catch_test_macros.hpp>
 #include "../../SOURCE/DATA_LOGGER/DataLogger.h"
 
+namespace
+{
+    juce::File makeCaseDir (const juce::String& caseName)
+    {
+        auto timestamp = juce::Time::getCurrentTime().formatted ("%Y-%m-%d_%H-%M-%S");
+        return juce::File ("c:/REPOS/PLUGIN_PROJECTS/RD/TESTS/DATA_LOGGER/OUTPUT/" + caseName)
+                   .getChildFile (timestamp);
+    }
+}
+
 TEST_CASE("DataLogger constructs without error", "[DataLogger]")
 {
-    auto timestamp = juce::Time::getCurrentTime().formatted ("%Y-%m-%d_%H-%M-%S");
-    juce::File outputDir = juce::File ("c:/REPOS/PLUGIN_PROJECTS/RD/TESTS/DATA_LOGGER/OUTPUT/DataLogger constructs without error")
-                               .getChildFile (timestamp);
+    auto caseDir = makeCaseDir ("DataLogger constructs without error");
 
     DataLogger logger;
-    logger.createOutputDirectory (outputDir);
-    logger.setOutputFile (outputDir);
+    logger.setParentDirectory (caseDir);
+    logger.setOutputDirectoryName ("default");
+    logger.createOutputDirectory();
     SUCCEED();
 }
 
 TEST_CASE("DataLogger mIsLogging getter and setter", "[DataLogger]")
 {
-    auto timestamp = juce::Time::getCurrentTime().formatted ("%Y-%m-%d_%H-%M-%S");
-    juce::File outputDir = juce::File ("c:/REPOS/PLUGIN_PROJECTS/RD/TESTS/DATA_LOGGER/OUTPUT/DataLogger mIsLogging getter and setter")
-                               .getChildFile (timestamp);
+    auto caseDir = makeCaseDir ("DataLogger mIsLogging getter and setter");
 
     DataLogger logger;
-    logger.createOutputDirectory (outputDir);
-    logger.setOutputFile (outputDir);
+    logger.setParentDirectory (caseDir);
+    logger.setOutputDirectoryName ("default");
+    logger.createOutputDirectory();
 
     SECTION("Default is false")
     {
@@ -42,35 +50,45 @@ TEST_CASE("DataLogger mIsLogging getter and setter", "[DataLogger]")
     }
 }
 
-TEST_CASE("DataLogger output file getter and setter", "[DataLogger]")
+TEST_CASE("DataLogger parent directory and output directory name round-trip", "[DataLogger]")
 {
-    auto timestamp = juce::Time::getCurrentTime().formatted ("%Y-%m-%d_%H-%M-%S");
-    juce::File outputDir = juce::File ("c:/REPOS/PLUGIN_PROJECTS/RD/TESTS/DATA_LOGGER/OUTPUT/DataLogger output file getter and setter")
-                               .getChildFile (timestamp);
+    auto caseDir = makeCaseDir ("DataLogger parent directory and output directory name round-trip");
 
     DataLogger logger;
-    logger.createOutputDirectory (outputDir);
 
-    SECTION("Set and get output file round-trips correctly")
+    SECTION("setParentDirectory + setOutputDirectoryName build expected getOutputDirectory()")
     {
-        logger.setOutputFile (outputDir);
-        REQUIRE(logger.getOutputFile() == outputDir);
+        logger.setParentDirectory (caseDir);
+        logger.setOutputDirectoryName ("my-section");
+
+        REQUIRE(logger.getParentDirectory() == caseDir);
+        REQUIRE(logger.getOutputDirectoryName() == "my-section");
+        REQUIRE(logger.getOutputDirectory() == caseDir.getChildFile ("my-section"));
+    }
+
+    SECTION("createOutputDirectory() materializes mParentDirectory/mOutputDirectoryName on disk")
+    {
+        logger.setParentDirectory (caseDir);
+        logger.setOutputDirectoryName ("created");
+
+        REQUIRE(logger.createOutputDirectory());
+        REQUIRE(logger.getOutputDirectory().isDirectory());
     }
 }
 
 TEST_CASE("DataLogger createDataLogFile writes expected content", "[DataLogger]")
 {
-    auto timestamp = juce::Time::getCurrentTime().formatted ("%Y-%m-%d_%H-%M-%S");
-    juce::File outputDir = juce::File ("c:/REPOS/PLUGIN_PROJECTS/RD/TESTS/DATA_LOGGER/OUTPUT/DataLogger createDataLogFile writes expected content")
-                               .getChildFile (timestamp);
+    auto caseDir = makeCaseDir ("DataLogger createDataLogFile writes expected content");
 
     DataLogger logger;
-    logger.createOutputDirectory (outputDir);
-    logger.setOutputFile (outputDir);
+    logger.setParentDirectory (caseDir);
+    logger.setOutputDirectoryName ("default");
+    logger.createOutputDirectory();
 
     auto logFile = logger.createDataLogFile();
 
     REQUIRE(logFile.existsAsFile());
+    REQUIRE(logFile.getParentDirectory() == logger.getOutputDirectory());
     REQUIRE(logFile.loadFileAsString() == "DataLogger Default Output");
 }
 
@@ -87,25 +105,26 @@ namespace
             return DataLogger::createDataLogFile();
         }
     };
+
+    void configureLogger (DataLogger& logger, const juce::File& parent, const juce::String& name)
+    {
+        logger.setParentDirectory (parent);
+        logger.setOutputDirectoryName (name);
+        logger.createOutputDirectory();
+    }
 }
 
 TEST_CASE("DataLogger addChild propagates logData to children", "[DataLogger]")
 {
-    auto timestamp = juce::Time::getCurrentTime().formatted ("%Y-%m-%d_%H-%M-%S");
-    juce::File outputDir = juce::File ("c:/REPOS/PLUGIN_PROJECTS/RD/TESTS/DATA_LOGGER/OUTPUT/DataLogger addChild propagates logData to children")
-                               .getChildFile (timestamp);
+    auto caseDir = makeCaseDir ("DataLogger addChild propagates logData to children");
 
     CountingLogger parent;
     CountingLogger childA;
     CountingLogger childB;
 
-    parent.createOutputDirectory (outputDir.getChildFile ("parent"));
-    childA.createOutputDirectory (outputDir.getChildFile ("childA"));
-    childB.createOutputDirectory (outputDir.getChildFile ("childB"));
-
-    parent.setOutputFile (outputDir.getChildFile ("parent"));
-    childA.setOutputFile (outputDir.getChildFile ("childA"));
-    childB.setOutputFile (outputDir.getChildFile ("childB"));
+    configureLogger (parent, caseDir, "parent");
+    configureLogger (childA, caseDir, "childA");
+    configureLogger (childB, caseDir, "childB");
 
     parent.setIsLogging (true);
     childA.setIsLogging (true);
@@ -155,21 +174,15 @@ TEST_CASE("DataLogger addChild propagates logData to children", "[DataLogger]")
 
 TEST_CASE("DataLogger parent logging off skips children", "[DataLogger]")
 {
-    auto timestamp = juce::Time::getCurrentTime().formatted ("%Y-%m-%d_%H-%M-%S");
-    juce::File outputDir = juce::File ("c:/REPOS/PLUGIN_PROJECTS/RD/TESTS/DATA_LOGGER/OUTPUT/DataLogger parent logging off skips children")
-                               .getChildFile (timestamp);
+    auto caseDir = makeCaseDir ("DataLogger parent logging off skips children");
 
     CountingLogger parent;
     CountingLogger childA;
     CountingLogger childB;
 
-    parent.createOutputDirectory (outputDir.getChildFile ("parent"));
-    childA.createOutputDirectory (outputDir.getChildFile ("childA"));
-    childB.createOutputDirectory (outputDir.getChildFile ("childB"));
-
-    parent.setOutputFile (outputDir.getChildFile ("parent"));
-    childA.setOutputFile (outputDir.getChildFile ("childA"));
-    childB.setOutputFile (outputDir.getChildFile ("childB"));
+    configureLogger (parent, caseDir, "parent");
+    configureLogger (childA, caseDir, "childA");
+    configureLogger (childB, caseDir, "childB");
 
     // Children individually want to log, but parent is off.
     childA.setIsLogging (true);
@@ -187,17 +200,13 @@ TEST_CASE("DataLogger parent logging off skips children", "[DataLogger]")
         REQUIRE(childB.callCount == 0);
     }
 
-    SECTION("No log files written under any logger dir")
+    SECTION("No log files written under any logger directory")
     {
         parent.logData();
 
-        auto parentLog = outputDir.getChildFile ("parent").getChildFile ("output.txt");
-        auto childALog = outputDir.getChildFile ("childA").getChildFile ("output.txt");
-        auto childBLog = outputDir.getChildFile ("childB").getChildFile ("output.txt");
-
-        REQUIRE_FALSE(parentLog.existsAsFile());
-        REQUIRE_FALSE(childALog.existsAsFile());
-        REQUIRE_FALSE(childBLog.existsAsFile());
+        REQUIRE_FALSE(parent.getOutputDirectory().getChildFile ("output.txt").existsAsFile());
+        REQUIRE_FALSE(childA.getOutputDirectory().getChildFile ("output.txt").existsAsFile());
+        REQUIRE_FALSE(childB.getOutputDirectory().getChildFile ("output.txt").existsAsFile());
     }
 
     SECTION("Re-enabling parent restores cascade")
@@ -214,15 +223,13 @@ TEST_CASE("DataLogger parent logging off skips children", "[DataLogger]")
 
 TEST_CASE("DataLogger logData returns false and creates no file when not logging", "[DataLogger]")
 {
-    auto timestamp = juce::Time::getCurrentTime().formatted ("%Y-%m-%d_%H-%M-%S");
-    juce::File outputDir = juce::File ("c:/REPOS/PLUGIN_PROJECTS/RD/TESTS/DATA_LOGGER/OUTPUT/DataLogger logData returns false and creates no file when not logging")
-                               .getChildFile (timestamp);
+    auto caseDir = makeCaseDir ("DataLogger logData returns false and creates no file when not logging");
 
     DataLogger logger;
-    logger.createOutputDirectory (outputDir);
-    logger.setOutputFile (outputDir);
+    configureLogger (logger, caseDir, "default");
     // mIsLogging defaults to false — no explicit set needed
 
+    auto outputDir = logger.getOutputDirectory();
     auto childrenBefore = outputDir.getNumberOfChildFiles (juce::File::findFilesAndDirectories);
     bool result = logger.logData();
     auto childrenAfter = outputDir.getNumberOfChildFiles (juce::File::findFilesAndDirectories);

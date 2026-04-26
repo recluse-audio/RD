@@ -10,10 +10,12 @@
 // Protocol for DataLogger inheriters:
 //   1. Build timestamped outputDir under
 //      TESTS/PROCESSORS/<PROCESSOR>/OUTPUT/<TEST CASE NAME>/<timestamp>.
-//   2. Call processor.createOutputDirectory(outputDir) once per test case.
-//   3. Per SECTION, create a sectionDir under outputDir, then
-//      setOutputFile(sectionDir) so each section's logs are isolated.
-//   4. Log pre-process buffer, run processBlock, log post-process buffer,
+//      Treat outputDir as the parent directory for the logger.
+//   2. Per SECTION, configure the logger:
+//        processor.setParentDirectory(outputDir);
+//        processor.setOutputDirectoryName("<section name>");
+//        processor.createOutputDirectory();
+//   3. Log pre-process buffer, run processBlock, log post-process buffer,
 //      then log processor state. REQUIRE each returned juce::File exists.
 
 TEST_CASE("RD_ProcessorSwapper applies gain and writes DataLogger output", "[RD_ProcessorSwapper][DataLogger]")
@@ -35,9 +37,9 @@ TEST_CASE("RD_ProcessorSwapper applies gain and writes DataLogger output", "[RD_
 
     auto runGainSection = [&] (float gain, const juce::String& sectionName)
     {
-        auto sectionDir = outputDir.getChildFile (sectionName);
-        swapper.createOutputDirectory (sectionDir);
-        swapper.setOutputFile (sectionDir);
+        swapper.setParentDirectory (outputDir);
+        swapper.setOutputDirectoryName (sectionName);
+        swapper.createOutputDirectory();
 
         swapper.setGain (gain);
 
@@ -93,9 +95,10 @@ TEST_CASE("RD_ProcessorSwapper writes no CSV when global logging is disabled", "
 
     auto runNoLogSection = [&] (float gain, const juce::String& sectionName)
     {
-        auto sectionDir = outputDir.getChildFile (sectionName);
-        swapper.createOutputDirectory (sectionDir);
-        swapper.setOutputFile (sectionDir);
+        swapper.setParentDirectory (outputDir);
+        swapper.setOutputDirectoryName (sectionName);
+        swapper.createOutputDirectory();
+        auto sectionDir = swapper.getOutputDirectory();
 
         swapper.setGlobalLoggingState (false);
         swapper.setGain (gain);
@@ -147,9 +150,9 @@ TEST_CASE("RD_ProcessorSwapper writes APVTS gain value into processor state log"
 
     auto runApvtsSection = [&] (float gain, const juce::String& sectionName)
     {
-        auto sectionDir = outputDir.getChildFile (sectionName);
-        swapper.createOutputDirectory (sectionDir);
-        swapper.setOutputFile (sectionDir);
+        swapper.setParentDirectory (outputDir);
+        swapper.setOutputDirectoryName (sectionName);
+        swapper.createOutputDirectory();
 
         auto* param = swapper.getAPVTS().getParameter ("gain");
         REQUIRE(param != nullptr);

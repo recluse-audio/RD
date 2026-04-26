@@ -10,10 +10,13 @@
 // Protocol for DataLogger inheriters:
 //   1. Build timestamped outputDir under
 //      TESTS/PROCESSORS/<PROCESSOR>/OUTPUT/<TEST CASE NAME>/<timestamp>.
-//   2. Call processor.createOutputDirectory(outputDir) once per test case.
-//   3. Per SECTION, create a sectionDir under outputDir, then
-//      setOutputFile(sectionDir) so each section's logs are isolated.
-//   4. Log pre-process buffer, run processBlock, log post-process buffer,
+//      Treat outputDir as the parent directory for the logger.
+//   2. Per SECTION, configure the logger:
+//        processor.setParentDirectory(outputDir);
+//        processor.setOutputDirectoryName("<section name>");
+//        processor.createOutputDirectory();
+//      so each section's logs are isolated under outputDir/<section name>/.
+//   3. Log pre-process buffer, run processBlock, log post-process buffer,
 //      then log processor state. REQUIRE each returned juce::File exists.
 
 TEST_CASE("RD_Processor createDataLogFile writes processor name and APVTS XML", "[RD_Processor][DataLogger]")
@@ -25,9 +28,9 @@ TEST_CASE("RD_Processor createDataLogFile writes processor name and APVTS XML", 
     juce::File outputDir = juce::File ("c:/REPOS/PLUGIN_PROJECTS/RD/TESTS/PROCESSORS/RD_PROCESSOR/OUTPUT/RD_Processor createDataLogFile writes processor name and APVTS XML")
                                .getChildFile (timestamp);
 
-    auto initialDir = outputDir.getChildFile ("initial");
-    processor.createOutputDirectory (initialDir);
-    processor.setOutputFile (initialDir);
+    processor.setParentDirectory (outputDir);
+    processor.setOutputDirectoryName ("initial");
+    processor.createOutputDirectory();
 
     auto logFile = processor.createProcessorDataLogFile();
 
@@ -48,9 +51,8 @@ TEST_CASE("RD_Processor createDataLogFile writes processor name and APVTS XML", 
     juce::MidiBuffer dummyMidi;
     processor.processBlock (dummyBuffer, dummyMidi);
 
-    auto afterGainDir = outputDir.getChildFile ("after-gain-change");
-    processor.createOutputDirectory (afterGainDir);
-    processor.setOutputFile (afterGainDir);
+    processor.setOutputDirectoryName ("after-gain-change");
+    processor.createOutputDirectory();
 
     auto logFile2 = processor.createProcessorDataLogFile();
     REQUIRE(logFile2.existsAsFile());
@@ -78,11 +80,12 @@ TEST_CASE("RD_Processor createProcessBlockDataLogFile writes audio buffer as CSV
     juce::AudioBuffer<float> buffer (numChannels, numSamples);
     BufferFiller::fillIncremental (buffer);
 
+    processor.setParentDirectory (outputDir);
+
     SECTION("Pre-processing flag produces preprocess_ file with index-equal samples")
     {
-        auto sectionDir = outputDir.getChildFile ("preprocess");
-        processor.createOutputDirectory (sectionDir);
-        processor.setOutputFile (sectionDir);
+        processor.setOutputDirectoryName ("preprocess");
+        processor.createOutputDirectory();
 
         auto logFile = processor.createProcessBlockDataLogFile (buffer, true);
 
@@ -105,9 +108,8 @@ TEST_CASE("RD_Processor createProcessBlockDataLogFile writes audio buffer as CSV
 
     SECTION("Post-processing flag produces postprocess_ file")
     {
-        auto sectionDir = outputDir.getChildFile ("postprocess");
-        processor.createOutputDirectory (sectionDir);
-        processor.setOutputFile (sectionDir);
+        processor.setOutputDirectoryName ("postprocess");
+        processor.createOutputDirectory();
 
         auto logFile = processor.createProcessBlockDataLogFile (buffer, false);
 
@@ -117,9 +119,8 @@ TEST_CASE("RD_Processor createProcessBlockDataLogFile writes audio buffer as CSV
 
     SECTION("Empty buffer writes header only")
     {
-        auto sectionDir = outputDir.getChildFile ("empty-buffer");
-        processor.createOutputDirectory (sectionDir);
-        processor.setOutputFile (sectionDir);
+        processor.setOutputDirectoryName ("empty-buffer");
+        processor.createOutputDirectory();
 
         juce::AudioBuffer<float> empty (1, 0);
         auto logFile = processor.createProcessBlockDataLogFile (empty, true);
@@ -140,14 +141,13 @@ TEST_CASE("RD_Processor parent logs propagate to child RD_Processor", "[RD_Proce
     juce::File outputDir = juce::File ("c:/REPOS/PLUGIN_PROJECTS/RD/TESTS/PROCESSORS/RD_PROCESSOR/OUTPUT/RD_Processor parent logs propagate to child RD_Processor")
                                .getChildFile (timestamp);
 
-    auto parentDir = outputDir.getChildFile ("parent");
-    auto childDir  = outputDir.getChildFile ("child");
+    parent.setParentDirectory (outputDir);
+    parent.setOutputDirectoryName ("parent");
+    parent.createOutputDirectory();
 
-    parent.createOutputDirectory (parentDir);
-    child.createOutputDirectory (childDir);
-
-    parent.setOutputFile (parentDir);
-    child.setOutputFile (childDir);
+    child.setParentDirectory (outputDir);
+    child.setOutputDirectoryName ("child");
+    child.createOutputDirectory();
 
     parent.setIsLogging (true);
     child.setIsLogging (true);
@@ -159,8 +159,8 @@ TEST_CASE("RD_Processor parent logs propagate to child RD_Processor", "[RD_Proce
         REQUIRE(parent.getNumChildren() == 1);
         REQUIRE(parent.logData() == true);
 
-        auto parentLog = parentDir.getChildFile ("output.txt");
-        auto childLog  = childDir.getChildFile ("output.txt");
+        auto parentLog = parent.getOutputDirectory().getChildFile ("output.txt");
+        auto childLog  = child.getOutputDirectory().getChildFile ("output.txt");
 
         REQUIRE(parentLog.existsAsFile());
         REQUIRE(childLog.existsAsFile());
@@ -171,14 +171,14 @@ TEST_CASE("RD_Processor parent logs propagate to child RD_Processor", "[RD_Proce
         parent.removeChild (&child);
 
         // Wipe child dir to detect any unexpected write.
-        childDir.deleteRecursively();
-        child.createOutputDirectory (childDir);
+        child.getOutputDirectory().deleteRecursively();
+        child.createOutputDirectory();
 
         REQUIRE(parent.getNumChildren() == 0);
         REQUIRE(parent.logData() == true);
 
-        auto parentLog = parentDir.getChildFile ("output.txt");
-        auto childLog  = childDir.getChildFile ("output.txt");
+        auto parentLog = parent.getOutputDirectory().getChildFile ("output.txt");
+        auto childLog  = child.getOutputDirectory().getChildFile ("output.txt");
 
         REQUIRE(parentLog.existsAsFile());
         REQUIRE_FALSE(childLog.existsAsFile());
