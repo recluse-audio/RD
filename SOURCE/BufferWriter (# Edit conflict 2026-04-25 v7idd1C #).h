@@ -201,7 +201,7 @@ public:
         writer->writeFromAudioSampleBuffer(buffer, 0, buffer.getNumSamples());
         return BufferWriter::Result::kSuccess;
 
-        }
+    }
 
 private:
 

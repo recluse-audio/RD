@@ -32,15 +32,11 @@ TEST_CASE("RD_Processor createDataLogFile writes processor name and APVTS XML", 
     auto logFile = processor.createProcessorDataLogFile();
 
     REQUIRE(logFile.existsAsFile());
+    REQUIRE(logFile.getFileExtension() == ".xml");
 
-    auto json = juce::JSON::parse (logFile.loadFileAsString());
-    REQUIRE(json["processorName"].toString() == processor.getName());
-
-    auto apvtsXmlStr = json["apvts"].toString();
-    REQUIRE(apvtsXmlStr.isNotEmpty());
-
-    auto apvtsXml = juce::XmlDocument::parse (apvtsXmlStr);
+    auto apvtsXml = juce::XmlDocument::parse (logFile);
     REQUIRE(apvtsXml != nullptr);
+    REQUIRE(apvtsXml->getStringAttribute ("processorName") == processor.getName());
 
     auto* gainParam = apvtsXml->getChildByAttribute ("id", "gain");
     REQUIRE(gainParam != nullptr);
@@ -59,8 +55,7 @@ TEST_CASE("RD_Processor createDataLogFile writes processor name and APVTS XML", 
     auto logFile2 = processor.createProcessorDataLogFile();
     REQUIRE(logFile2.existsAsFile());
 
-    auto json2     = juce::JSON::parse (logFile2.loadFileAsString());
-    auto apvtsXml2 = juce::XmlDocument::parse (json2["apvts"].toString());
+    auto apvtsXml2 = juce::XmlDocument::parse (logFile2);
     REQUIRE(apvtsXml2 != nullptr);
 
     auto* gainParam2 = apvtsXml2->getChildByAttribute ("id", "gain");

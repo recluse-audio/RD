@@ -129,3 +129,55 @@ TEST_CASE("RD_ProcessorSwapper writes no CSV when global logging is disabled", "
 
     swapper.releaseResources();
 }
+
+TEST_CASE("RD_ProcessorSwapper writes APVTS gain value into processor state log", "[RD_ProcessorSwapper][DataLogger]")
+{
+    TestUtils::SetupAndTeardown setup;
+    RD_ProcessorSwapper swapper;
+
+    const double sampleRate  = 44100.0;
+    const int    numSamples  = 256;
+
+    swapper.prepareToPlay (sampleRate, numSamples);
+
+    auto timestamp = juce::Time::getCurrentTime().formatted ("%Y-%m-%d_%H-%M-%S");
+    juce::File outputDir = juce::File ("c:/REPOS/PLUGIN_PROJECTS/RD/TESTS/PROCESSORS/RD_PROCESSOR_SWAPPER/OUTPUT/RD_ProcessorSwapper writes APVTS gain value into processor state log")
+                               .getChildFile (timestamp);
+    swapper.createOutputDirectory (outputDir);
+
+    auto runApvtsSection = [&] (float gain, const juce::String& sectionName)
+    {
+        auto sectionDir = outputDir.getChildFile (sectionName);
+        swapper.createOutputDirectory (sectionDir);
+        swapper.setOutputFile (sectionDir);
+
+        auto* param = swapper.getAPVTS().getParameter ("gain");
+        REQUIRE(param != nullptr);
+        param->setValueNotifyingHost (param->getNormalisableRange().convertTo0to1 (gain));
+
+        auto stateLog = swapper.createProcessorDataLogFile();
+        REQUIRE(stateLog.existsAsFile());
+        REQUIRE(stateLog.getFileExtension() == ".xml");
+
+        auto xml = juce::XmlDocument::parse (stateLog);
+        REQUIRE(xml != nullptr);
+        REQUIRE(xml->getStringAttribute ("processorName") == swapper.getName());
+
+        auto* gainElem = xml->getChildByAttribute ("id", "gain");
+        REQUIRE(gainElem != nullptr);
+        REQUIRE(gainElem->hasAttribute ("value"));
+        REQUIRE(gainElem->getDoubleAttribute ("value") == Catch::Approx (gain).margin (1e-6));
+    };
+
+    SECTION("APVTS gain 1.0 round-trips through state log")
+    {
+        runApvtsSection (1.0f, "apvts-gain-1.0");
+    }
+
+    SECTION("APVTS gain 0.5 round-trips through state log")
+    {
+        runApvtsSection (0.5f, "apvts-gain-0.5");
+    }
+
+    swapper.releaseResources();
+}

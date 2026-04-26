@@ -134,15 +134,14 @@ juce::File RD_Processor::createProcessorDataLogFile()
 {
     createOutputDirectory (getOutputFile());
 
-    auto xmlState   = getAPVTS().copyState().createXml();
-    juce::String apvtsXml = xmlState != nullptr ? xmlState->toString() : "";
+    auto xmlState = getAPVTS().copyState().createXml();
+    if (xmlState == nullptr)
+        xmlState = std::make_unique<juce::XmlElement> ("ProcessorState");
 
-    juce::DynamicObject::Ptr obj = new juce::DynamicObject();
-    obj->setProperty ("processorName", getName());
-    obj->setProperty ("apvts",         apvtsXml);
+    xmlState->setAttribute ("processorName", getName());
 
-    auto logFile = getOutputFile().getChildFile ("processor_state.json");
-    logFile.replaceWithText (juce::JSON::toString (juce::var (obj.get())));
+    auto logFile = getOutputFile().getChildFile ("processor_state.xml");
+    xmlState->writeTo (logFile);
 
     return logFile;
 }
