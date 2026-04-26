@@ -1,4 +1,5 @@
 #include "DataLogger.h"
+#include <algorithm>
 
 void DataLogger::setIsLogging (bool isLogging)
 {
@@ -26,7 +27,36 @@ bool DataLogger::logData()
         return false;
 
     juce::File file = createDataLogFile();
-    return file.exists();
+    bool ok = file.exists();
+
+    // for (auto* child : mChildren)
+    // {
+    //     if (child != nullptr)
+    //         ok = child->logData() && ok;
+    // }
+
+    return ok;
+}
+
+void DataLogger::addChild (DataLogger* child)
+{
+    if (child == nullptr || child == this)
+        return;
+
+    if (std::find (mChildren.begin(), mChildren.end(), child) != mChildren.end())
+        return;
+
+    mChildren.push_back (child);
+}
+
+void DataLogger::removeChild (DataLogger* child)
+{
+    mChildren.erase (std::remove (mChildren.begin(), mChildren.end(), child), mChildren.end());
+}
+
+size_t DataLogger::getNumChildren() const
+{
+    return mChildren.size();
 }
 
 bool DataLogger::createOutputDirectory (const juce::File& file)

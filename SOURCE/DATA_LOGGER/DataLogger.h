@@ -3,6 +3,7 @@
  */
 #pragma once
 
+#include <vector>
 #include "../Util/Juce_Header.h"
 
 /**
@@ -28,7 +29,14 @@ public:
     // This function calls the overridden   createDataLogfile()` if the boolean allows
     bool logData();
     virtual juce::File createDataLogFile();
+
+    // Non-owning. Caller keeps child alive for lifetime of registration.
+    void addChild (DataLogger* child);
+    void removeChild (DataLogger* child);
+    size_t getNumChildren() const;
+
 private:
     bool mIsLogging = false;
     juce::File mOutputFile { juce::File::getSpecialLocation (juce::File::userDocumentsDirectory).getChildFile ("RD_DataLogger") };
+    std::vector<DataLogger*> mChildren;
 };
