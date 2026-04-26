@@ -66,6 +66,8 @@ Processor tests live under `TESTS/PROCESSORS/<PROCESSOR_NAME>/`. Each processor 
 
 Keep `[DataLogger]` cases out of the main behavior test file — separate file per processor.
 
+Standalone-component tests live in their own top-level test folder: `TESTS/BUFFER_FILLER/`, `TESTS/DATA_LOGGER/`. Use these for tests that aren't tied to a specific processor.
+
 ### DataLogger Test Protocol
 
 For any processor inheriting `RD_Processor` / `DataLogger`, the `_DataLogger.cpp` file follows this pattern (see `TESTS/PROCESSORS/GAIN_PROCESSOR/test_GainProcessor_DataLogger.cpp` for canonical example):
@@ -74,6 +76,8 @@ For any processor inheriting `RD_Processor` / `DataLogger`, the `_DataLogger.cpp
 2. Call `processor.createOutputDirectory(outputDir)` once per test case.
 3. Per `SECTION`, create a `sectionDir` under `outputDir`, then `setOutputFile(sectionDir)` so each section's logs are isolated.
 4. Log pre-process buffer → run `processBlock` → log post-process buffer → log processor state. `REQUIRE` each returned `juce::File` exists.
+
+`DataLogger` owns a non-owning child registry (`addChild` / `removeChild` / `getNumChildren`). When a parent's `logData()` fires, it cascades to registered children. Tests on composite processors must verify children actually log when parent logs.
 
 ### Running a single test
 
@@ -138,7 +142,7 @@ The hot path does **no dynamic allocation**. Grain pools are pre-allocated. The 
 
 ## Debug Logging System
 
-Two-layer system documented in `INSTRUCTIONS/DEBUG_LOGGING_GUIDE.md` and `INSTRUCTIONS/DEBUG_RUNTIME_CONTROL.md`:
+Two-layer system:
 
 **Compile-time** (CMake flags above): controls whether debug code exists in the binary.
 
@@ -161,6 +165,8 @@ Two-layer system documented in `INSTRUCTIONS/DEBUG_LOGGING_GUIDE.md` and `INSTRU
 | Circular buffer | `SOURCE/CircularBuffer.h/cpp` |
 | Pitch detection | `SOURCE/PITCH/` |
 | Granulator | `SOURCE/PROCESSORS/GRAIN/Granulator.h/cpp` |
+| DataLogger (mixin + child registry) | `SOURCE/DATA_LOGGER/DataLogger.h/cpp` |
+| BufferFiller (WAV → AudioBuffer) | `SOURCE/BUFFER_FILLER/BufferFiller.h/cpp` |
 | Debug macros | `SOURCE/Util/DebugLog.h` |
 | JUCE includes | `SOURCE/Util/Juce_Header.h` (include this, not JUCE directly) |
 | Version | `VERSION.txt` (auto-generates `SOURCE/Util/Version.h`) |

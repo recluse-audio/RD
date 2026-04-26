@@ -30,10 +30,6 @@ bool RD_Processor::isBusesLayoutSupported (const BusesLayout& layouts) const
     return true;
 }
 
-const juce::String RD_Processor::getName() const
-{
-    return "RD_Processor";
-}
 
 void RD_Processor::processBlock (juce::AudioBuffer<float>& buffer, juce::MidiBuffer& midiBuffer)
 {

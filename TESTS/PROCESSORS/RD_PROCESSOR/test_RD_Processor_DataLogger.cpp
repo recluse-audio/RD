@@ -129,3 +129,58 @@ TEST_CASE("RD_Processor createProcessBlockDataLogFile writes audio buffer as CSV
         REQUIRE(lines[0] == "ch0");
     }
 }
+
+TEST_CASE("RD_Processor parent logs propagate to child RD_Processor", "[RD_Processor][DataLogger]")
+{
+    TestUtils::SetupAndTeardown setup;
+    RD_Processor parent;
+    RD_Processor child;
+
+    auto timestamp = juce::Time::getCurrentTime().formatted ("%Y-%m-%d_%H-%M-%S");
+    juce::File outputDir = juce::File ("c:/REPOS/PLUGIN_PROJECTS/RD/TESTS/PROCESSORS/RD_PROCESSOR/OUTPUT/RD_Processor parent logs propagate to child RD_Processor")
+                               .getChildFile (timestamp);
+
+    auto parentDir = outputDir.getChildFile ("parent");
+    auto childDir  = outputDir.getChildFile ("child");
+
+    parent.createOutputDirectory (parentDir);
+    child.createOutputDirectory (childDir);
+
+    parent.setOutputFile (parentDir);
+    child.setOutputFile (childDir);
+
+    parent.setIsLogging (true);
+    child.setIsLogging (true);
+
+    parent.addChild (&child);
+
+    SECTION("Both parent and child write log files via parent.logData()")
+    {
+        REQUIRE(parent.getNumChildren() == 1);
+        REQUIRE(parent.logData() == true);
+
+        auto parentLog = parentDir.getChildFile ("output.txt");
+        auto childLog  = childDir.getChildFile ("output.txt");
+
+        REQUIRE(parentLog.existsAsFile());
+        REQUIRE(childLog.existsAsFile());
+    }
+
+    SECTION("Removing child stops propagation")
+    {
+        parent.removeChild (&child);
+
+        // Wipe child dir to detect any unexpected write.
+        childDir.deleteRecursively();
+        child.createOutputDirectory (childDir);
+
+        REQUIRE(parent.getNumChildren() == 0);
+        REQUIRE(parent.logData() == true);
+
+        auto parentLog = parentDir.getChildFile ("output.txt");
+        auto childLog  = childDir.getChildFile ("output.txt");
+
+        REQUIRE(parentLog.existsAsFile());
+        REQUIRE_FALSE(childLog.existsAsFile());
+    }
+}

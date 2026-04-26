@@ -37,7 +37,7 @@ public:
     bool hasEditor() const override { return true; }
 
     //==============================================================================
-    const juce::String getName() const override                 { return "Grain Shifter"; }
+    const juce::String getName() const override { return "Grain Shifter"; }
 
     //==============================================================================
     void parameterChanged (const juce::String& parameterID, float newValue) override;
