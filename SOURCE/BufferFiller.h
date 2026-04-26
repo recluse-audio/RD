@@ -433,23 +433,14 @@ public:
     }
 
     //===========================================
-    /** Loads up to maxSamples from a WAV file into a pre-sized destBuffer.
-     *  Does NOT resize destBuffer. samplesRead = min(file length, maxSamples, destBuffer.getNumSamples()).
-     *  If destBuffer has 2 channels and the file is mono, ch0 is duplicated into ch1.
+    /** Loads from a WAV file into a pre-sized destBuffer without writing past its bounds.
+     *  Does NOT resize destBuffer. Reads min(file length, destBuffer.getNumSamples()).
      *  Optional progressCallback fires during chunked reads (0.0 -> 1.0).
      */
-    static bool loadFromWavFile(const juce::File& wavFile,
+    static bool fillFromWavFile(const juce::File& wavFile,
                                 juce::AudioBuffer<float>& destBuffer,
-                                int maxSamples,
-                                double& sampleRateOut,
-                                int& numChannelsRead,
-                                int& samplesRead,
                                 std::function<void(float)> progressCallback = nullptr)
     {
-        sampleRateOut = 0.0;
-        numChannelsRead = 0;
-        samplesRead = 0;
-
         if (destBuffer.getNumSamples() <= 0 || destBuffer.getNumChannels() <= 0)
         {
             DBG("Destination buffer has zero size.");
@@ -466,12 +457,9 @@ public:
             return false;
         }
 
-        sampleRateOut = reader->sampleRate;
-        numChannelsRead = static_cast<int>(reader->numChannels);
-
         const int fileSamples = static_cast<int>(reader->lengthInSamples);
         const int destSamples = destBuffer.getNumSamples();
-        const int totalToRead = juce::jmin(fileSamples, maxSamples, destSamples);
+        const int totalToRead = juce::jmin(fileSamples, destSamples);
 
         destBuffer.clear();
 
@@ -491,17 +479,10 @@ public:
                 progressCallback(static_cast<float>(samplesDone) / static_cast<float>(totalToRead));
         }
 
-        // Mono source duplicated into channel 1 of a stereo destination.
-        if (numChannelsRead == 1 && destBuffer.getNumChannels() >= 2)
-        {
-            destBuffer.copyFrom(1, 0, destBuffer, 0, 0, totalToRead);
-        }
-
-        samplesRead = totalToRead;
         if (progressCallback)
             progressCallback(1.0f);
 
-        DBG("Successfully loaded " << samplesRead << " samples from WAV file.");
+        DBG("Successfully loaded " << totalToRead << " samples from WAV file.");
         return true;
     }
 
