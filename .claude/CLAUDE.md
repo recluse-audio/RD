@@ -84,7 +84,13 @@ For any processor inheriting `RD_Processor` / `DataLogger`, the `_DataLogger.cpp
 
 A `DataLogger`'s output is **always a directory** containing files, never a loose file. `mParentDirectory` (container) + `mOutputDirectoryName` (string, name only — not a path) compose `getOutputDirectory()`. Files written by `createDataLogFile`, `createProcessorDataLogFile`, and `createProcessBlockDataLogFile` always land inside `getOutputDirectory()`.
 
-`DataLogger` owns a non-owning child registry (`addChild` / `removeChild` / `getNumChildren`). When a parent's `logData()` fires, it cascades to registered children. If the parent's `mIsLogging` is false, `logData()` short-circuits and children are not visited. Tests on composite processors must verify children actually log when parent logs.
+`DataLogger` owns a non-owning child registry (`addChild` / `removeChild` / `getNumChildren`). When a parent's `logData()` fires, it cascades to registered children. If the parent's `mIsLogging` is false, `logData()` short-circuits and children are not visited.
+
+Children also hold a non-owning back-pointer to their parent logger (`mParentLogger`, set by `addChild`, cleared by `removeChild`). At the start of each `child.logData()` call, the child syncs its own `mParentDirectory` from `mParentLogger->getOutputDirectory()` so child output always nests under the parent's current location:
+`child.getOutputDirectory() == parent.getOutputDirectory() / child.getOutputDirectoryName()`.
+This sync happens **at log time**, not at `addChild` time, so the parent can be relocated between logs and the child follows.
+
+Tests on composite processors must verify children actually log when parent logs, and that child paths land inside the parent's output directory.
 
 ### Running a single test
 

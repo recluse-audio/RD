@@ -41,6 +41,12 @@ bool DataLogger::logData()
     if(!mIsLogging)
         return false;
 
+    // Sync this logger's parent directory from the parent logger (if any)
+    // so the child's output always nests under the parent's current output
+    // directory at log time.
+    if (mParentLogger != nullptr)
+        setParentDirectory (mParentLogger->getOutputDirectory());
+
     juce::File file = createDataLogFile();
     bool ok = file.exists();
 
@@ -62,16 +68,29 @@ void DataLogger::addChild (DataLogger* child)
         return;
 
     mChildren.push_back (child);
+    child->mParentLogger = this;
 }
 
 void DataLogger::removeChild (DataLogger* child)
 {
-    mChildren.erase (std::remove (mChildren.begin(), mChildren.end(), child), mChildren.end());
+    auto it = std::find (mChildren.begin(), mChildren.end(), child);
+    if (it == mChildren.end())
+        return;
+
+    if (child != nullptr && child->mParentLogger == this)
+        child->mParentLogger = nullptr;
+
+    mChildren.erase (it);
 }
 
 size_t DataLogger::getNumChildren() const
 {
     return mChildren.size();
+}
+
+DataLogger* DataLogger::getParentLogger() const
+{
+    return mParentLogger;
 }
 
 bool DataLogger::createOutputDirectory (const juce::File& directory)

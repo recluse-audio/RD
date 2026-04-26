@@ -50,13 +50,21 @@ public:
     virtual juce::File createDataLogFile();
 
     // Non-owning. Caller keeps child alive for lifetime of registration.
+    // On addChild, the child stores a back-pointer to this logger as its
+    // mParentLogger. Each time the child's logData() runs, the child syncs
+    // its mParentDirectory from mParentLogger->getOutputDirectory() so the
+    // child output follows the parent's current location dynamically:
+    //   child.getOutputDirectory() == parent.getOutputDirectory() / child.getOutputDirectoryName()
     void addChild (DataLogger* child);
     void removeChild (DataLogger* child);
     size_t getNumChildren() const;
+
+    DataLogger* getParentLogger() const;
 
 private:
     bool mIsLogging = false;
     juce::File   mParentDirectory     { juce::File::getSpecialLocation (juce::File::userDocumentsDirectory).getChildFile ("RD_DataLogger") };
     juce::String mOutputDirectoryName { "default" };
     std::vector<DataLogger*> mChildren;
+    DataLogger*  mParentLogger = nullptr;
 };
