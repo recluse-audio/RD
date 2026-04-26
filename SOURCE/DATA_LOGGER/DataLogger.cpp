@@ -29,11 +29,11 @@ bool DataLogger::logData()
     juce::File file = createDataLogFile();
     bool ok = file.exists();
 
-    // for (auto* child : mChildren)
-    // {
-    //     if (child != nullptr)
-    //         ok = child->logData() && ok;
-    // }
+    for (auto* child : mChildren)
+    {
+        if (child != nullptr)
+            ok = child->logData() && ok;
+    }
 
     return ok;
 }
