@@ -1,7 +1,7 @@
 #include <catch2/catch_test_macros.hpp>
 #include <catch2/matchers/catch_matchers_string.hpp>
 #include <catch2/catch_approx.hpp>  // For Approx in Catch2 v3+
-#include "../SOURCE/BufferFiller.h"
+#include "../SOURCE/BUFFER_FILLER/BufferFiller.h"
 
 #include "../SOURCE/BufferWriter.h"
 #include "../SOURCE/BufferHelper.h"

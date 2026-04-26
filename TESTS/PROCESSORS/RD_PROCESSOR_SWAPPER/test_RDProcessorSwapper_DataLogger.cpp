@@ -2,7 +2,7 @@
 #include <catch2/catch_approx.hpp>
 #include "../../TEST_UTILS/TestUtils.h"
 #include "../../../SOURCE/PROCESSORS/RD_ProcessorSwapper.h"
-#include "../../../SOURCE/BufferFiller.h"
+#include "../../../SOURCE/BUFFER_FILLER/BufferFiller.h"
 
 //========================================================
 //===================== DATA LOGGING =====================

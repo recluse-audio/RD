@@ -4,7 +4,7 @@
 
 #include "TEST_UTILS/TestUtils.h"
 #include "../SOURCE/RelativeFilePath.h"
-#include "../SOURCE/BufferFiller.h"
+#include "../SOURCE/BUFFER_FILLER/BufferFiller.h"
 #include "../SOURCE/BufferHelper.h"
 #include "../SOURCE/BufferRange.h"
 #include "../SOURCE/AudioFileHelpers.h"

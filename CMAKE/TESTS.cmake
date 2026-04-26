@@ -1,4 +1,6 @@
 set(TEST_SOURCES
+    TESTS/BUFFER_FILLER/test_BufferFiller.cpp
+    TESTS/BUFFER_FILLER/test_BufferFiller_WavFile.cpp
     TESTS/DATA_LOGGER/test_DataLogger.cpp
     TESTS/PROCESSORS/GAIN_PROCESSOR/test_GainProcessor.cpp
     TESTS/PROCESSORS/GAIN_PROCESSOR/test_GainProcessor_DataLogger.cpp
@@ -15,7 +17,6 @@ set(TEST_SOURCES
     TESTS/test_AudioFileHelpers.cpp
     TESTS/test_AudioFileProcessor.cpp
     TESTS/test_BlockAccumulator.cpp
-    TESTS/test_BufferFiller.cpp
     TESTS/test_BufferHelper.cpp
     TESTS/test_BufferMath.cpp
     TESTS/test_BufferRange.cpp

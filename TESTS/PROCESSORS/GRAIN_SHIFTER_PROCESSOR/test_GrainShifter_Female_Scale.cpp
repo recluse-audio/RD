@@ -7,7 +7,7 @@
 
 #include <catch2/catch_test_macros.hpp>
 #include "../../../SOURCE/PROCESSORS/GRAIN/GrainShifterProcessor.h"
-#include "../../../SOURCE/BufferFiller.h"
+#include "../../../SOURCE/BUFFER_FILLER/BufferFiller.h"
 #include "../../../SOURCE/BufferWriter.h"
 #include "../../../SOURCE/AudioFileHelpers.h"
 #include "../../TEST_UTILS/TestUtils.h"

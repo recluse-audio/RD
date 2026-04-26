@@ -9,7 +9,7 @@
 #include "../SOURCE/CircularBuffer.h"
 #include "../SOURCE/Window.h"
 #include "../SOURCE/PITCH/SynthMark.h"
-#include "../SOURCE/BufferFiller.h"
+#include "../SOURCE/BUFFER_FILLER/BufferFiller.h"
 
 TEST_CASE("Grain - Instantiation", "[Grain]")
 {

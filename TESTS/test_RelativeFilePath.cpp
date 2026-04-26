@@ -3,7 +3,7 @@
 #include <catch2/catch_approx.hpp>  // For Approx in Catch2 v3+
 
 #include "../SOURCE/RelativeFilePath.h"
-#include "../SOURCE/BufferFiller.h"
+#include "../SOURCE/BUFFER_FILLER/BufferFiller.h"
 
 TEST_CASE("Can get file relative to project root directory.")
 {

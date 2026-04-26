@@ -3,7 +3,7 @@
 #include <catch2/catch_approx.hpp>
 
 #include "../SOURCE/PITCH/YIN_PitchDetector.h"
-#include "../SOURCE/BufferFiller.h"
+#include "../SOURCE/BUFFER_FILLER/BufferFiller.h"
 #include "../SOURCE/BufferHelper.h"
 #include "TEST_UTILS/TestUtils.h"
 

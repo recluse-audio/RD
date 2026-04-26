@@ -1,8 +1,9 @@
 set(SOURCES
     SOURCE/AudioFileHelpers.h
+    SOURCE/BUFFER_FILLER/BufferFiller.cpp
+    SOURCE/BUFFER_FILLER/BufferFiller.h
     SOURCE/BlockAccumulator.cpp
     SOURCE/BlockAccumulator.h
-    SOURCE/BufferFiller.h
     SOURCE/BufferHelper.h
     SOURCE/BufferMath.h
     SOURCE/BufferRange.h

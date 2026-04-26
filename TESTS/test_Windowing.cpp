@@ -2,7 +2,7 @@
 #include <catch2/matchers/catch_matchers_string.hpp>
 
 #include "../SOURCE/Window.h"
-#include "../SOURCE/BufferFiller.h"
+#include "../SOURCE/BUFFER_FILLER/BufferFiller.h"
 
 /**
  * @brief Helps check stuff under the hood, especially really fundamental stuff like buffer resizing with sample rate

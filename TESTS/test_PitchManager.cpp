@@ -7,7 +7,7 @@
 #include <catch2/matchers/catch_matchers_floating_point.hpp>
 #include "../SOURCE/PITCH/PitchManager.h"
 #include "../SOURCE/CircularBuffer.h"
-#include "../SOURCE/BufferFiller.h"
+#include "../SOURCE/BUFFER_FILLER/BufferFiller.h"
 #include "../SOURCE/MarkWriter.h"
 #include <cmath>
 #include <fstream>

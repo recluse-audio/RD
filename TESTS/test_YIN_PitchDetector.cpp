@@ -10,7 +10,7 @@
 #include <catch2/matchers/catch_matchers_string.hpp>
 #include "TEST_UTILS/TestUtils.h"
 #include "../SOURCE/PITCH/YIN_PitchDetector.h"
-#include "../SOURCE/BufferFiller.h"
+#include "../SOURCE/BUFFER_FILLER/BufferFiller.h"
 
 //==============================================================================
 class YIN_PitchDetectorTester

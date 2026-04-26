@@ -1,6 +1,6 @@
 #include <catch2/catch_test_macros.hpp>
 #include "../../../SOURCE/PROCESSORS/GRAIN/GrainShifterProcessor.h"
-#include "../../../SOURCE/BufferFiller.h"
+#include "../../../SOURCE/BUFFER_FILLER/BufferFiller.h"
 #include "../../TEST_UTILS/TestUtils.h"
 
 TEST_CASE("GrainShifterProcessor output is not silent after processing sine input", "[GrainShifterProcessor]")
