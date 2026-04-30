@@ -27,7 +27,7 @@ public:
     juce::AudioProcessorEditor* createEditor() override;
     bool hasEditor() const override;
 
-    const juce::String getName() const override             { return "RD"; }
+    const juce::String getName() const override             { return "RD Processor Swapper"; }
 
     //==============================================================================
     juce::AudioProcessor* getActiveProcessor();
