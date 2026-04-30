@@ -72,23 +72,26 @@ Standalone-component tests live in their own top-level test folder: `TESTS/BUFFE
 
 For any processor inheriting `RD_Processor` / `DataLogger`, the `_DataLogger.cpp` file follows this pattern (see `TESTS/PROCESSORS/GAIN_PROCESSOR/test_GainProcessor_DataLogger.cpp` for canonical example):
 
-1. Build a timestamped `outputDir` under `TESTS/PROCESSORS/<PROCESSOR>/OUTPUT/<TEST CASE NAME>/<timestamp>`. Treat `outputDir` as the **parent directory** for the logger.
-2. Per `SECTION`, configure the logger:
+1. Build a timestamped `outputDir` under `TESTS/PROCESSORS/<PROCESSOR>/OUTPUT/<TEST CASE NAME>/<timestamp>`. Treat `outputDir` as the **root directory** for the logger.
+2. Per `SECTION`, configure the logger then call `startLogging()`:
    ```cpp
-   processor.setParentDirectory (outputDir);
-   processor.setOutputDirectoryName ("<section name>");
-   processor.createOutputDirectory();
+   processor.setDataLogRootDirectory (outputDir);
+   processor.setDataLogOutputName ("<section name>");
+   processor.startLogging();   // sets isLogging=true, clears any prior CSVs
    ```
    so each section's logs are isolated under `outputDir/<section name>/`.
-3. Log pre-process buffer → run `processBlock` → log post-process buffer → log processor state. `REQUIRE` each returned `juce::File` exists.
+3. Run `processBlock` one or more times. While logging, each call appends two rows (an absolute-index row and a sample-value row) to per-channel CSVs in the output directory:
+   - `input_samples_ch{N}.csv`  — pre-process buffer
+   - `output_samples_ch{N}.csv` — post-process buffer
 
-A `DataLogger`'s output is **always a directory** containing files, never a loose file. `mParentDirectory` (container) + `mOutputDirectoryName` (string, name only — not a path) compose `getOutputDirectory()`. Files written by `createDataLogFile`, `createProcessorDataLogFile`, and `createProcessBlockDataLogFile` always land inside `getOutputDirectory()`.
+   After N blocks, each per-channel file has `2 * N` rows. Sample indices are cumulative since `prepareToPlay` (driven by `mProcessSampleCount`). Call `stopLogging()` when done. `REQUIRE` the per-channel files exist and contain the expected row count.
+
+A `DataLogger`'s output is **always a directory** containing files, never a loose file. The output directory is composed dynamically from `getDataLogParentDirectory()` (which equals `mDataLogRootDirectory` if no parent logger is registered, or `parentLogger->getDataLogOutputDirectory()` otherwise) plus `mDataLogOutputName` (defaults to construction timestamp). Files written by `_createDataLogEventFile`, `createProcessorDataLogFile`, and the per-block sample CSVs always land inside `getDataLogOutputDirectory()`. The directory is materialized on disk at `logData()` time as a single side-effect; callers should not pre-create it.
 
 `DataLogger` owns a non-owning child registry (`addChild` / `removeChild` / `getNumChildren`). When a parent's `logData()` fires, it cascades to registered children. If the parent's `mIsLogging` is false, `logData()` short-circuits and children are not visited.
 
-Children also hold a non-owning back-pointer to their parent logger (`mParentLogger`, set by `addChild`, cleared by `removeChild`). At the start of each `child.logData()` call, the child syncs its own `mParentDirectory` from `mParentLogger->getOutputDirectory()` so child output always nests under the parent's current location:
-`child.getOutputDirectory() == parent.getOutputDirectory() / child.getOutputDirectoryName()`.
-This sync happens **at log time**, not at `addChild` time, so the parent can be relocated between logs and the child follows.
+Children also hold a non-owning back-pointer to their parent logger (`mParentLogger`, set by `addChild`, cleared by `removeChild`). The child's `getDataLogParentDirectory()` walks up to the parent's current `getDataLogOutputDirectory()` on every call, so child output always nests under the parent's current location and follows parent renames automatically:
+`child.getDataLogOutputDirectory() == parent.getDataLogOutputDirectory() / child.getDataLogOutputName()`.
 
 Tests on composite processors must verify children actually log when parent logs, and that child paths land inside the parent's output directory.
 
@@ -143,9 +146,13 @@ Each processor owns its own `mAPVTS` via override, rather than sharing a single 
 
 `RD_Processor::processBlock` is `final` — child classes **cannot** override it. Instead, override `virtual void doProcessBlock(buffer, midi)`. The base `processBlock` wraps the child call with shared concerns:
 
-1. If `getIsLogging()` is true, write a pre-process CSV via `createProcessBlockDataLogFile(buffer, true)`.
-2. Call `doProcessBlock(buffer, midi)` — child does its DSP work in place on `buffer`.
-3. If `getIsLogging()` is true, write a post-process CSV via `createProcessBlockDataLogFile(buffer, false)`.
+1. Snapshot `mProcessSampleCount` as the block's start index.
+2. If `getIsLogging()` is true, append `[indices, values]` rows to `input_samples_ch{N}.csv` for each channel.
+3. Call `doProcessBlock(buffer, midi)` — child does its DSP work in place on `buffer`.
+4. If `getIsLogging()` is true, append `[indices, values]` rows to `output_samples_ch{N}.csv` for each channel (using the same start index, so input/output rows align).
+5. Increment `mProcessSampleCount` by the block size.
+
+Use `startLogging()` / `stopLogging()` to toggle. `startLogging()` also clears any prior `input_samples_ch*.csv` / `output_samples_ch*.csv` from the output directory so appends start clean.
 
 When adding a new processor, override `doProcessBlock`, not `processBlock`. `RD_ProcessorSwapper` also inherits `RD_Processor` and follows the same convention — its graph dispatch lives in `doProcessBlock`.
 

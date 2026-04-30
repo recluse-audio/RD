@@ -16,20 +16,14 @@ TEST_CASE("DataLogger constructs without error", "[DataLogger]")
     auto caseDir = makeCaseDir ("DataLogger constructs without error");
 
     DataLogger logger;
-    logger.setParentDirectory (caseDir);
-    logger.setOutputDirectoryName ("default");
-    logger.createOutputDirectory();
+    logger.setDataLogRootDirectory (caseDir);
+    logger.setDataLogOutputName ("default");
     SUCCEED();
 }
 
 TEST_CASE("DataLogger mIsLogging getter and setter", "[DataLogger]")
 {
-    auto caseDir = makeCaseDir ("DataLogger mIsLogging getter and setter");
-
     DataLogger logger;
-    logger.setParentDirectory (caseDir);
-    logger.setOutputDirectoryName ("default");
-    logger.createOutputDirectory();
 
     SECTION("Default is false")
     {
@@ -50,45 +44,46 @@ TEST_CASE("DataLogger mIsLogging getter and setter", "[DataLogger]")
     }
 }
 
-TEST_CASE("DataLogger parent directory and output directory name round-trip", "[DataLogger]")
+TEST_CASE("DataLogger root + name compose output directory", "[DataLogger]")
 {
-    auto caseDir = makeCaseDir ("DataLogger parent directory and output directory name round-trip");
+    auto caseDir = makeCaseDir ("DataLogger root + name compose output directory");
 
     DataLogger logger;
 
-    SECTION("setParentDirectory + setOutputDirectoryName build expected getOutputDirectory()")
+    SECTION("setDataLogRootDirectory + setDataLogOutputName build expected getDataLogOutputDirectory()")
     {
-        logger.setParentDirectory (caseDir);
-        logger.setOutputDirectoryName ("my-section");
+        logger.setDataLogRootDirectory (caseDir);
+        logger.setDataLogOutputName ("my-section");
 
-        REQUIRE(logger.getParentDirectory() == caseDir);
-        REQUIRE(logger.getOutputDirectoryName() == "my-section");
-        REQUIRE(logger.getOutputDirectory() == caseDir.getChildFile ("my-section"));
+        REQUIRE(logger.getDataLogRootDirectory() == caseDir);
+        REQUIRE(logger.getDataLogOutputName() == "my-section");
+        REQUIRE(logger.getDataLogParentDirectory() == caseDir);
+        REQUIRE(logger.getDataLogOutputDirectory() == caseDir.getChildFile ("my-section"));
     }
 
-    SECTION("createOutputDirectory() materializes mParentDirectory/mOutputDirectoryName on disk")
+    SECTION("Default output name is a non-empty timestamp")
     {
-        logger.setParentDirectory (caseDir);
-        logger.setOutputDirectoryName ("created");
-
-        REQUIRE(logger.createOutputDirectory());
-        REQUIRE(logger.getOutputDirectory().isDirectory());
+        DataLogger fresh;
+        REQUIRE(fresh.getDataLogOutputName().isNotEmpty());
     }
 }
 
-TEST_CASE("DataLogger createDataLogFile writes expected content", "[DataLogger]")
+TEST_CASE("DataLogger logData materializes output directory and writes default file", "[DataLogger]")
 {
-    auto caseDir = makeCaseDir ("DataLogger createDataLogFile writes expected content");
+    auto caseDir = makeCaseDir ("DataLogger logData materializes output directory and writes default file");
 
     DataLogger logger;
-    logger.setParentDirectory (caseDir);
-    logger.setOutputDirectoryName ("default");
-    logger.createOutputDirectory();
+    logger.setDataLogRootDirectory (caseDir);
+    logger.setDataLogOutputName ("default");
+    logger.setIsLogging (true);
 
-    auto logFile = logger.createDataLogFile();
+    REQUIRE(logger.logData() == true);
 
+    auto outputDir = logger.getDataLogOutputDirectory();
+    REQUIRE(outputDir.isDirectory());
+
+    auto logFile = outputDir.getChildFile ("output.txt");
     REQUIRE(logFile.existsAsFile());
-    REQUIRE(logFile.getParentDirectory() == logger.getOutputDirectory());
     REQUIRE(logFile.loadFileAsString() == "DataLogger Default Output");
 }
 
@@ -99,47 +94,50 @@ namespace
     public:
         int callCount = 0;
 
-        juce::File createDataLogFile() override
+        juce::File _createDataLogEventFile() override
         {
             ++callCount;
-            return DataLogger::createDataLogFile();
+            return DataLogger::_createDataLogEventFile();
         }
     };
 
-    void configureLogger (DataLogger& logger, const juce::File& parent, const juce::String& name)
+    void configureLogger (DataLogger& logger, const juce::File& root, const juce::String& name)
     {
-        logger.setParentDirectory (parent);
-        logger.setOutputDirectoryName (name);
-        logger.createOutputDirectory();
+        logger.setDataLogRootDirectory (root);
+        logger.setDataLogOutputName (name);
     }
 }
 
-TEST_CASE("DataLogger addChild stores parent back-pointer and syncs child path at logData time", "[DataLogger]")
+TEST_CASE("DataLogger addChild stores parent back-pointer and routes child path through parent", "[DataLogger]")
 {
-    auto caseDir = makeCaseDir ("DataLogger addChild stores parent back-pointer and syncs child path at logData time");
+    auto caseDir = makeCaseDir ("DataLogger addChild stores parent back-pointer and routes child path through parent");
 
     DataLogger parent;
     CountingLogger child;
 
     configureLogger (parent, caseDir, "parent");
 
-    // Child starts with an unrelated parent directory.
     auto unrelatedDir = caseDir.getChildFile ("somewhere-else");
-    child.setParentDirectory (unrelatedDir);
-    child.setOutputDirectoryName ("child");
+    child.setDataLogRootDirectory (unrelatedDir);
+    child.setDataLogOutputName ("child");
 
-    SECTION("addChild stores back-pointer but does not mutate parent directory yet")
+    SECTION("Without parent logger, child path uses its own root")
     {
         REQUIRE(child.getParentLogger() == nullptr);
+        REQUIRE(child.getDataLogParentDirectory() == unrelatedDir);
+        REQUIRE(child.getDataLogOutputDirectory() == unrelatedDir.getChildFile ("child"));
+    }
 
+    SECTION("addChild stores back-pointer and reroutes child parent dir to parent's output dir")
+    {
         parent.addChild (&child);
 
         REQUIRE(child.getParentLogger() == &parent);
-        // Child path untouched until logData runs.
-        REQUIRE(child.getParentDirectory() == unrelatedDir);
+        REQUIRE(child.getDataLogParentDirectory() == parent.getDataLogOutputDirectory());
+        REQUIRE(child.getDataLogOutputDirectory() == parent.getDataLogOutputDirectory().getChildFile ("child"));
     }
 
-    SECTION("child.logData() syncs parent directory from parent logger")
+    SECTION("parent.logData() cascades and creates child output dir under parent")
     {
         parent.addChild (&child);
         parent.setIsLogging (true);
@@ -147,45 +145,42 @@ TEST_CASE("DataLogger addChild stores parent back-pointer and syncs child path a
 
         parent.logData();
 
-        REQUIRE(child.getParentDirectory() == parent.getOutputDirectory());
-        REQUIRE(child.getOutputDirectory() == parent.getOutputDirectory().getChildFile ("child"));
         REQUIRE(child.callCount == 1);
-        REQUIRE(child.getOutputDirectory().getChildFile ("output.txt").existsAsFile());
+        REQUIRE(child.getDataLogOutputDirectory().getChildFile ("output.txt").existsAsFile());
+        REQUIRE(child.getDataLogOutputDirectory() == parent.getDataLogOutputDirectory().getChildFile ("child"));
     }
 
-    SECTION("Renaming parent's output directory between logs follows on the next log")
+    SECTION("Renaming parent's output name between logs follows on the next log")
     {
         parent.addChild (&child);
         parent.setIsLogging (true);
         child.setIsLogging (true);
 
         parent.logData();
-        auto firstChildPath = child.getOutputDirectory();
+        auto firstChildPath = child.getDataLogOutputDirectory();
 
-        parent.setOutputDirectoryName ("parent-renamed");
-        parent.createOutputDirectory();
+        parent.setDataLogOutputName ("parent-renamed");
 
         parent.logData();
-        auto secondChildPath = child.getOutputDirectory();
+        auto secondChildPath = child.getDataLogOutputDirectory();
 
         REQUIRE(firstChildPath != secondChildPath);
-        REQUIRE(secondChildPath == parent.getOutputDirectory().getChildFile ("child"));
+        REQUIRE(secondChildPath == parent.getDataLogOutputDirectory().getChildFile ("child"));
         REQUIRE(secondChildPath.getChildFile ("output.txt").existsAsFile());
     }
 
-    SECTION("removeChild clears the back-pointer; subsequent direct child.logData() uses child's own parent dir")
+    SECTION("removeChild clears the back-pointer; child reverts to its own root")
     {
         parent.addChild (&child);
         parent.removeChild (&child);
 
         REQUIRE(child.getParentLogger() == nullptr);
 
-        // Restore an isolated child path so it can log on its own.
-        child.setParentDirectory (caseDir.getChildFile ("orphan"));
+        child.setDataLogRootDirectory (caseDir.getChildFile ("orphan"));
         child.setIsLogging (true);
 
         REQUIRE(child.logData() == true);
-        REQUIRE(child.getParentDirectory() == caseDir.getChildFile ("orphan"));
+        REQUIRE(child.getDataLogParentDirectory() == caseDir.getChildFile ("orphan"));
     }
 }
 
@@ -259,7 +254,6 @@ TEST_CASE("DataLogger parent logging off skips children", "[DataLogger]")
     configureLogger (childA, caseDir, "childA");
     configureLogger (childB, caseDir, "childB");
 
-    // Children individually want to log, but parent is off.
     childA.setIsLogging (true);
     childB.setIsLogging (true);
     parent.setIsLogging (false);
@@ -267,7 +261,7 @@ TEST_CASE("DataLogger parent logging off skips children", "[DataLogger]")
     parent.addChild (&childA);
     parent.addChild (&childB);
 
-    SECTION("Parent off short-circuits — no child createDataLogFile call")
+    SECTION("Parent off short-circuits — no child _createDataLogEventFile call")
     {
         REQUIRE(parent.logData() == false);
         REQUIRE(parent.callCount == 0);
@@ -279,9 +273,9 @@ TEST_CASE("DataLogger parent logging off skips children", "[DataLogger]")
     {
         parent.logData();
 
-        REQUIRE_FALSE(parent.getOutputDirectory().getChildFile ("output.txt").existsAsFile());
-        REQUIRE_FALSE(childA.getOutputDirectory().getChildFile ("output.txt").existsAsFile());
-        REQUIRE_FALSE(childB.getOutputDirectory().getChildFile ("output.txt").existsAsFile());
+        REQUIRE_FALSE(parent.getDataLogOutputDirectory().getChildFile ("output.txt").existsAsFile());
+        REQUIRE_FALSE(childA.getDataLogOutputDirectory().getChildFile ("output.txt").existsAsFile());
+        REQUIRE_FALSE(childB.getDataLogOutputDirectory().getChildFile ("output.txt").existsAsFile());
     }
 
     SECTION("Re-enabling parent restores cascade")
@@ -304,11 +298,8 @@ TEST_CASE("DataLogger logData returns false and creates no file when not logging
     configureLogger (logger, caseDir, "default");
     // mIsLogging defaults to false — no explicit set needed
 
-    auto outputDir = logger.getOutputDirectory();
-    auto childrenBefore = outputDir.getNumberOfChildFiles (juce::File::findFilesAndDirectories);
     bool result = logger.logData();
-    auto childrenAfter = outputDir.getNumberOfChildFiles (juce::File::findFilesAndDirectories);
 
     REQUIRE(result == false);
-    REQUIRE(childrenAfter == childrenBefore);
+    REQUIRE_FALSE(logger.getDataLogOutputDirectory().exists());
 }

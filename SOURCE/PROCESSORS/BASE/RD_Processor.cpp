@@ -6,10 +6,14 @@ RD_Processor::RD_Processor()
 {
     mBaseAPVTS.addParameterListener ("gain", this);
     mGainValue.set (*mBaseAPVTS.getRawParameterValue ("gain"));
+
+    _fireLifecycleLog (LifecycleState::kConstructed);
 }
 
 RD_Processor::~RD_Processor()
 {
+    _fireLifecycleLog (LifecycleState::kDestructing);
+
     mBaseAPVTS.removeParameterListener ("gain", this);
 }
 
@@ -18,10 +22,13 @@ void RD_Processor::prepareToPlay (double sampleRate, int samplesPerBlock)
     mSampleRate         = sampleRate;
     mBlockSize          = samplesPerBlock;
     mProcessSampleCount = 0;
+
+    _fireLifecycleLog (LifecycleState::kPreparedToPlay);
 }
 
 void RD_Processor::releaseResources()
 {
+    _fireLifecycleLog (LifecycleState::kReleasingResources);
 }
 
 bool RD_Processor::isBusesLayoutSupported (const BusesLayout& layouts) const
@@ -33,14 +40,23 @@ bool RD_Processor::isBusesLayoutSupported (const BusesLayout& layouts) const
 
 void RD_Processor::processBlock (juce::AudioBuffer<float>& buffer, juce::MidiBuffer& midiBuffer)
 {
-    if(this->getIsLogging())
-        this->createProcessBlockDataLogFile(buffer, true);
+    mLogBlockStartIndex = mProcessSampleCount;
 
-    // This is where child class processors will do their magic
+    if (getIsLogging())
+    {
+        mLogBuffer.makeCopyOf (buffer);
+        _fireLifecycleLog (LifecycleState::kProcessBlockStart);
+    }
+
     doProcessBlock (buffer, midiBuffer);
 
-    if(this->getIsLogging())
-        this->createProcessBlockDataLogFile(buffer, false);
+    if (getIsLogging())
+    {
+        mLogBuffer.makeCopyOf (buffer);
+        _fireLifecycleLog (LifecycleState::kProcessBlockEnd);
+    }
+
+    mProcessSampleCount += buffer.getNumSamples();
 }
 
 void RD_Processor::doProcessBlock (juce::AudioBuffer<float>& buffer, juce::MidiBuffer& midiBuffer)
@@ -126,58 +142,122 @@ juce::AudioProcessorValueTreeState& RD_Processor::getAPVTS()
     return mBaseAPVTS;
 }
 
+
+
+void RD_Processor::startLogging()
+{
+    setIsLogging (true);
+
+    auto dir = getDataLogOutputDirectory();
+    for (auto& f : dir.findChildFiles (juce::File::findFiles, false,
+                                       "input_samples_ch*.csv"))
+        f.deleteFile();
+    for (auto& f : dir.findChildFiles (juce::File::findFiles, false,
+                                       "output_samples_ch*.csv"))
+        f.deleteFile();
+}
+
+void RD_Processor::stopLogging()
+{
+    setIsLogging (false);
+}
+
+bool RD_Processor::doLogData()
+{
+    switch (mLifecycleState)
+    {
+        case LifecycleState::kConstructed:        return _logConstructed();
+        case LifecycleState::kPreparedToPlay:     return _logPrepareToPlay();
+        case LifecycleState::kProcessBlockStart:  return _logProcessBlockStart();
+        case LifecycleState::kProcessBlockEnd:    return _logProcessBlockEnd();
+        case LifecycleState::kReleasingResources: return _logReleasingResources();
+        case LifecycleState::kDestructing:        return _logDestructing();
+        case LifecycleState::kIdle:               return DataLogger::doLogData();
+    }
+    return false;
+}
+
+void RD_Processor::_fireLifecycleLog (LifecycleState state)
+{
+    mLifecycleState = state;
+    if (getIsLogging())
+        logData();
+    mLifecycleState = LifecycleState::kIdle;
+}
+
+bool RD_Processor::_logConstructed()
+{
+    return true;
+}
+
+bool RD_Processor::_logPrepareToPlay()
+{
+    return true;
+}
+
+bool RD_Processor::_logProcessBlockStart()
+{
+    _writeBlockSamplesCsv ("input_samples_ch");
+    return true;
+}
+
+bool RD_Processor::_logProcessBlockEnd()
+{
+    _writeBlockSamplesCsv ("output_samples_ch");
+    return true;
+}
+
+bool RD_Processor::_logReleasingResources()
+{
+    return true;
+}
+
+bool RD_Processor::_logDestructing()
+{
+    return true;
+}
+
+
 juce::File RD_Processor::createProcessorDataLogFile()
 {
-    createOutputDirectory();
-
     auto xmlState = getAPVTS().copyState().createXml();
     if (xmlState == nullptr)
         xmlState = std::make_unique<juce::XmlElement> ("ProcessorState");
 
     xmlState->setAttribute ("processorName", getName());
 
-    auto logFile = getOutputDirectory().getChildFile ("processor_state.xml");
+    auto logFile = getDataLogOutputDirectory().getChildFile ("processor_state.xml");
     xmlState->writeTo (logFile);
 
     return logFile;
 }
 
-
-juce::File RD_Processor::createProcessBlockDataLogFile (juce::AudioBuffer<float> processBuffer, bool isPreProcessing)
+void RD_Processor::_writeBlockSamplesCsv (const juce::String& filenamePrefix)
 {
-    createOutputDirectory();
-
-    juce::String fileName = (isPreProcessing ? "preprocess_" : "postprocess_")
-                          + juce::String (processBuffer.getNumChannels()) + "ch_"
-                          + juce::String (processBuffer.getNumSamples())  + "smp.csv";
-
-    auto logFile = getOutputDirectory().getChildFile (fileName);
-
-    const int numChannels = processBuffer.getNumChannels();
-    const int numSamples  = processBuffer.getNumSamples();
-
-    juce::String csv;
-    csv.preallocateBytes (static_cast<size_t> (numSamples * numChannels * 12));
+    const auto dir         = getDataLogOutputDirectory();
+    const int  numChannels = mLogBuffer.getNumChannels();
+    const int  numSamples  = mLogBuffer.getNumSamples();
 
     for (int ch = 0; ch < numChannels; ++ch)
     {
-        if (ch > 0) csv << ",";
-        csv << "ch" << ch;
-    }
-    csv << "\n";
+        auto file = dir.getChildFile (filenamePrefix + juce::String (ch) + ".csv");
 
-    for (int sampleIndex = 0; sampleIndex < numSamples; ++sampleIndex)
-    {
-        for (int ch = 0; ch < numChannels; ++ch)
+        juce::String indicesRow, valuesRow;
+        indicesRow.preallocateBytes (static_cast<size_t> (numSamples * 8));
+        valuesRow .preallocateBytes (static_cast<size_t> (numSamples * 12));
+
+        for (int s = 0; s < numSamples; ++s)
         {
-            if (ch > 0) csv << ",";
-            csv << juce::String (processBuffer.getSample (ch, sampleIndex), 8);
+            if (s > 0) { indicesRow << ","; valuesRow << ","; }
+            indicesRow << juce::String (mLogBlockStartIndex + s);
+            valuesRow  << juce::String (mLogBuffer.getSample (ch, s), 8);
         }
-        csv << "\n";
-    }
+        indicesRow << "\n";
+        valuesRow  << "\n";
 
-    logFile.replaceWithText (csv);
-    return logFile;
+        file.appendText (indicesRow);
+        file.appendText (valuesRow);
+    }
 }
 
 void RD_Processor::parameterChanged (const juce::String& parameterID, float newValue)

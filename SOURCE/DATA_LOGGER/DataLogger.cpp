@@ -1,6 +1,13 @@
 #include "DataLogger.h"
 #include <algorithm>
 
+DataLogger::DataLogger()
+{
+    mCurrentTime = juce::Time::getCurrentTime().formatted ("%Y-%m-%d_%H-%M-%S");
+    // By default the current time
+    mDataLogOutputName = mCurrentTime;
+}
+
 void DataLogger::setIsLogging (bool isLogging)
 {
     mIsLogging = isLogging;
@@ -11,29 +18,39 @@ bool DataLogger::getIsLogging() const
     return mIsLogging;
 }
 
-void DataLogger::setParentDirectory (const juce::File& parentDirectory)
+void DataLogger::setDataLogRootDirectory (const juce::File& rootDirectory)
 {
-    mParentDirectory = parentDirectory;
+    mDataLogRootDirectory = rootDirectory;
 }
 
-const juce::File& DataLogger::getParentDirectory() const
+const juce::File& DataLogger::getDataLogRootDirectory() const
 {
-    return mParentDirectory;
+    return mDataLogRootDirectory;
 }
 
-void DataLogger::setOutputDirectoryName (const juce::String& name)
+void DataLogger::setDataLogOutputName (const juce::String& name)
 {
-    mOutputDirectoryName = name;
+    mDataLogOutputName = name;
 }
 
-const juce::String& DataLogger::getOutputDirectoryName() const
+const juce::String& DataLogger::getDataLogOutputName() const
 {
-    return mOutputDirectoryName;
+    return mDataLogOutputName;
 }
 
-juce::File DataLogger::getOutputDirectory() const
+juce::File DataLogger::getDataLogParentDirectory() const
 {
-    return mParentDirectory.getChildFile (mOutputDirectoryName);
+    // Parent directory derived dynamically:
+    //   - has parent logger -> nest under parent's current output dir
+    //   - no parent logger  -> sit directly under root dir
+    if (mParentLogger != nullptr)
+        return mParentLogger->getDataLogOutputDirectory();
+    return mDataLogRootDirectory;
+}
+
+juce::File DataLogger::getDataLogOutputDirectory() const
+{
+    return getDataLogParentDirectory().getChildFile (mDataLogOutputName);
 }
 
 bool DataLogger::logData()
@@ -41,14 +58,15 @@ bool DataLogger::logData()
     if(!mIsLogging)
         return false;
 
-    // Sync this logger's parent directory from the parent logger (if any)
-    // so the child's output always nests under the parent's current output
-    // directory at log time.
-    if (mParentLogger != nullptr)
-        setParentDirectory (mParentLogger->getOutputDirectory());
+    // Single point of output-directory creation. Idempotent: short-circuits
+    // if the directory already exists.
+    auto outputDir = getDataLogOutputDirectory();
+    if (! (outputDir.exists() && outputDir.isDirectory()))
+        outputDir.createDirectory();
 
-    juce::File file = createDataLogFile();
-    bool ok = file.exists();
+    juce::File file = _createDataLogEventFile();
+
+    bool ok = doLogData();
 
     for (auto* child : mChildren)
     {
@@ -58,6 +76,13 @@ bool DataLogger::logData()
 
     return ok;
 }
+
+bool DataLogger::doLogData()
+{
+
+    return true;
+}
+
 
 void DataLogger::addChild (DataLogger* child)
 {
@@ -93,25 +118,9 @@ DataLogger* DataLogger::getParentLogger() const
     return mParentLogger;
 }
 
-bool DataLogger::createOutputDirectory (const juce::File& directory)
+juce::File DataLogger::_createDataLogEventFile()
 {
-    if (directory.exists() && directory.isDirectory())
-        return true;
-
-    auto result = directory.createDirectory();
-    return result.wasOk() && directory.isDirectory();
-}
-
-bool DataLogger::createOutputDirectory()
-{
-    return createOutputDirectory (getOutputDirectory());
-}
-
-juce::File DataLogger::createDataLogFile()
-{
-    createOutputDirectory();
-
-    auto logFile = getOutputDirectory().getChildFile ("output.txt");
+    auto logFile = getDataLogOutputDirectory().getChildFile ("output.txt");
     logFile.replaceWithText ("DataLogger Default Output");
 
     return logFile;

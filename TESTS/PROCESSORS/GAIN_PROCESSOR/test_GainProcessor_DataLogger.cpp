@@ -10,13 +10,15 @@
 // Protocol for DataLogger inheriters:
 //   1. Build timestamped outputDir under
 //      TESTS/PROCESSORS/<PROCESSOR>/OUTPUT/<TEST CASE NAME>/<timestamp>.
-//      Treat outputDir as the parent directory for the logger.
-//   2. Per SECTION, configure the logger:
-//        processor.setParentDirectory(outputDir);
-//        processor.setOutputDirectoryName("<section name>");
-//        processor.createOutputDirectory();
-//   3. Log pre-process buffer, run processBlock, log post-process buffer,
-//      then log processor state. REQUIRE each returned juce::File exists.
+//      Treat outputDir as the root directory for the logger.
+//   2. Per SECTION, configure the logger then call startLogging():
+//        processor.setDataLogRootDirectory(outputDir);
+//        processor.setDataLogOutputName("<section name>");
+//        processor.startLogging();
+//   3. Run processBlock one or more times. Each call appends an indices row
+//      and a values row to input_samples_ch{N}.csv (pre) and
+//      output_samples_ch{N}.csv (post) per channel. After N blocks, each
+//      file has 2*N rows. Call stopLogging() when done.
 
 TEST_CASE("GainProcessor applies gain and writes DataLogger output", "[GainProcessor][DataLogger]")
 {
@@ -26,37 +28,52 @@ TEST_CASE("GainProcessor applies gain and writes DataLogger output", "[GainProce
     auto timestamp = juce::Time::getCurrentTime().formatted ("%Y-%m-%d_%H-%M-%S");
     juce::File outputDir = juce::File ("c:/REPOS/PLUGIN_PROJECTS/RD/TESTS/PROCESSORS/GAIN_PROCESSOR/OUTPUT/GainProcessor applies gain and writes DataLogger output")
                                .getChildFile (timestamp);
-    processor.createOutputDirectory (outputDir);
 
     const int numChannels = 2;
     const int numSamples  = 256;
 
     auto runGainSection = [&] (float gain, const juce::String& sectionName)
     {
-        processor.setParentDirectory (outputDir);
-        processor.setOutputDirectoryName (sectionName);
-        processor.createOutputDirectory();
+        processor.setDataLogRootDirectory (outputDir);
+        processor.setDataLogOutputName (sectionName);
+        processor.startLogging();
 
         processor.setGain (gain);
 
-        juce::AudioBuffer<float> buffer (numChannels, numSamples);
-        BufferFiller::fillWithAllOnes (buffer);
-
-        auto preLog = processor.createProcessBlockDataLogFile (buffer, true);
-        REQUIRE(preLog.existsAsFile());
-
+        const int numBlocks = 2;
         juce::MidiBuffer midi;
-        processor.processBlock (buffer, midi);
 
-        auto postLog = processor.createProcessBlockDataLogFile (buffer, false);
-        REQUIRE(postLog.existsAsFile());
+        for (int b = 0; b < numBlocks; ++b)
+        {
+            juce::AudioBuffer<float> buffer (numChannels, numSamples);
+            BufferFiller::fillWithAllOnes (buffer);
+            processor.processBlock (buffer, midi);
+
+            for (int ch = 0; ch < numChannels; ++ch)
+                for (int s = 0; s < numSamples; ++s)
+                    REQUIRE (buffer.getSample (ch, s) == Catch::Approx (gain).margin (1e-6));
+        }
+
+        auto sectionDir = outputDir.getChildFile (sectionName);
+        for (int ch = 0; ch < numChannels; ++ch)
+        {
+            auto inFile  = sectionDir.getChildFile ("input_samples_ch"  + juce::String (ch) + ".csv");
+            auto outFile = sectionDir.getChildFile ("output_samples_ch" + juce::String (ch) + ".csv");
+            REQUIRE (inFile .existsAsFile());
+            REQUIRE (outFile.existsAsFile());
+
+            auto countLines = [] (const juce::File& f)
+            {
+                return juce::StringArray::fromLines (f.loadFileAsString().trimEnd()).size();
+            };
+            REQUIRE (countLines (inFile)  == 2 * numBlocks);
+            REQUIRE (countLines (outFile) == 2 * numBlocks);
+        }
 
         auto stateLog = processor.createProcessorDataLogFile();
-        REQUIRE(stateLog.existsAsFile());
+        REQUIRE (stateLog.existsAsFile());
 
-        for (int ch = 0; ch < numChannels; ++ch)
-            for (int s = 0; s < numSamples; ++s)
-                REQUIRE(buffer.getSample (ch, s) == Catch::Approx (gain).margin (1e-6));
+        processor.stopLogging();
     };
 
     SECTION("Gain 1.0 leaves all-ones buffer unchanged")

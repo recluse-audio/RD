@@ -11,50 +11,58 @@
  * Primarily json, csv, xml.
  *
  * A DataLogger's "output" is always a directory containing files — never a
- * loose file. The output directory's location is built from two pieces:
- *   - mParentDirectory     : container folder that will hold this logger's
- *                            output directory.
- *   - mOutputDirectoryName : name (not full path) of this logger's output
- *                            directory inside mParentDirectory.
- * Together, getOutputDirectory() == mParentDirectory / mOutputDirectoryName.
+ * loose file. The output directory's location is composed from:
+ *   - parent directory : derived dynamically. If this logger has no parent
+ *                        logger, it equals mDataLogRootDirectory. If it has
+ *                        a parent logger, it equals the parent's
+ *                        getDataLogOutputDirectory() so child output always
+ *                        nests under the parent's current dir.
+ *   - mDataLogOutputName : leaf folder name (defaults to construction
+ *                          timestamp) inside the parent directory.
+ * Together, getDataLogOutputDirectory() == getDataLogParentDirectory() / mDataLogOutputName.
+ *
+ * Users configure top-level loggers via setDataLogRootDirectory(). Child
+ * loggers' parent directory is derived from their parent logger.
  *
  * THIS IS NOT MEANT TO BE REAL TIME SAFE
  */
 class DataLogger
 {
 public:
-    DataLogger()  = default;
+    DataLogger();
     ~DataLogger() = default;
 
     void setIsLogging (bool isLogging);
     bool getIsLogging() const;
 
-    void setParentDirectory (const juce::File& parentDirectory);
-    const juce::File& getParentDirectory() const;
+    void setDataLogRootDirectory (const juce::File& rootDirectory);
+    const juce::File& getDataLogRootDirectory() const;
 
-    void setOutputDirectoryName (const juce::String& name);
-    const juce::String& getOutputDirectoryName() const;
+    void setDataLogOutputName (const juce::String& name);
+    const juce::String& getDataLogOutputName() const;
 
-    /** Returns mParentDirectory / mOutputDirectoryName. Does not create on disk. */
-    juce::File getOutputDirectory() const;
+    /** Read-only — derived dynamically from parent logger or root. */
+    juce::File getDataLogParentDirectory() const;
 
-    /** Utility: creates an arbitrary directory on disk. */
-    bool createOutputDirectory (const juce::File& directory);
+    /** Returns getDataLogParentDirectory() / mDataLogOutputName. */
+    juce::File getDataLogOutputDirectory() const;
 
-    /** Creates this logger's own output directory (mParentDirectory / mOutputDirectoryName). */
-    bool createOutputDirectory();
-
-    // This function calls the overridden `createDataLogFile()` if logging enabled,
-    // then cascades logData() to each registered child.
+    // Template method: short-circuits on !mIsLogging, creates output
+    // directory if missing, calls the overridable doLogData() hook, then
+    // cascades logData() to each registered child.
     bool logData();
-    virtual juce::File createDataLogFile();
+
+    // Override hook for subclasses. Default writes the standard data log event
+    // file via _createDataLogEventFile() and reports whether it exists.
+    virtual bool doLogData();
+
+
 
     // Non-owning. Caller keeps child alive for lifetime of registration.
     // On addChild, the child stores a back-pointer to this logger as its
-    // mParentLogger. Each time the child's logData() runs, the child syncs
-    // its mParentDirectory from mParentLogger->getOutputDirectory() so the
-    // child output follows the parent's current location dynamically:
-    //   child.getOutputDirectory() == parent.getOutputDirectory() / child.getOutputDirectoryName()
+    // mParentLogger. The child's getDataLogParentDirectory() walks up
+    // to mParentLogger->getDataLogOutputDirectory() dynamically:
+    //   child.getDataLogOutputDirectory() == parent.getDataLogOutputDirectory() / child.getDataLogOutputName()
     void addChild (DataLogger* child);
     void removeChild (DataLogger* child);
     size_t getNumChildren() const;
@@ -63,8 +71,13 @@ public:
 
 private:
     bool mIsLogging = false;
-    juce::File   mParentDirectory     { juce::File::getSpecialLocation (juce::File::userDocumentsDirectory).getChildFile ("RD_DataLogger") };
-    juce::String mOutputDirectoryName { "default" };
+    juce::File   mDataLogRootDirectory   { juce::File::getSpecialLocation (juce::File::userDocumentsDirectory)
+                                              .getChildFile ("Recluse Audio")
+                                              .getChildFile ("Data Logs") };
+
+    juce::File _createDataLogEventFile();
+    juce::String mCurrentTime;
+    juce::String mDataLogOutputName;
     std::vector<DataLogger*> mChildren;
     DataLogger*  mParentLogger = nullptr;
 };

@@ -20,8 +20,21 @@ class RD_Processor : public juce::AudioProcessor
                    , public DataLogger
 {
 public:
+    enum class LifecycleState
+    {
+        kIdle,
+        kConstructed,
+        kPreparedToPlay,
+        kProcessBlockStart,
+        kProcessBlockEnd,
+        kReleasingResources,
+        kDestructing
+    };
+
     RD_Processor();
     ~RD_Processor() override;
+
+    LifecycleState getLifecycleState() const { return mLifecycleState; }
 
     //==========================================================================
     //================== PROCESS BLOCK FINAL OVERRIDE ==========================
@@ -86,8 +99,13 @@ public:
     const int    getLastBlockSizeFromPrepareToPlay()  const;
 
     juce::int64 getProcessSampleCount() const;
+
+    void startLogging();
+    void stopLogging();
+
+    bool doLogData() override;
+
     juce::File createProcessorDataLogFile();
-    juce::File createProcessBlockDataLogFile(juce::AudioBuffer<float> processBuffer, bool isPreProcessing = true);
 
     void setGain (float newGain);
 
@@ -99,10 +117,26 @@ protected:
     juce::Atomic<float>                mGainValue;
     juce::AudioProcessorValueTreeState mBaseAPVTS;
 
+    LifecycleState mLifecycleState { LifecycleState::kIdle };
+
+    juce::AudioBuffer<float> mLogBuffer;
+    juce::int64              mLogBlockStartIndex = 0;
+
 private:
     static BusesProperties _getDefaultBusesProperties();
     static juce::AudioProcessorValueTreeState::ParameterLayout _createParameterLayout();
     void _updateGainValue (float newValue);
+
+    void _fireLifecycleLog (LifecycleState state);
+
+    bool _logConstructed();
+    bool _logPrepareToPlay();
+    bool _logProcessBlockStart();
+    bool _logProcessBlockEnd();
+    bool _logReleasingResources();
+    bool _logDestructing();
+
+    void _writeBlockSamplesCsv (const juce::String& filenamePrefix);
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (RD_Processor)
 };

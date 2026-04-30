@@ -198,7 +198,7 @@ endif()
 #==============================================================================
 # Tests (optional)
 #==============================================================================
-option(BUILD_TESTS "Build unit tests" OFF)
+option(BUILD_TESTS "Build unit tests" ON)
 
 if(BUILD_TESTS)
     include(FetchContent)
