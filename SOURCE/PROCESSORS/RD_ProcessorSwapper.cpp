@@ -52,10 +52,8 @@ juce::AudioProcessor* RD_ProcessorSwapper::getActiveProcessor()
 }
 
 //==============================================================================
-void RD_ProcessorSwapper::prepareToPlay (double sampleRate, int samplesPerBlock)
+void RD_ProcessorSwapper::doPrepareToPlay (double sampleRate, int samplesPerBlock)
 {
-    RD_Processor::prepareToPlay (sampleRate, samplesPerBlock);
-
     mGraph.enableAllBuses();
 
     juce::AudioProcessor::BusesLayout layout;

@@ -62,6 +62,78 @@ TEST_CASE("RD_Processor processBlock writes input/output sample CSVs to composed
     processor.stopLogging();
 }
 
+TEST_CASE("RD_Processor prepareToPlay logs sampleRate and maxBlockSize", "[RD_Processor][DataLogger]")
+{
+    TestUtils::SetupAndTeardown setup;
+
+    auto timestamp = juce::Time::getCurrentTime().formatted ("%Y-%m-%d_%H-%M-%S");
+    juce::File rootDir = juce::File (__FILE__).getParentDirectory()
+                                              .getChildFile ("OUTPUT")
+                                              .getChildFile ("RD_Processor prepareToPlay logs sampleRate and maxBlockSize")
+                                              .getChildFile (timestamp);
+
+    const juce::String outputName = "run";
+
+    RD_Processor processor;
+    processor.setDataLogRootDirectory (rootDir);
+    processor.setDataLogOutputName    (outputName);
+    processor.startLogging();
+
+    const double sampleRate   = 48000.0;
+    const int    maxBlockSize = 1024;
+    processor.prepareToPlay (sampleRate, maxBlockSize);
+
+    auto outputDir = processor.getDataLogOutputDirectory();
+    auto prepFile  = outputDir.getChildFile ("prepare_to_play.csv");
+    REQUIRE (prepFile.existsAsFile());
+
+    auto lines = juce::StringArray::fromLines (prepFile.loadFileAsString().trimEnd());
+    REQUIRE (lines.size() == 2);
+    REQUIRE (lines[0] == "sampleRate,maxBlockSize");
+
+    auto values = juce::StringArray::fromTokens (lines[1], ",", "");
+    REQUIRE (values.size() == 2);
+    REQUIRE (values[0].getDoubleValue() == Catch::Approx (sampleRate));
+    REQUIRE (values[1].getIntValue()    == maxBlockSize);
+
+    processor.stopLogging();
+}
+
+TEST_CASE("RD_Processor::createProcessorDataLogFile writes processor_state.xml inside output directory", "[RD_Processor][DataLogger]")
+{
+    TestUtils::SetupAndTeardown setup;
+
+    auto timestamp = juce::Time::getCurrentTime().formatted ("%Y-%m-%d_%H-%M-%S");
+    juce::File rootDir = juce::File (__FILE__).getParentDirectory()
+                                              .getChildFile ("OUTPUT")
+                                              .getChildFile ("RD_Processor createProcessorDataLogFile writes processor_state xml")
+                                              .getChildFile (timestamp);
+
+    const juce::String outputName = "run";
+
+    RD_Processor processor;
+    processor.setDataLogRootDirectory (rootDir);
+    processor.setDataLogOutputName    (outputName);
+    processor.startLogging();
+
+    juce::AudioBuffer<float> buffer (2, 64);
+    juce::MidiBuffer midi;
+    processor.processBlock (buffer, midi);
+
+    auto stateFile = processor.createProcessorDataLogFile();
+
+    auto outputDir = processor.getDataLogOutputDirectory();
+    REQUIRE (stateFile.existsAsFile());
+    REQUIRE (stateFile == outputDir.getChildFile ("processor_state.xml"));
+    REQUIRE (stateFile.getParentDirectory() == outputDir);
+
+    auto xml = juce::XmlDocument::parse (stateFile);
+    REQUIRE (xml != nullptr);
+    REQUIRE (xml->getStringAttribute ("processorName") == processor.getName());
+
+    processor.stopLogging();
+}
+
 TEST_CASE("RD_Processor logs global + local indices and per-channel samples across consecutive processBlock calls", "[RD_Processor][DataLogger]")
 {
     TestUtils::SetupAndTeardown setup;

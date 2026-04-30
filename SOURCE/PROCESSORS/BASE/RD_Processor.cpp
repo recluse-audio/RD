@@ -6,14 +6,10 @@ RD_Processor::RD_Processor()
 {
     mBaseAPVTS.addParameterListener ("gain", this);
     mGainValue.set (*mBaseAPVTS.getRawParameterValue ("gain"));
-
-    _fireLifecycleLog (LifecycleState::kConstructed);
 }
 
 RD_Processor::~RD_Processor()
 {
-    _fireLifecycleLog (LifecycleState::kDestructing);
-
     mBaseAPVTS.removeParameterListener ("gain", this);
 }
 
@@ -23,12 +19,18 @@ void RD_Processor::prepareToPlay (double sampleRate, int samplesPerBlock)
     mBlockSize          = samplesPerBlock;
     mProcessSampleCount = 0;
 
+    doPrepareToPlay (sampleRate, samplesPerBlock);
+
     _fireLifecycleLog (LifecycleState::kPreparedToPlay);
+}
+
+void RD_Processor::doPrepareToPlay (double sampleRate, int samplesPerBlock)
+{
+    juce::ignoreUnused (sampleRate, samplesPerBlock);
 }
 
 void RD_Processor::releaseResources()
 {
-    _fireLifecycleLog (LifecycleState::kReleasingResources);
 }
 
 bool RD_Processor::isBusesLayoutSupported (const BusesLayout& layouts) const
@@ -162,12 +164,9 @@ bool RD_Processor::doLogData()
 {
     switch (mLifecycleState)
     {
-        case LifecycleState::kConstructed:        return _logConstructed();
         case LifecycleState::kPreparedToPlay:     return _logPrepareToPlay();
         case LifecycleState::kProcessBlockStart:  return _logProcessBlockStart();
         case LifecycleState::kProcessBlockEnd:    return _logProcessBlockEnd();
-        case LifecycleState::kReleasingResources: return _logReleasingResources();
-        case LifecycleState::kDestructing:        return _logDestructing();
         case LifecycleState::kIdle:               return DataLogger::doLogData();
     }
     return false;
@@ -181,13 +180,15 @@ void RD_Processor::_fireLifecycleLog (LifecycleState state)
     mLifecycleState = LifecycleState::kIdle;
 }
 
-bool RD_Processor::_logConstructed()
-{
-    return true;
-}
-
 bool RD_Processor::_logPrepareToPlay()
 {
+    auto file = getDataLogOutputDirectory().getChildFile ("prepare_to_play.csv");
+
+    juce::String contents;
+    contents << "sampleRate,maxBlockSize\n";
+    contents << juce::String (mSampleRate) << "," << juce::String (mBlockSize) << "\n";
+
+    file.replaceWithText (contents);
     return true;
 }
 
@@ -200,16 +201,6 @@ bool RD_Processor::_logProcessBlockStart()
 bool RD_Processor::_logProcessBlockEnd()
 {
     _writeBlockSamplesCsv ("output_samples.csv");
-    return true;
-}
-
-bool RD_Processor::_logReleasingResources()
-{
-    return true;
-}
-
-bool RD_Processor::_logDestructing()
-{
     return true;
 }
 

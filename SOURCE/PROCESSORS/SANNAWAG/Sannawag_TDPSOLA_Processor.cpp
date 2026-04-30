@@ -19,9 +19,9 @@ Sannawag_TDPSOLA_Processor::~Sannawag_TDPSOLA_Processor()
 }
 
 //==============================================================================
-void Sannawag_TDPSOLA_Processor::prepareToPlay (double sampleRate, int samplesPerBlock)
+void Sannawag_TDPSOLA_Processor::doPrepareToPlay (double sampleRate, int samplesPerBlock)
 {
-    RD_Processor::prepareToPlay (sampleRate, samplesPerBlock);
+    juce::ignoreUnused (sampleRate);
     mAbsoluteSampleCount = 0;
 
     mScratchBuffer.setSize (getTotalNumInputChannels(), samplesPerBlock, false, true, false);

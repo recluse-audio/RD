@@ -26,7 +26,7 @@ public:
     ~GrainShifterProcessor() override;
 
     //==============================================================================
-    void prepareToPlay (double sampleRate, int samplesPerBlock) override;
+    void doPrepareToPlay (double sampleRate, int samplesPerBlock) override;
     void releaseResources() override;
     void doProcessBlock (juce::AudioBuffer<float>&, juce::MidiBuffer&) override;
 

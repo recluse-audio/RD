@@ -61,9 +61,9 @@ GrainShifterProcessor::~GrainShifterProcessor()
 }
 
 //==============================================================================
-void GrainShifterProcessor::prepareToPlay (double sampleRate, int samplesPerBlock)
+void GrainShifterProcessor::doPrepareToPlay (double sampleRate, int samplesPerBlock)
 {
-    RD_Processor::prepareToPlay (sampleRate, samplesPerBlock);
+    juce::ignoreUnused (samplesPerBlock);
     mAbsoluteSampleCount  = 0;
     mDetectionSampleCount = 0;
 

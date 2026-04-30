@@ -23,12 +23,9 @@ public:
     enum class LifecycleState
     {
         kIdle,
-        kConstructed,
         kPreparedToPlay,
         kProcessBlockStart,
-        kProcessBlockEnd,
-        kReleasingResources,
-        kDestructing
+        kProcessBlockEnd
     };
 
     RD_Processor();
@@ -59,6 +56,12 @@ public:
      */
 
     virtual void doProcessBlock (juce::AudioBuffer<float>& buffer, juce::MidiBuffer& midiBuffer);
+
+    /**
+     * Called by RD_Processor::prepareToPlay(), override this instead of base prepareToPlay()
+     * so RD_Processor base class can fire the kPreparedToPlay lifecycle log.
+     */
+    virtual void doPrepareToPlay (double sampleRate, int samplesPerBlock);
    
     /** 
       Returns the APVTS for this processor. Derived classes override to
@@ -77,7 +80,7 @@ public:
     //=============================================================================
     //============ OVERRIDE THESE IN CHILD CLASSES =====================
 
-    void prepareToPlay (double sampleRate, int samplesPerBlock) override;
+    void prepareToPlay (double sampleRate, int samplesPerBlock) final override;
     void releaseResources() override;
     bool isBusesLayoutSupported (const BusesLayout& layouts) const override;
     juce::AudioProcessorEditor* createEditor() override;
@@ -130,12 +133,9 @@ private:
 
     void _fireLifecycleLog (LifecycleState state);
 
-    bool _logConstructed();
     bool _logPrepareToPlay();
     bool _logProcessBlockStart();
     bool _logProcessBlockEnd();
-    bool _logReleasingResources();
-    bool _logDestructing();
 
     void _writeBlockSamplesCsv (const juce::String& filenamePrefix);
 
