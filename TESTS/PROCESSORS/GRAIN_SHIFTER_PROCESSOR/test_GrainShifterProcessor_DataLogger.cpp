@@ -8,6 +8,41 @@
 //========================================================
 // See GAIN_PROCESSOR/test_GainProcessor_DataLogger.cpp for protocol.
 
+TEST_CASE("GrainShifterProcessor prepareToPlay logs sampleRate and maxBlockSize", "[GrainShifterProcessor][DataLogger]")
+{
+    TestUtils::SetupAndTeardown setup;
+
+    auto timestamp = juce::Time::getCurrentTime().formatted ("%Y-%m-%d_%H-%M-%S");
+    juce::File rootDir = juce::File ("c:/REPOS/PLUGIN_PROJECTS/RD/TESTS/PROCESSORS/GRAIN_SHIFTER_PROCESSOR/OUTPUT/GrainShifterProcessor prepareToPlay logs sampleRate and maxBlockSize")
+                             .getChildFile (timestamp);
+
+    const juce::String outputName = "run";
+
+    GrainShifterProcessor processor;
+    processor.setDataLogRootDirectory (rootDir);
+    processor.setDataLogOutputName    (outputName);
+    processor.startLogging();
+
+    const double sampleRate   = 48000.0;
+    const int    maxBlockSize = 1024;
+    processor.prepareToPlay (sampleRate, maxBlockSize);
+
+    auto outputDir = processor.getDataLogOutputDirectory();
+    auto prepFile  = outputDir.getChildFile ("prepare_to_play.csv");
+    REQUIRE (prepFile.existsAsFile());
+
+    auto lines = juce::StringArray::fromLines (prepFile.loadFileAsString().trimEnd());
+    REQUIRE (lines.size() == 2);
+    REQUIRE (lines[0] == "sampleRate,maxBlockSize");
+
+    auto values = juce::StringArray::fromTokens (lines[1], ",", "");
+    REQUIRE (values.size() == 2);
+    REQUIRE (values[0].getDoubleValue() == Catch::Approx (sampleRate));
+    REQUIRE (values[1].getIntValue()    == maxBlockSize);
+
+    processor.stopLogging();
+}
+
 TEST_CASE("GrainShifterProcessor::createProcessorDataLogFile captures default and modified shift_ratio", "[GrainShifterProcessor][DataLogger]")
 {
     TestUtils::SetupAndTeardown setup;

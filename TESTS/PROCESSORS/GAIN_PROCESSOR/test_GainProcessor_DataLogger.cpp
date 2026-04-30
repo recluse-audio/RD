@@ -177,6 +177,41 @@ TEST_CASE("GainProcessor logs raw input and gain-scaled output rows across conse
     processor.stopLogging();
 }
 
+TEST_CASE("GainProcessor prepareToPlay logs sampleRate and maxBlockSize", "[GainProcessor][DataLogger]")
+{
+    TestUtils::SetupAndTeardown setup;
+
+    auto timestamp = juce::Time::getCurrentTime().formatted ("%Y-%m-%d_%H-%M-%S");
+    juce::File rootDir = juce::File ("c:/REPOS/PLUGIN_PROJECTS/RD/TESTS/PROCESSORS/GAIN_PROCESSOR/OUTPUT/GainProcessor prepareToPlay logs sampleRate and maxBlockSize")
+                             .getChildFile (timestamp);
+
+    const juce::String outputName = "run";
+
+    GainProcessor processor;
+    processor.setDataLogRootDirectory (rootDir);
+    processor.setDataLogOutputName    (outputName);
+    processor.startLogging();
+
+    const double sampleRate   = 48000.0;
+    const int    maxBlockSize = 1024;
+    processor.prepareToPlay (sampleRate, maxBlockSize);
+
+    auto outputDir = processor.getDataLogOutputDirectory();
+    auto prepFile  = outputDir.getChildFile ("prepare_to_play.csv");
+    REQUIRE (prepFile.existsAsFile());
+
+    auto lines = juce::StringArray::fromLines (prepFile.loadFileAsString().trimEnd());
+    REQUIRE (lines.size() == 2);
+    REQUIRE (lines[0] == "sampleRate,maxBlockSize");
+
+    auto values = juce::StringArray::fromTokens (lines[1], ",", "");
+    REQUIRE (values.size() == 2);
+    REQUIRE (values[0].getDoubleValue() == Catch::Approx (sampleRate));
+    REQUIRE (values[1].getIntValue()    == maxBlockSize);
+
+    processor.stopLogging();
+}
+
 TEST_CASE("GainProcessor::createProcessorDataLogFile captures default and modified gain", "[GainProcessor][DataLogger]")
 {
     TestUtils::SetupAndTeardown setup;
