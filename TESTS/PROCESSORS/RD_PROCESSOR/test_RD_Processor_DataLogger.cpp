@@ -44,10 +44,8 @@ TEST_CASE("RD_Processor processBlock writes input/output sample CSVs to composed
     REQUIRE (outputDir == rootDir.getChildFile (outputName));
     REQUIRE (outputDir.isDirectory());
 
-    auto startDir = outputDir.getChildFile ("process_block_start_0");
-    auto endDir   = outputDir.getChildFile ("process_block_end_0");
-    auto inFile   = startDir.getChildFile ("input_samples.csv");
-    auto outFile  = endDir  .getChildFile ("output_samples.csv");
+    auto inFile  = outputDir.getChildFile ("input_samples.csv");
+    auto outFile = outputDir.getChildFile ("output_samples.csv");
     REQUIRE (inFile .existsAsFile());
     REQUIRE (outFile.existsAsFile());
 
@@ -165,28 +163,6 @@ TEST_CASE("RD_Processor lifecycle log calls also write processor_state.xml", "[R
         REQUIRE (xml->getStringAttribute ("processorName") == processor.getName());
     }
 
-    SECTION("processBlock writes processor_state.xml in start and end subdirs")
-    {
-        auto startStateFile = outputDir.getChildFile ("process_block_start_0").getChildFile ("processor_state.xml");
-        auto endStateFile   = outputDir.getChildFile ("process_block_end_0")  .getChildFile ("processor_state.xml");
-        REQUIRE_FALSE (startStateFile.existsAsFile());
-        REQUIRE_FALSE (endStateFile  .existsAsFile());
-
-        juce::AudioBuffer<float> buffer (2, 64);
-        juce::MidiBuffer midi;
-        processor.processBlock (buffer, midi);
-
-        REQUIRE (startStateFile.existsAsFile());
-        REQUIRE (endStateFile  .existsAsFile());
-
-        for (auto& f : { startStateFile, endStateFile })
-        {
-            auto xml = juce::XmlDocument::parse (f);
-            REQUIRE (xml != nullptr);
-            REQUIRE (xml->getStringAttribute ("processorName") == processor.getName());
-        }
-    }
-
     SECTION("no processor_state.xml when logging disabled")
     {
         processor.stopLogging();
@@ -196,9 +172,7 @@ TEST_CASE("RD_Processor lifecycle log calls also write processor_state.xml", "[R
         juce::MidiBuffer midi;
         processor.processBlock (buffer, midi);
 
-        REQUIRE_FALSE (outputDir.getChildFile ("prepare_to_play")        .getChildFile ("processor_state.xml").existsAsFile());
-        REQUIRE_FALSE (outputDir.getChildFile ("process_block_start_0")  .getChildFile ("processor_state.xml").existsAsFile());
-        REQUIRE_FALSE (outputDir.getChildFile ("process_block_end_0")    .getChildFile ("processor_state.xml").existsAsFile());
+        REQUIRE_FALSE (outputDir.getChildFile ("prepare_to_play").getChildFile ("processor_state.xml").existsAsFile());
     }
 
     processor.stopLogging();
@@ -257,38 +231,36 @@ TEST_CASE("RD_Processor logs global + local indices and per-channel samples acro
         return row;
     };
 
+    auto inFile  = outputDir.getChildFile ("input_samples.csv");
+    auto outFile = outputDir.getChildFile ("output_samples.csv");
+    REQUIRE (inFile .existsAsFile());
+    REQUIRE (outFile.existsAsFile());
+
+    auto inLines  = juce::StringArray::fromLines (inFile .loadFileAsString().trimEnd());
+    auto outLines = juce::StringArray::fromLines (outFile.loadFileAsString().trimEnd());
+
     const int rowsPerBlock = 2 + numChannels;
+    REQUIRE (inLines .size() == rowsPerBlock * numBlocks);
+    REQUIRE (outLines.size() == rowsPerBlock * numBlocks);
 
     for (int b = 0; b < numBlocks; ++b)
     {
         const juce::int64  globalStart = static_cast<juce::int64> (b) * blockSize;
-        const juce::String idxStr      = juce::String (globalStart);
         const juce::String globalRow   = buildIndicesRow (globalStart, blockSize);
         const juce::String localRow    = buildIndicesRow (0,           blockSize);
         const juce::String channelRow  = buildIncrementalValuesRow (blockSize);
 
-        auto startDir = outputDir.getChildFile ("process_block_start_" + idxStr);
-        auto endDir   = outputDir.getChildFile ("process_block_end_"   + idxStr);
-        auto inFile   = startDir.getChildFile ("input_samples.csv");
-        auto outFile  = endDir  .getChildFile ("output_samples.csv");
-        REQUIRE (inFile .existsAsFile());
-        REQUIRE (outFile.existsAsFile());
+        const int base = b * rowsPerBlock;
 
-        auto inLines  = juce::StringArray::fromLines (inFile .loadFileAsString().trimEnd());
-        auto outLines = juce::StringArray::fromLines (outFile.loadFileAsString().trimEnd());
+        REQUIRE (inLines [base + 0] == globalRow);
+        REQUIRE (inLines [base + 1] == localRow);
+        REQUIRE (inLines [base + 2] == channelRow);
+        REQUIRE (inLines [base + 3] == channelRow);
 
-        REQUIRE (inLines .size() == rowsPerBlock);
-        REQUIRE (outLines.size() == rowsPerBlock);
-
-        REQUIRE (inLines [0] == globalRow);
-        REQUIRE (inLines [1] == localRow);
-        REQUIRE (inLines [2] == channelRow);
-        REQUIRE (inLines [3] == channelRow);
-
-        REQUIRE (outLines[0] == globalRow);
-        REQUIRE (outLines[1] == localRow);
-        REQUIRE (outLines[2] == channelRow);
-        REQUIRE (outLines[3] == channelRow);
+        REQUIRE (outLines[base + 0] == globalRow);
+        REQUIRE (outLines[base + 1] == localRow);
+        REQUIRE (outLines[base + 2] == channelRow);
+        REQUIRE (outLines[base + 3] == channelRow);
     }
 
     processor.stopLogging();

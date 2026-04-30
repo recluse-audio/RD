@@ -59,29 +59,18 @@ TEST_CASE("GainProcessor applies gain and writes DataLogger output", "[GainProce
         }
 
         auto outputDir = rootDir.getChildFile (outputName);
+        auto inFile  = outputDir.getChildFile ("input_samples.csv");
+        auto outFile = outputDir.getChildFile ("output_samples.csv");
+        REQUIRE (inFile .existsAsFile());
+        REQUIRE (outFile.existsAsFile());
 
         auto countLines = [] (const juce::File& f)
         {
             return juce::StringArray::fromLines (f.loadFileAsString().trimEnd()).size();
         };
         const int rowsPerBlock = 2 + numChannels;
-
-        for (int b = 0; b < numBlocks; ++b)
-        {
-            const auto idx       = juce::String (static_cast<juce::int64> (b) * numSamples);
-            auto startDir = outputDir.getChildFile ("process_block_start_" + idx);
-            auto endDir   = outputDir.getChildFile ("process_block_end_"   + idx);
-
-            auto inFile  = startDir.getChildFile ("input_samples.csv");
-            auto outFile = endDir  .getChildFile ("output_samples.csv");
-            REQUIRE (inFile .existsAsFile());
-            REQUIRE (outFile.existsAsFile());
-            REQUIRE (countLines (inFile)  == rowsPerBlock);
-            REQUIRE (countLines (outFile) == rowsPerBlock);
-
-            REQUIRE (startDir.getChildFile ("processor_state.xml").existsAsFile());
-            REQUIRE (endDir  .getChildFile ("processor_state.xml").existsAsFile());
-        }
+        REQUIRE (countLines (inFile)  == rowsPerBlock * numBlocks);
+        REQUIRE (countLines (outFile) == rowsPerBlock * numBlocks);
 
         auto stateLog = processor.createProcessorDataLogFile();
         REQUIRE (stateLog.existsAsFile());
@@ -154,39 +143,37 @@ TEST_CASE("GainProcessor logs raw input and gain-scaled output rows across conse
         return row;
     };
 
+    auto inFile  = outputDir.getChildFile ("input_samples.csv");
+    auto outFile = outputDir.getChildFile ("output_samples.csv");
+    REQUIRE (inFile .existsAsFile());
+    REQUIRE (outFile.existsAsFile());
+
+    auto inLines  = juce::StringArray::fromLines (inFile .loadFileAsString().trimEnd());
+    auto outLines = juce::StringArray::fromLines (outFile.loadFileAsString().trimEnd());
+
     const int rowsPerBlock = 2 + numChannels;
+    REQUIRE (inLines .size() == rowsPerBlock * numBlocks);
+    REQUIRE (outLines.size() == rowsPerBlock * numBlocks);
 
     for (int b = 0; b < numBlocks; ++b)
     {
         const juce::int64  globalStart  = static_cast<juce::int64> (b) * blockSize;
-        const juce::String idxStr       = juce::String (globalStart);
         const juce::String globalRow    = buildIndicesRow        (globalStart, blockSize);
         const juce::String localRow     = buildIndicesRow        (0,           blockSize);
         const juce::String inChannelRow = buildConstantValuesRow (blockSize, 1.0f);
         const juce::String outChannelRow= buildConstantValuesRow (blockSize, gain);
 
-        auto startDir = outputDir.getChildFile ("process_block_start_" + idxStr);
-        auto endDir   = outputDir.getChildFile ("process_block_end_"   + idxStr);
+        const int base = b * rowsPerBlock;
 
-        auto inFile  = startDir.getChildFile ("input_samples.csv");
-        auto outFile = endDir  .getChildFile ("output_samples.csv");
-        REQUIRE (inFile .existsAsFile());
-        REQUIRE (outFile.existsAsFile());
+        REQUIRE (inLines [base + 0] == globalRow);
+        REQUIRE (inLines [base + 1] == localRow);
+        REQUIRE (inLines [base + 2] == inChannelRow);
+        REQUIRE (inLines [base + 3] == inChannelRow);
 
-        auto inLines  = juce::StringArray::fromLines (inFile .loadFileAsString().trimEnd());
-        auto outLines = juce::StringArray::fromLines (outFile.loadFileAsString().trimEnd());
-        REQUIRE (inLines .size() == rowsPerBlock);
-        REQUIRE (outLines.size() == rowsPerBlock);
-
-        REQUIRE (inLines [0] == globalRow);
-        REQUIRE (inLines [1] == localRow);
-        REQUIRE (inLines [2] == inChannelRow);
-        REQUIRE (inLines [3] == inChannelRow);
-
-        REQUIRE (outLines[0] == globalRow);
-        REQUIRE (outLines[1] == localRow);
-        REQUIRE (outLines[2] == outChannelRow);
-        REQUIRE (outLines[3] == outChannelRow);
+        REQUIRE (outLines[base + 0] == globalRow);
+        REQUIRE (outLines[base + 1] == localRow);
+        REQUIRE (outLines[base + 2] == outChannelRow);
+        REQUIRE (outLines[base + 3] == outChannelRow);
     }
 
     processor.stopLogging();

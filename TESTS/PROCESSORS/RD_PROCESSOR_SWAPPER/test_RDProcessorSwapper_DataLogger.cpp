@@ -119,14 +119,10 @@ TEST_CASE("RD_ProcessorSwapper routes through GainProcessor child and nests its 
         auto gainDir    = gainProc->getDataLogOutputDirectory();
         REQUIRE (gainDir.isAChildOf (swapperDir));
 
-        for (int b = 0; b < numBlocks; ++b)
-        {
-            const auto idx = juce::String (static_cast<juce::int64> (b) * numSamples);
-            REQUIRE (swapperDir.getChildFile ("process_block_start_" + idx).getChildFile ("input_samples.csv") .existsAsFile());
-            REQUIRE (swapperDir.getChildFile ("process_block_end_"   + idx).getChildFile ("output_samples.csv").existsAsFile());
-            REQUIRE (gainDir   .getChildFile ("process_block_start_" + idx).getChildFile ("input_samples.csv") .existsAsFile());
-            REQUIRE (gainDir   .getChildFile ("process_block_end_"   + idx).getChildFile ("output_samples.csv").existsAsFile());
-        }
+        REQUIRE (swapperDir.getChildFile ("input_samples.csv") .existsAsFile());
+        REQUIRE (swapperDir.getChildFile ("output_samples.csv").existsAsFile());
+        REQUIRE (gainDir   .getChildFile ("input_samples.csv") .existsAsFile());
+        REQUIRE (gainDir   .getChildFile ("output_samples.csv").existsAsFile());
 
         auto swapperState = swapper.createProcessorDataLogFile();
         REQUIRE (swapperState.existsAsFile());
@@ -180,8 +176,8 @@ TEST_CASE("RD_ProcessorSwapper writes no CSV when global logging is disabled", "
         juce::MidiBuffer midi;
         swapper.processBlock (buffer, midi);
 
-        REQUIRE_FALSE (sectionDir.getChildFile ("process_block_start_0").getChildFile ("input_samples.csv") .existsAsFile());
-        REQUIRE_FALSE (sectionDir.getChildFile ("process_block_end_0")  .getChildFile ("output_samples.csv").existsAsFile());
+        REQUIRE_FALSE (sectionDir.getChildFile ("input_samples.csv") .existsAsFile());
+        REQUIRE_FALSE (sectionDir.getChildFile ("output_samples.csv").existsAsFile());
 
         for (int ch = 0; ch < numChannels; ++ch)
             for (int s = 0; s < numSamples; ++s)

@@ -80,22 +80,26 @@ For any processor inheriting `RD_Processor` / `DataLogger`, the `_DataLogger.cpp
    processor.startLogging();   // sets isLogging=true, deletes outputDir recursively
    ```
    so each section's logs are isolated under `outputDir/<section name>/`.
-3. Each lifecycle log event lands in **its own subdirectory** under `getDataLogOutputDirectory()`:
+3. Lifecycle log layout under `getDataLogOutputDirectory()`:
 
-   | Event | Subdirectory | Files |
-   |-------|--------------|-------|
-   | `prepareToPlay` | `prepare_to_play/` | `prepare_to_play.csv`, `processor_state.xml` |
-   | `processBlock` (start) | `process_block_start_<startIdx>/` | `input_samples.csv`, `processor_state.xml` |
-   | `processBlock` (end)   | `process_block_end_<startIdx>/`   | `output_samples.csv`, `processor_state.xml` |
+   | Event | Location | Files |
+   |-------|----------|-------|
+   | `prepareToPlay` | `prepare_to_play/` subdir | `prepare_to_play.csv`, `processor_state.xml` |
+   | `processBlock` (start) | output dir root | `input_samples.csv` (appended) |
+   | `processBlock` (end)   | output dir root | `output_samples.csv` (appended) |
 
-   `<startIdx>` is the global sample index at the start of the block (`mLogBlockStartIndex`, equal to `mProcessSampleCount` snapshotted before the block runs). `mProcessSampleCount` is cumulative since `prepareToPlay` and increments by `blockSize` each block.
+   `processBlock` does not write `processor_state.xml` — use `createProcessorDataLogFile()` externally for that.
 
-   Per-block CSV row layout (one block per file, `2 + numChannels` rows total):
-   - Row 0: global sample indices (`startIdx + s` for s in `[0, blockSize)`)
+   Per-block CSV row layout (each `processBlock` call appends `2 + numChannels` rows):
+   - Row 0: global sample indices (`mLogBlockStartIndex + s` for s in `[0, blockSize)`)
    - Row 1: local sample indices (`0..blockSize-1`)
    - Rows 2..(1+numChannels): per-channel sample values, one row per channel
 
-   `_writeBlockSamplesCsv` and `_writeProcessorStateXml` write via `juce::FileOutputStream` directly (not `replaceWithText` / `XmlElement::writeTo(File)`) to avoid JUCE's `TemporaryFile` suffix overflowing Windows MAX_PATH on deeply nested test paths. Files are overwritten per call, never appended. Call `stopLogging()` when done.
+   `mLogBlockStartIndex` snapshots `mProcessSampleCount` before each block; `mProcessSampleCount` is cumulative since `prepareToPlay` and increments by `blockSize` each block. After N blocks each csv has `(2 + numChannels) * N` rows.
+
+   `_appendBlockSamplesCsv` and `_writeProcessorStateXml` use `juce::FileOutputStream` directly (not `replaceWithText` / `XmlElement::writeTo(File)`) to avoid JUCE's `TemporaryFile` suffix overflowing Windows MAX_PATH on deeply nested test paths.
+
+   Call `stopLogging()` when done.
 
 A `DataLogger`'s output is **always a directory** containing files, never a loose file. The output directory is composed dynamically from `getDataLogParentDirectory()` (which equals `mDataLogRootDirectory` if no parent logger is registered, or `parentLogger->getDataLogOutputDirectory()` otherwise) plus `mDataLogOutputName` (defaults to construction timestamp).
 
@@ -164,9 +168,9 @@ Each processor owns its own `mAPVTS` via override, rather than sharing a single 
 `RD_Processor::processBlock` is `final` — child classes **cannot** override it. Instead, override `virtual void doProcessBlock(buffer, midi)`. The base `processBlock` wraps the child call with shared concerns:
 
 1. Snapshot `mProcessSampleCount` into `mLogBlockStartIndex`.
-2. If `getIsLogging()`, copy buffer into `mLogBuffer` and fire `kProcessBlockStart` lifecycle log → writes `process_block_start_<idx>/{input_samples.csv, processor_state.xml}`.
+2. If `getIsLogging()`, copy buffer into `mLogBuffer` and fire `kProcessBlockStart` lifecycle log → appends a `2 + numChannels`-row block to `input_samples.csv` at the output dir root.
 3. Call `doProcessBlock(buffer, midi)` — child does its DSP work in place on `buffer`.
-4. If `getIsLogging()`, copy post-DSP buffer into `mLogBuffer` and fire `kProcessBlockEnd` lifecycle log → writes `process_block_end_<idx>/{output_samples.csv, processor_state.xml}`.
+4. If `getIsLogging()`, copy post-DSP buffer into `mLogBuffer` and fire `kProcessBlockEnd` lifecycle log → appends to `output_samples.csv` at the output dir root.
 5. Increment `mProcessSampleCount` by `buffer.getNumSamples()`.
 
 `prepareToPlay` is also `final`; override `doPrepareToPlay`. The base fires `kPreparedToPlay` → writes `prepare_to_play/{prepare_to_play.csv, processor_state.xml}`.

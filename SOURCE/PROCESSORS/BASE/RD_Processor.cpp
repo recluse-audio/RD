@@ -206,23 +206,17 @@ bool RD_Processor::_logPrepareToPlay()
 
 bool RD_Processor::_logProcessBlockStart()
 {
-    auto dir = getDataLogOutputDirectory()
-                 .getChildFile ("process_block_start_" + juce::String (mLogBlockStartIndex));
+    auto dir = getDataLogOutputDirectory();
     dir.createDirectory();
-
-    _writeBlockSamplesCsv  (dir.getChildFile ("input_samples.csv"));
-    _writeProcessorStateXml (dir);
+    _appendBlockSamplesCsv (dir.getChildFile ("input_samples.csv"));
     return true;
 }
 
 bool RD_Processor::_logProcessBlockEnd()
 {
-    auto dir = getDataLogOutputDirectory()
-                 .getChildFile ("process_block_end_" + juce::String (mLogBlockStartIndex));
+    auto dir = getDataLogOutputDirectory();
     dir.createDirectory();
-
-    _writeBlockSamplesCsv  (dir.getChildFile ("output_samples.csv"));
-    _writeProcessorStateXml (dir);
+    _appendBlockSamplesCsv (dir.getChildFile ("output_samples.csv"));
     return true;
 }
 
@@ -252,7 +246,7 @@ juce::File RD_Processor::_writeProcessorStateXml (const juce::File& dir)
     return logFile;
 }
 
-void RD_Processor::_writeBlockSamplesCsv (const juce::File& file)
+void RD_Processor::_appendBlockSamplesCsv (const juce::File& file)
 {
     const int  numChannels = mLogBuffer.getNumChannels();
     const int  numSamples  = mLogBuffer.getNumSamples();
@@ -289,7 +283,12 @@ void RD_Processor::_writeBlockSamplesCsv (const juce::File& file)
         contents << channelRow;
     }
 
-    writeTextDirect (file, contents);
+    juce::FileOutputStream stream (file);
+    if (stream.openedOk())
+    {
+        stream.setPosition (stream.getFile().getSize());
+        stream.writeText (contents, false, false, nullptr);
+    }
 }
 
 void RD_Processor::parameterChanged (const juce::String& parameterID, float newValue)
