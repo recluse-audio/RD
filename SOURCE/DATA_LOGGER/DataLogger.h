@@ -69,6 +69,7 @@ public:
 
     DataLogger* getParentLogger() const;
 
+
 private:
     bool mIsLogging = false;
     juce::File   mDataLogRootDirectory   { juce::File::getSpecialLocation (juce::File::userDocumentsDirectory)

@@ -15,10 +15,11 @@
 //        processor.setDataLogRootDirectory(outputDir);
 //        processor.setDataLogOutputName("<section name>");
 //        processor.startLogging();
-//   3. Run processBlock one or more times. Each call appends an indices row
-//      and a values row to input_samples_ch{N}.csv (pre) and
-//      output_samples_ch{N}.csv (post) per channel. After N blocks, each
-//      file has 2*N rows. Call stopLogging() when done.
+//   3. Run processBlock one or more times. Each call appends 2 + numChannels
+//      rows to input_samples.csv (pre) and output_samples.csv (post):
+//      [global indices, local indices, ch0 values, ch1 values, ...].
+//      After N blocks, each file has (2 + numChannels) * N rows.
+//      Call stopLogging() when done.
 
 TEST_CASE("GainProcessor applies gain and writes DataLogger output", "[GainProcessor][DataLogger]")
 {
@@ -55,20 +56,18 @@ TEST_CASE("GainProcessor applies gain and writes DataLogger output", "[GainProce
         }
 
         auto sectionDir = outputDir.getChildFile (sectionName);
-        for (int ch = 0; ch < numChannels; ++ch)
-        {
-            auto inFile  = sectionDir.getChildFile ("input_samples_ch"  + juce::String (ch) + ".csv");
-            auto outFile = sectionDir.getChildFile ("output_samples_ch" + juce::String (ch) + ".csv");
-            REQUIRE (inFile .existsAsFile());
-            REQUIRE (outFile.existsAsFile());
+        auto inFile  = sectionDir.getChildFile ("input_samples.csv");
+        auto outFile = sectionDir.getChildFile ("output_samples.csv");
+        REQUIRE (inFile .existsAsFile());
+        REQUIRE (outFile.existsAsFile());
 
-            auto countLines = [] (const juce::File& f)
-            {
-                return juce::StringArray::fromLines (f.loadFileAsString().trimEnd()).size();
-            };
-            REQUIRE (countLines (inFile)  == 2 * numBlocks);
-            REQUIRE (countLines (outFile) == 2 * numBlocks);
-        }
+        auto countLines = [] (const juce::File& f)
+        {
+            return juce::StringArray::fromLines (f.loadFileAsString().trimEnd()).size();
+        };
+        const int rowsPerBlock = 2 + numChannels; // global + local + per-channel
+        REQUIRE (countLines (inFile)  == rowsPerBlock * numBlocks);
+        REQUIRE (countLines (outFile) == rowsPerBlock * numBlocks);
 
         auto stateLog = processor.createProcessorDataLogFile();
         REQUIRE (stateLog.existsAsFile());

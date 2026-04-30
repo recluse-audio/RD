@@ -149,12 +149,8 @@ void RD_Processor::startLogging()
     setIsLogging (true);
 
     auto dir = getDataLogOutputDirectory();
-    for (auto& f : dir.findChildFiles (juce::File::findFiles, false,
-                                       "input_samples_ch*.csv"))
-        f.deleteFile();
-    for (auto& f : dir.findChildFiles (juce::File::findFiles, false,
-                                       "output_samples_ch*.csv"))
-        f.deleteFile();
+    dir.getChildFile ("input_samples.csv") .deleteFile();
+    dir.getChildFile ("output_samples.csv").deleteFile();
 }
 
 void RD_Processor::stopLogging()
@@ -197,13 +193,13 @@ bool RD_Processor::_logPrepareToPlay()
 
 bool RD_Processor::_logProcessBlockStart()
 {
-    _writeBlockSamplesCsv ("input_samples_ch");
+    _writeBlockSamplesCsv ("input_samples.csv");
     return true;
 }
 
 bool RD_Processor::_logProcessBlockEnd()
 {
-    _writeBlockSamplesCsv ("output_samples_ch");
+    _writeBlockSamplesCsv ("output_samples.csv");
     return true;
 }
 
@@ -232,31 +228,41 @@ juce::File RD_Processor::createProcessorDataLogFile()
     return logFile;
 }
 
-void RD_Processor::_writeBlockSamplesCsv (const juce::String& filenamePrefix)
+void RD_Processor::_writeBlockSamplesCsv (const juce::String& filename)
 {
-    const auto dir         = getDataLogOutputDirectory();
+    const auto file        = getDataLogOutputDirectory().getChildFile (filename);
     const int  numChannels = mLogBuffer.getNumChannels();
     const int  numSamples  = mLogBuffer.getNumSamples();
 
+    juce::String globalRow, localRow;
+    globalRow.preallocateBytes (static_cast<size_t> (numSamples * 8));
+    localRow .preallocateBytes (static_cast<size_t> (numSamples * 8));
+
+    for (int s = 0; s < numSamples; ++s)
+    {
+        if (s > 0) { globalRow << ","; localRow << ","; }
+        globalRow << juce::String (mLogBlockStartIndex + s);
+        localRow  << juce::String (s);
+    }
+    globalRow << "\n";
+    localRow  << "\n";
+
+    file.appendText (globalRow);
+    file.appendText (localRow);
+
     for (int ch = 0; ch < numChannels; ++ch)
     {
-        auto file = dir.getChildFile (filenamePrefix + juce::String (ch) + ".csv");
-
-        juce::String indicesRow, valuesRow;
-        indicesRow.preallocateBytes (static_cast<size_t> (numSamples * 8));
-        valuesRow .preallocateBytes (static_cast<size_t> (numSamples * 12));
+        juce::String channelRow;
+        channelRow.preallocateBytes (static_cast<size_t> (numSamples * 12));
 
         for (int s = 0; s < numSamples; ++s)
         {
-            if (s > 0) { indicesRow << ","; valuesRow << ","; }
-            indicesRow << juce::String (mLogBlockStartIndex + s);
-            valuesRow  << juce::String (mLogBuffer.getSample (ch, s), 8);
+            if (s > 0) channelRow << ",";
+            channelRow << juce::String (mLogBuffer.getSample (ch, s), 8);
         }
-        indicesRow << "\n";
-        valuesRow  << "\n";
+        channelRow << "\n";
 
-        file.appendText (indicesRow);
-        file.appendText (valuesRow);
+        file.appendText (channelRow);
     }
 }
 

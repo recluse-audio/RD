@@ -55,11 +55,8 @@ TEST_CASE("RD_ProcessorSwapper applies gain and writes DataLogger output", "[RD_
         }
 
         auto sectionDir = outputDir.getChildFile (sectionName);
-        for (int ch = 0; ch < numChannels; ++ch)
-        {
-            REQUIRE (sectionDir.getChildFile ("input_samples_ch"  + juce::String (ch) + ".csv").existsAsFile());
-            REQUIRE (sectionDir.getChildFile ("output_samples_ch" + juce::String (ch) + ".csv").existsAsFile());
-        }
+        REQUIRE (sectionDir.getChildFile ("input_samples.csv") .existsAsFile());
+        REQUIRE (sectionDir.getChildFile ("output_samples.csv").existsAsFile());
 
         auto stateLog = swapper.createProcessorDataLogFile();
         REQUIRE (stateLog.existsAsFile());
@@ -111,11 +108,8 @@ TEST_CASE("RD_ProcessorSwapper writes no CSV when global logging is disabled", "
         juce::MidiBuffer midi;
         swapper.processBlock (buffer, midi);
 
-        for (int ch = 0; ch < numChannels; ++ch)
-        {
-            REQUIRE_FALSE (sectionDir.getChildFile ("input_samples_ch"  + juce::String (ch) + ".csv").existsAsFile());
-            REQUIRE_FALSE (sectionDir.getChildFile ("output_samples_ch" + juce::String (ch) + ".csv").existsAsFile());
-        }
+        REQUIRE_FALSE (sectionDir.getChildFile ("input_samples.csv") .existsAsFile());
+        REQUIRE_FALSE (sectionDir.getChildFile ("output_samples.csv").existsAsFile());
 
         for (int ch = 0; ch < numChannels; ++ch)
             for (int s = 0; s < numSamples; ++s)

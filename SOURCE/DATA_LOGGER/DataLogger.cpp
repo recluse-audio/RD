@@ -64,6 +64,8 @@ bool DataLogger::logData()
     if (! (outputDir.exists() && outputDir.isDirectory()))
         outputDir.createDirectory();
 
+    mCurrentTime = juce::Time::getCurrentTime().formatted ("%Y-%m-%d_%H-%M-%S");
+
     juce::File file = _createDataLogEventFile();
 
     bool ok = doLogData();
@@ -120,8 +122,9 @@ DataLogger* DataLogger::getParentLogger() const
 
 juce::File DataLogger::_createDataLogEventFile()
 {
-    auto logFile = getDataLogOutputDirectory().getChildFile ("output.txt");
-    logFile.replaceWithText ("DataLogger Default Output");
+    auto logFile = getDataLogOutputDirectory().getChildFile ("data_log_event.txt");
+    juce::String logText = juce::String("Log Time: ") + mCurrentTime;
+    logFile.replaceWithText (logText);
 
     return logFile;
 }

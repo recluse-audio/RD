@@ -105,6 +105,7 @@ public:
 
     bool doLogData() override;
 
+    // data logging specific to RD_Processor
     juce::File createProcessorDataLogFile();
 
     void setGain (float newGain);

@@ -82,9 +82,9 @@ TEST_CASE("DataLogger logData materializes output directory and writes default f
     auto outputDir = logger.getDataLogOutputDirectory();
     REQUIRE(outputDir.isDirectory());
 
-    auto logFile = outputDir.getChildFile ("output.txt");
+    auto logFile = outputDir.getChildFile ("data_log_event.txt");
     REQUIRE(logFile.existsAsFile());
-    REQUIRE(logFile.loadFileAsString() == "DataLogger Default Output");
+    REQUIRE(logFile.loadFileAsString().startsWith ("Log Time: "));
 }
 
 namespace
@@ -94,10 +94,10 @@ namespace
     public:
         int callCount = 0;
 
-        juce::File _createDataLogEventFile() override
+        bool doLogData() override
         {
             ++callCount;
-            return DataLogger::_createDataLogEventFile();
+            return DataLogger::doLogData();
         }
     };
 
@@ -146,7 +146,7 @@ TEST_CASE("DataLogger addChild stores parent back-pointer and routes child path 
         parent.logData();
 
         REQUIRE(child.callCount == 1);
-        REQUIRE(child.getDataLogOutputDirectory().getChildFile ("output.txt").existsAsFile());
+        REQUIRE(child.getDataLogOutputDirectory().getChildFile ("data_log_event.txt").existsAsFile());
         REQUIRE(child.getDataLogOutputDirectory() == parent.getDataLogOutputDirectory().getChildFile ("child"));
     }
 
@@ -166,7 +166,7 @@ TEST_CASE("DataLogger addChild stores parent back-pointer and routes child path 
 
         REQUIRE(firstChildPath != secondChildPath);
         REQUIRE(secondChildPath == parent.getDataLogOutputDirectory().getChildFile ("child"));
-        REQUIRE(secondChildPath.getChildFile ("output.txt").existsAsFile());
+        REQUIRE(secondChildPath.getChildFile ("data_log_event.txt").existsAsFile());
     }
 
     SECTION("removeChild clears the back-pointer; child reverts to its own root")
@@ -273,9 +273,9 @@ TEST_CASE("DataLogger parent logging off skips children", "[DataLogger]")
     {
         parent.logData();
 
-        REQUIRE_FALSE(parent.getDataLogOutputDirectory().getChildFile ("output.txt").existsAsFile());
-        REQUIRE_FALSE(childA.getDataLogOutputDirectory().getChildFile ("output.txt").existsAsFile());
-        REQUIRE_FALSE(childB.getDataLogOutputDirectory().getChildFile ("output.txt").existsAsFile());
+        REQUIRE_FALSE(parent.getDataLogOutputDirectory().getChildFile ("data_log_event.txt").existsAsFile());
+        REQUIRE_FALSE(childA.getDataLogOutputDirectory().getChildFile ("data_log_event.txt").existsAsFile());
+        REQUIRE_FALSE(childB.getDataLogOutputDirectory().getChildFile ("data_log_event.txt").existsAsFile());
     }
 
     SECTION("Re-enabling parent restores cascade")

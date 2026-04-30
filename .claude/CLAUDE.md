@@ -80,11 +80,16 @@ For any processor inheriting `RD_Processor` / `DataLogger`, the `_DataLogger.cpp
    processor.startLogging();   // sets isLogging=true, clears any prior CSVs
    ```
    so each section's logs are isolated under `outputDir/<section name>/`.
-3. Run `processBlock` one or more times. While logging, each call appends two rows (an absolute-index row and a sample-value row) to per-channel CSVs in the output directory:
-   - `input_samples_ch{N}.csv`  — pre-process buffer
-   - `output_samples_ch{N}.csv` — post-process buffer
+3. Run `processBlock` one or more times. While logging, each call appends `2 + numChannels` rows to two CSVs in the output directory:
+   - `input_samples.csv`  — pre-process buffer
+   - `output_samples.csv` — post-process buffer
 
-   After N blocks, each per-channel file has `2 * N` rows. Sample indices are cumulative since `prepareToPlay` (driven by `mProcessSampleCount`). Call `stopLogging()` when done. `REQUIRE` the per-channel files exist and contain the expected row count.
+   Per-block row layout (in order):
+   - Row 0: global sample indices (`mProcessSampleCount + s` for s in `[0, blockSize)`)
+   - Row 1: local sample indices (`0..blockSize-1`)
+   - Rows 2..(1+numChannels): per-channel sample values, one row per channel
+
+   After N blocks, each file has `(2 + numChannels) * N` rows. Global indices are cumulative since `prepareToPlay` (driven by `mProcessSampleCount`); local indices reset every block. Call `stopLogging()` when done. `REQUIRE` the files exist and contain the expected row count.
 
 A `DataLogger`'s output is **always a directory** containing files, never a loose file. The output directory is composed dynamically from `getDataLogParentDirectory()` (which equals `mDataLogRootDirectory` if no parent logger is registered, or `parentLogger->getDataLogOutputDirectory()` otherwise) plus `mDataLogOutputName` (defaults to construction timestamp). Files written by `_createDataLogEventFile`, `createProcessorDataLogFile`, and the per-block sample CSVs always land inside `getDataLogOutputDirectory()`. The directory is materialized on disk at `logData()` time as a single side-effect; callers should not pre-create it.
 
@@ -147,12 +152,12 @@ Each processor owns its own `mAPVTS` via override, rather than sharing a single 
 `RD_Processor::processBlock` is `final` — child classes **cannot** override it. Instead, override `virtual void doProcessBlock(buffer, midi)`. The base `processBlock` wraps the child call with shared concerns:
 
 1. Snapshot `mProcessSampleCount` as the block's start index.
-2. If `getIsLogging()` is true, append `[indices, values]` rows to `input_samples_ch{N}.csv` for each channel.
+2. If `getIsLogging()` is true, append `[global indices, local indices, ch0 values, ch1 values, ...]` rows to `input_samples.csv`.
 3. Call `doProcessBlock(buffer, midi)` — child does its DSP work in place on `buffer`.
-4. If `getIsLogging()` is true, append `[indices, values]` rows to `output_samples_ch{N}.csv` for each channel (using the same start index, so input/output rows align).
+4. If `getIsLogging()` is true, append the same `2 + numChannels`-row block to `output_samples.csv` (using the same start index, so input/output blocks align).
 5. Increment `mProcessSampleCount` by the block size.
 
-Use `startLogging()` / `stopLogging()` to toggle. `startLogging()` also clears any prior `input_samples_ch*.csv` / `output_samples_ch*.csv` from the output directory so appends start clean.
+Use `startLogging()` / `stopLogging()` to toggle. `startLogging()` also deletes any prior `input_samples.csv` / `output_samples.csv` in the output directory so appends start clean.
 
 When adding a new processor, override `doProcessBlock`, not `processBlock`. `RD_ProcessorSwapper` also inherits `RD_Processor` and follows the same convention — its graph dispatch lives in `doProcessBlock`.
 
