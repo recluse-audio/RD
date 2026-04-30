@@ -213,7 +213,10 @@ juce::File RD_Processor::createProcessorDataLogFile()
 
     xmlState->setAttribute ("processorName", getName());
 
-    auto logFile = getDataLogOutputDirectory().getChildFile ("processor_state.xml");
+    auto outputDir = getDataLogOutputDirectory();
+    outputDir.createDirectory();
+
+    auto logFile = outputDir.getChildFile ("processor_state.xml");
     xmlState->writeTo (logFile);
 
     return logFile;

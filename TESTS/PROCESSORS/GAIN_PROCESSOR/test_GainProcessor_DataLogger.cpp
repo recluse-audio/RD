@@ -85,3 +85,155 @@ TEST_CASE("GainProcessor applies gain and writes DataLogger output", "[GainProce
         runGainSection (0.5f, "gain-0.5");
     }
 }
+
+TEST_CASE("GainProcessor logs raw input and gain-scaled output rows across consecutive processBlock calls", "[GainProcessor][DataLogger]")
+{
+    TestUtils::SetupAndTeardown setup;
+
+    auto timestamp = juce::Time::getCurrentTime().formatted ("%Y-%m-%d_%H-%M-%S");
+    juce::File rootDir = juce::File ("c:/REPOS/PLUGIN_PROJECTS/RD/TESTS/PROCESSORS/GAIN_PROCESSOR/OUTPUT/GainProcessor logs raw input and gain-scaled output rows")
+                             .getChildFile (timestamp);
+
+    const juce::String outputName = "run";
+
+    GainProcessor processor;
+    processor.setDataLogRootDirectory (rootDir);
+    processor.setDataLogOutputName    (outputName);
+    processor.startLogging();
+
+    const float gain        = 0.5f;
+    const int   numChannels = 2;
+    const int   blockSize   = 64;
+    const int   numBlocks   = 3;
+
+    processor.setGain (gain);
+
+    juce::AudioBuffer<float> buffer (numChannels, blockSize);
+    juce::MidiBuffer midi;
+
+    for (int b = 0; b < numBlocks; ++b)
+    {
+        BufferFiller::fillWithAllOnes (buffer);
+        processor.processBlock (buffer, midi);
+    }
+
+    auto outputDir = processor.getDataLogOutputDirectory();
+
+    auto buildIndicesRow = [] (juce::int64 startIndex, int n)
+    {
+        juce::String row;
+        for (int s = 0; s < n; ++s)
+        {
+            if (s > 0) row << ",";
+            row << juce::String (startIndex + s);
+        }
+        return row;
+    };
+
+    auto buildConstantValuesRow = [] (int n, float value)
+    {
+        juce::String row;
+        for (int s = 0; s < n; ++s)
+        {
+            if (s > 0) row << ",";
+            row << juce::String (value, 8);
+        }
+        return row;
+    };
+
+    auto inFile  = outputDir.getChildFile ("input_samples.csv");
+    auto outFile = outputDir.getChildFile ("output_samples.csv");
+    REQUIRE (inFile .existsAsFile());
+    REQUIRE (outFile.existsAsFile());
+
+    auto inLines  = juce::StringArray::fromLines (inFile .loadFileAsString().trimEnd());
+    auto outLines = juce::StringArray::fromLines (outFile.loadFileAsString().trimEnd());
+
+    const int rowsPerBlock = 2 + numChannels;
+    REQUIRE (inLines .size() == rowsPerBlock * numBlocks);
+    REQUIRE (outLines.size() == rowsPerBlock * numBlocks);
+
+    for (int b = 0; b < numBlocks; ++b)
+    {
+        const juce::int64  globalStart  = static_cast<juce::int64> (b) * blockSize;
+        const juce::String globalRow    = buildIndicesRow      (globalStart, blockSize);
+        const juce::String localRow     = buildIndicesRow      (0,           blockSize);
+        const juce::String inChannelRow = buildConstantValuesRow (blockSize, 1.0f);
+        const juce::String outChannelRow= buildConstantValuesRow (blockSize, gain);
+
+        const int base = b * rowsPerBlock;
+
+        REQUIRE (inLines [base + 0] == globalRow);
+        REQUIRE (inLines [base + 1] == localRow);
+        REQUIRE (inLines [base + 2] == inChannelRow);   // ch0 all 1.0
+        REQUIRE (inLines [base + 3] == inChannelRow);   // ch1 all 1.0
+
+        REQUIRE (outLines[base + 0] == globalRow);
+        REQUIRE (outLines[base + 1] == localRow);
+        REQUIRE (outLines[base + 2] == outChannelRow);  // ch0 all gain
+        REQUIRE (outLines[base + 3] == outChannelRow);  // ch1 all gain
+    }
+
+    processor.stopLogging();
+}
+
+TEST_CASE("GainProcessor::createProcessorDataLogFile captures default and modified gain", "[GainProcessor][DataLogger]")
+{
+    TestUtils::SetupAndTeardown setup;
+
+    auto timestamp = juce::Time::getCurrentTime().formatted ("%Y-%m-%d_%H-%M-%S");
+    juce::File outputDir = juce::File ("c:/REPOS/PLUGIN_PROJECTS/RD/TESTS/PROCESSORS/GAIN_PROCESSOR/OUTPUT/GainProcessor createProcessorDataLogFile captures default and modified gain")
+                               .getChildFile (timestamp);
+
+    auto readGainFromXml = [] (const juce::File& file) -> float
+    {
+        auto xml = juce::XmlDocument::parse (file);
+        REQUIRE (xml != nullptr);
+        for (auto* child : xml->getChildIterator())
+        {
+            if (child->hasTagName ("PARAM") && child->getStringAttribute ("id") == "gain")
+                return static_cast<float> (child->getDoubleAttribute ("value"));
+        }
+        FAIL ("gain PARAM not found in processor_state.xml");
+        return 0.0f;
+    };
+
+    SECTION("Default gain = 1.0 written to processor_state.xml")
+    {
+        GainProcessor processor;
+        processor.setDataLogRootDirectory (outputDir);
+        processor.setDataLogOutputName ("default");
+        processor.startLogging();
+
+        auto stateFile = processor.createProcessorDataLogFile();
+        REQUIRE (stateFile.existsAsFile());
+        REQUIRE (stateFile == processor.getDataLogOutputDirectory().getChildFile ("processor_state.xml"));
+
+        auto xml = juce::XmlDocument::parse (stateFile);
+        REQUIRE (xml != nullptr);
+        REQUIRE (xml->getStringAttribute ("processorName") == processor.getName());
+
+        REQUIRE (readGainFromXml (stateFile) == Catch::Approx (1.0f));
+
+        processor.stopLogging();
+    }
+
+    SECTION("Modified gain = 0.25 written to processor_state.xml")
+    {
+        GainProcessor processor;
+        processor.setDataLogRootDirectory (outputDir);
+        processor.setDataLogOutputName ("modified");
+        processor.startLogging();
+
+        auto* gainParam = processor.getAPVTS().getParameter ("gain");
+        REQUIRE (gainParam != nullptr);
+        gainParam->setValueNotifyingHost (0.25f);
+
+        auto stateFile = processor.createProcessorDataLogFile();
+        REQUIRE (stateFile.existsAsFile());
+
+        REQUIRE (readGainFromXml (stateFile) == Catch::Approx (0.25f));
+
+        processor.stopLogging();
+    }
+}

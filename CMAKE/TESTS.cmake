@@ -5,6 +5,7 @@ set(TEST_SOURCES
     TESTS/PROCESSORS/GAIN_PROCESSOR/test_GainProcessor.cpp
     TESTS/PROCESSORS/GAIN_PROCESSOR/test_GainProcessor_DataLogger.cpp
     TESTS/PROCESSORS/GRAIN_SHIFTER_PROCESSOR/test_GrainShifterProcessor.cpp
+    TESTS/PROCESSORS/GRAIN_SHIFTER_PROCESSOR/test_GrainShifterProcessor_DataLogger.cpp
     TESTS/PROCESSORS/GRAIN_SHIFTER_PROCESSOR/test_GrainShifter_Female_Scale.cpp
     TESTS/PROCESSORS/RD_PROCESSOR/test_RD_Processor.cpp
     TESTS/PROCESSORS/RD_PROCESSOR/test_RD_Processor_DataLogger.cpp

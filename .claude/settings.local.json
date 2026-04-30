@@ -7,7 +7,9 @@
       "Bash(git submodule *)",
       "Bash(git check-ignore *)",
       "Bash(grep -zv '\\\\.gitkeep$')",
-      "Bash(xargs -0 git rm --cached --ignore-unmatch)"
+      "Bash(xargs -0 git rm --cached --ignore-unmatch)",
+      "Read(//c/Users/rdeve/.claude/skills/**)",
+      "Read(//c/Users/rdeve/.claude/plugins/**)"
     ]
   }
 }
