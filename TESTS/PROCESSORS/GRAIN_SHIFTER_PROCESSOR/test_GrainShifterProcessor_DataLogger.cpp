@@ -13,10 +13,12 @@ TEST_CASE("GrainShifterProcessor prepareToPlay logs sampleRate and maxBlockSize"
     TestUtils::SetupAndTeardown setup;
 
     auto timestamp = juce::Time::getCurrentTime().formatted ("%Y-%m-%d_%H-%M-%S");
-    juce::File rootDir = juce::File ("c:/REPOS/PLUGIN_PROJECTS/RD/TESTS/PROCESSORS/GRAIN_SHIFTER_PROCESSOR/OUTPUT/GrainShifterProcessor prepareToPlay logs sampleRate and maxBlockSize")
-                             .getChildFile (timestamp);
+    juce::File rootDir = juce::File (__FILE__).getParentDirectory()
+                                              .getChildFile ("OUTPUT")
+                                              .getChildFile ("GrainShifterProcessor prepareToPlay logs sampleRate and maxBlockSize")
+                                              .getChildFile ("TEST_CASE_ROOT_DIR");
 
-    const juce::String outputName = "run";
+    const juce::String outputName = "DATA_LOG_OUTPUT_DIR_" + timestamp;
 
     GrainShifterProcessor processor;
     processor.setDataLogRootDirectory (rootDir);
@@ -28,7 +30,7 @@ TEST_CASE("GrainShifterProcessor prepareToPlay logs sampleRate and maxBlockSize"
     processor.prepareToPlay (sampleRate, maxBlockSize);
 
     auto outputDir = processor.getDataLogOutputDirectory();
-    auto prepFile  = outputDir.getChildFile ("prepare_to_play.csv");
+    auto prepFile  = outputDir.getChildFile ("prepare_to_play").getChildFile ("prepare_to_play.csv");
     REQUIRE (prepFile.existsAsFile());
 
     auto lines = juce::StringArray::fromLines (prepFile.loadFileAsString().trimEnd());
@@ -43,13 +45,22 @@ TEST_CASE("GrainShifterProcessor prepareToPlay logs sampleRate and maxBlockSize"
     processor.stopLogging();
 }
 
-TEST_CASE("GrainShifterProcessor::createProcessorDataLogFile captures default and modified shift_ratio", "[GrainShifterProcessor][DataLogger]")
+TEST_CASE("GrainShifterProcessor::createProcessorDataLogFile", "[GrainShifterProcessor][DataLogger]")
 {
     TestUtils::SetupAndTeardown setup;
 
-    auto timestamp = juce::Time::getCurrentTime().formatted ("%Y-%m-%d_%H-%M-%S");
-    juce::File outputDir = juce::File ("c:/REPOS/PLUGIN_PROJECTS/RD/TESTS/PROCESSORS/GRAIN_SHIFTER_PROCESSOR/OUTPUT/GrainShifterProcessor createProcessorDataLogFile captures default and modified shift_ratio")
-                               .getChildFile (timestamp);
+    juce::File testDir = juce::File (__FILE__).getParentDirectory()
+                                               .getChildFile ("OUTPUT")
+                                               .getChildFile ("GrainShifterProcessor_createProcessorDataLogFile");
+
+    auto makeSectionRoot = [&] (const juce::String& sectionName)
+    {
+        return testDir.getChildFile (sectionName).getChildFile ("TEST_CASE_ROOT_DIR");
+    };
+    auto makeOutputName = [] ()
+    {
+        return juce::String ("DATA_LOG_OUTPUT_DIR");
+    };
 
     auto readFloatParamFromXml = [] (const juce::File& file, const juce::String& paramID) -> float
     {
@@ -67,8 +78,8 @@ TEST_CASE("GrainShifterProcessor::createProcessorDataLogFile captures default an
     SECTION("Default shift_ratio = 1.0 written to processor_state.xml")
     {
         GrainShifterProcessor processor;
-        processor.setDataLogRootDirectory (outputDir);
-        processor.setDataLogOutputName ("default");
+        processor.setDataLogRootDirectory (makeSectionRoot ("default"));
+        processor.setDataLogOutputName (makeOutputName());
         processor.startLogging();
 
         auto stateFile = processor.createProcessorDataLogFile();
@@ -87,8 +98,8 @@ TEST_CASE("GrainShifterProcessor::createProcessorDataLogFile captures default an
     SECTION("Modified shift_ratio = 1.5 written to processor_state.xml")
     {
         GrainShifterProcessor processor;
-        processor.setDataLogRootDirectory (outputDir);
-        processor.setDataLogOutputName ("modified");
+        processor.setDataLogRootDirectory (makeSectionRoot ("modified"));
+        processor.setDataLogOutputName (makeOutputName());
         processor.startLogging();
 
         auto* shiftRatioParam = processor.getAPVTS().getParameter ("shift_ratio");

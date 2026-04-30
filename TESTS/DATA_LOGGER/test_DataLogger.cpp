@@ -3,21 +3,29 @@
 
 namespace
 {
-    juce::File makeCaseDir (const juce::String& caseName)
+    // Path layout:
+    //   OUTPUT/<TEST_NAME>[/<SECTION_NAME>]/TEST_CASE_ROOT_DIR/DATA_LOG_OUTPUT_DIR_<timestamp>
+    juce::File makeRootDir (const juce::String& testName, const juce::String& sectionName = {})
     {
-        auto timestamp = juce::Time::getCurrentTime().formatted ("%Y-%m-%d_%H-%M-%S");
-        return juce::File ("c:/REPOS/PLUGIN_PROJECTS/RD/TESTS/DATA_LOGGER/OUTPUT/" + caseName)
-                   .getChildFile (timestamp);
+        auto base = juce::File ("c:/REPOS/PLUGIN_PROJECTS/RD/TESTS/DATA_LOGGER/OUTPUT/" + testName);
+        if (sectionName.isNotEmpty())
+            base = base.getChildFile (sectionName);
+        return base.getChildFile ("TEST_CASE_ROOT_DIR");
+    }
+
+    juce::String makeOutputName()
+    {
+        return "DATA_LOG_OUTPUT_DIR_" + juce::Time::getCurrentTime().formatted ("%Y-%m-%d_%H-%M-%S");
     }
 }
 
 TEST_CASE("DataLogger constructs without error", "[DataLogger]")
 {
-    auto caseDir = makeCaseDir ("DataLogger constructs without error");
+    auto rootDir = makeRootDir ("DataLogger constructs without error");
 
     DataLogger logger;
-    logger.setDataLogRootDirectory (caseDir);
-    logger.setDataLogOutputName ("default");
+    logger.setDataLogRootDirectory (rootDir);
+    logger.setDataLogOutputName (makeOutputName());
     SUCCEED();
 }
 
@@ -46,19 +54,20 @@ TEST_CASE("DataLogger mIsLogging getter and setter", "[DataLogger]")
 
 TEST_CASE("DataLogger root + name compose output directory", "[DataLogger]")
 {
-    auto caseDir = makeCaseDir ("DataLogger root + name compose output directory");
-
     DataLogger logger;
 
     SECTION("setDataLogRootDirectory + setDataLogOutputName build expected getDataLogOutputDirectory()")
     {
-        logger.setDataLogRootDirectory (caseDir);
-        logger.setDataLogOutputName ("my-section");
+        auto rootDir    = makeRootDir ("DataLogger root + name compose output directory",
+                                       "setDataLogRootDirectory_setDataLogOutputName_build_expected");
+        auto outputName = makeOutputName();
+        logger.setDataLogRootDirectory (rootDir);
+        logger.setDataLogOutputName (outputName);
 
-        REQUIRE(logger.getDataLogRootDirectory() == caseDir);
-        REQUIRE(logger.getDataLogOutputName() == "my-section");
-        REQUIRE(logger.getDataLogParentDirectory() == caseDir);
-        REQUIRE(logger.getDataLogOutputDirectory() == caseDir.getChildFile ("my-section"));
+        REQUIRE(logger.getDataLogRootDirectory() == rootDir);
+        REQUIRE(logger.getDataLogOutputName() == outputName);
+        REQUIRE(logger.getDataLogParentDirectory() == rootDir);
+        REQUIRE(logger.getDataLogOutputDirectory() == rootDir.getChildFile (outputName));
     }
 
     SECTION("Default output name is a non-empty timestamp")
@@ -70,11 +79,11 @@ TEST_CASE("DataLogger root + name compose output directory", "[DataLogger]")
 
 TEST_CASE("DataLogger logData materializes output directory and writes default file", "[DataLogger]")
 {
-    auto caseDir = makeCaseDir ("DataLogger logData materializes output directory and writes default file");
+    auto rootDir = makeRootDir ("DataLogger logData materializes output directory and writes default file");
 
     DataLogger logger;
-    logger.setDataLogRootDirectory (caseDir);
-    logger.setDataLogOutputName ("default");
+    logger.setDataLogRootDirectory (rootDir);
+    logger.setDataLogOutputName (makeOutputName());
     logger.setIsLogging (true);
 
     REQUIRE(logger.logData() == true);
@@ -110,14 +119,14 @@ namespace
 
 TEST_CASE("DataLogger addChild stores parent back-pointer and routes child path through parent", "[DataLogger]")
 {
-    auto caseDir = makeCaseDir ("DataLogger addChild stores parent back-pointer and routes child path through parent");
+    auto rootDir = makeRootDir ("DataLogger addChild stores parent back-pointer and routes child path through parent");
 
     DataLogger parent;
     CountingLogger child;
 
-    configureLogger (parent, caseDir, "parent");
+    configureLogger (parent, rootDir, makeOutputName());
 
-    auto unrelatedDir = caseDir.getChildFile ("somewhere-else");
+    auto unrelatedDir = rootDir.getChildFile ("somewhere-else");
     child.setDataLogRootDirectory (unrelatedDir);
     child.setDataLogOutputName ("child");
 
@@ -176,25 +185,25 @@ TEST_CASE("DataLogger addChild stores parent back-pointer and routes child path 
 
         REQUIRE(child.getParentLogger() == nullptr);
 
-        child.setDataLogRootDirectory (caseDir.getChildFile ("orphan"));
+        child.setDataLogRootDirectory (rootDir.getChildFile ("orphan"));
         child.setIsLogging (true);
 
         REQUIRE(child.logData() == true);
-        REQUIRE(child.getDataLogParentDirectory() == caseDir.getChildFile ("orphan"));
+        REQUIRE(child.getDataLogParentDirectory() == rootDir.getChildFile ("orphan"));
     }
 }
 
 TEST_CASE("DataLogger addChild propagates logData to children", "[DataLogger]")
 {
-    auto caseDir = makeCaseDir ("DataLogger addChild propagates logData to children");
+    auto rootDir = makeRootDir ("DataLogger addChild propagates logData to children");
 
     CountingLogger parent;
     CountingLogger childA;
     CountingLogger childB;
 
-    configureLogger (parent, caseDir, "parent");
-    configureLogger (childA, caseDir, "childA");
-    configureLogger (childB, caseDir, "childB");
+    configureLogger (parent, rootDir, makeOutputName());
+    configureLogger (childA, rootDir, "childA");
+    configureLogger (childB, rootDir, "childB");
 
     parent.setIsLogging (true);
     childA.setIsLogging (true);
@@ -244,15 +253,15 @@ TEST_CASE("DataLogger addChild propagates logData to children", "[DataLogger]")
 
 TEST_CASE("DataLogger parent logging off skips children", "[DataLogger]")
 {
-    auto caseDir = makeCaseDir ("DataLogger parent logging off skips children");
+    auto rootDir = makeRootDir ("DataLogger parent logging off skips children");
 
     CountingLogger parent;
     CountingLogger childA;
     CountingLogger childB;
 
-    configureLogger (parent, caseDir, "parent");
-    configureLogger (childA, caseDir, "childA");
-    configureLogger (childB, caseDir, "childB");
+    configureLogger (parent, rootDir, makeOutputName());
+    configureLogger (childA, rootDir, "childA");
+    configureLogger (childB, rootDir, "childB");
 
     childA.setIsLogging (true);
     childB.setIsLogging (true);
@@ -292,10 +301,10 @@ TEST_CASE("DataLogger parent logging off skips children", "[DataLogger]")
 
 TEST_CASE("DataLogger logData returns false and creates no file when not logging", "[DataLogger]")
 {
-    auto caseDir = makeCaseDir ("DataLogger logData returns false and creates no file when not logging");
+    auto rootDir = makeRootDir ("DataLogger logData returns false and creates no file when not logging");
 
     DataLogger logger;
-    configureLogger (logger, caseDir, "default");
+    configureLogger (logger, rootDir, makeOutputName());
     // mIsLogging defaults to false — no explicit set needed
 
     bool result = logger.logData();

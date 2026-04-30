@@ -8,14 +8,16 @@
 //===================== DATA LOGGING =====================
 //========================================================
 // Protocol for DataLogger inheriters:
-//   1. Build timestamped outputDir under
-//      TESTS/PROCESSORS/<PROCESSOR>/OUTPUT/<TEST CASE NAME>/<timestamp>.
-//      Treat outputDir as the root directory for the logger.
-//   2. Per SECTION, configure the logger then call startLogging():
-//        processor.setDataLogRootDirectory(outputDir);
-//        processor.setDataLogOutputName("<section name>");
+//   Path layout:
+//     <OUTPUT_BASE>/<TEST_NAME>[/<SECTION_NAME>]/TEST_CASE_ROOT_DIR/DATA_LOG_OUTPUT_DIR_<timestamp>
+//   where TEST_CASE_ROOT_DIR is the literal root passed to setDataLogRootDirectory
+//   and DATA_LOG_OUTPUT_DIR_<timestamp> is the literal name passed to
+//   setDataLogOutputName. Drop the SECTION_NAME segment for tests with no SECTION.
+//   1. Per SECTION (or once per case), configure the logger then call startLogging():
+//        processor.setDataLogRootDirectory (testDir/[sectionName]/"TEST_CASE_ROOT_DIR");
+//        processor.setDataLogOutputName ("DATA_LOG_OUTPUT_DIR_" + timestamp);
 //        processor.startLogging();
-//   3. Run processBlock one or more times. Each call appends 2 + numChannels
+//   2. Run processBlock one or more times. Each call appends 2 + numChannels
 //      rows to input_samples.csv (pre) and output_samples.csv (post):
 //      [global indices, local indices, ch0 values, ch1 values, ...].
 //      After N blocks, each file has (2 + numChannels) * N rows.
@@ -26,17 +28,19 @@ TEST_CASE("GainProcessor applies gain and writes DataLogger output", "[GainProce
     TestUtils::SetupAndTeardown setup;
     GainProcessor processor;
 
-    auto timestamp = juce::Time::getCurrentTime().formatted ("%Y-%m-%d_%H-%M-%S");
-    juce::File outputDir = juce::File ("c:/REPOS/PLUGIN_PROJECTS/RD/TESTS/PROCESSORS/GAIN_PROCESSOR/OUTPUT/GainProcessor applies gain and writes DataLogger output")
-                               .getChildFile (timestamp);
+    juce::File testDir = juce::File ("c:/REPOS/PLUGIN_PROJECTS/RD/TESTS/PROCESSORS/GAIN_PROCESSOR/OUTPUT/GainProcessor applies gain and writes DataLogger output");
 
     const int numChannels = 2;
     const int numSamples  = 256;
 
     auto runGainSection = [&] (float gain, const juce::String& sectionName)
     {
-        processor.setDataLogRootDirectory (outputDir);
-        processor.setDataLogOutputName (sectionName);
+        auto timestamp  = juce::Time::getCurrentTime().formatted ("%Y-%m-%d_%H-%M-%S");
+        auto rootDir    = testDir.getChildFile (sectionName).getChildFile ("TEST_CASE_ROOT_DIR");
+        auto outputName = "DATA_LOG_OUTPUT_DIR_" + timestamp;
+
+        processor.setDataLogRootDirectory (rootDir);
+        processor.setDataLogOutputName (outputName);
         processor.startLogging();
 
         processor.setGain (gain);
@@ -55,19 +59,30 @@ TEST_CASE("GainProcessor applies gain and writes DataLogger output", "[GainProce
                     REQUIRE (buffer.getSample (ch, s) == Catch::Approx (gain).margin (1e-6));
         }
 
-        auto sectionDir = outputDir.getChildFile (sectionName);
-        auto inFile  = sectionDir.getChildFile ("input_samples.csv");
-        auto outFile = sectionDir.getChildFile ("output_samples.csv");
-        REQUIRE (inFile .existsAsFile());
-        REQUIRE (outFile.existsAsFile());
+        auto outputDir = rootDir.getChildFile (outputName);
 
         auto countLines = [] (const juce::File& f)
         {
             return juce::StringArray::fromLines (f.loadFileAsString().trimEnd()).size();
         };
-        const int rowsPerBlock = 2 + numChannels; // global + local + per-channel
-        REQUIRE (countLines (inFile)  == rowsPerBlock * numBlocks);
-        REQUIRE (countLines (outFile) == rowsPerBlock * numBlocks);
+        const int rowsPerBlock = 2 + numChannels;
+
+        for (int b = 0; b < numBlocks; ++b)
+        {
+            const auto idx       = juce::String (static_cast<juce::int64> (b) * numSamples);
+            auto startDir = outputDir.getChildFile ("process_block_start_" + idx);
+            auto endDir   = outputDir.getChildFile ("process_block_end_"   + idx);
+
+            auto inFile  = startDir.getChildFile ("input_samples.csv");
+            auto outFile = endDir  .getChildFile ("output_samples.csv");
+            REQUIRE (inFile .existsAsFile());
+            REQUIRE (outFile.existsAsFile());
+            REQUIRE (countLines (inFile)  == rowsPerBlock);
+            REQUIRE (countLines (outFile) == rowsPerBlock);
+
+            REQUIRE (startDir.getChildFile ("processor_state.xml").existsAsFile());
+            REQUIRE (endDir  .getChildFile ("processor_state.xml").existsAsFile());
+        }
 
         auto stateLog = processor.createProcessorDataLogFile();
         REQUIRE (stateLog.existsAsFile());
@@ -92,9 +107,9 @@ TEST_CASE("GainProcessor logs raw input and gain-scaled output rows across conse
 
     auto timestamp = juce::Time::getCurrentTime().formatted ("%Y-%m-%d_%H-%M-%S");
     juce::File rootDir = juce::File ("c:/REPOS/PLUGIN_PROJECTS/RD/TESTS/PROCESSORS/GAIN_PROCESSOR/OUTPUT/GainProcessor logs raw input and gain-scaled output rows")
-                             .getChildFile (timestamp);
+                             .getChildFile ("TEST_CASE_ROOT_DIR");
 
-    const juce::String outputName = "run";
+    const juce::String outputName = "DATA_LOG_OUTPUT_DIR_" + timestamp;
 
     GainProcessor processor;
     processor.setDataLogRootDirectory (rootDir);
@@ -141,37 +156,39 @@ TEST_CASE("GainProcessor logs raw input and gain-scaled output rows across conse
         return row;
     };
 
-    auto inFile  = outputDir.getChildFile ("input_samples.csv");
-    auto outFile = outputDir.getChildFile ("output_samples.csv");
-    REQUIRE (inFile .existsAsFile());
-    REQUIRE (outFile.existsAsFile());
-
-    auto inLines  = juce::StringArray::fromLines (inFile .loadFileAsString().trimEnd());
-    auto outLines = juce::StringArray::fromLines (outFile.loadFileAsString().trimEnd());
-
     const int rowsPerBlock = 2 + numChannels;
-    REQUIRE (inLines .size() == rowsPerBlock * numBlocks);
-    REQUIRE (outLines.size() == rowsPerBlock * numBlocks);
 
     for (int b = 0; b < numBlocks; ++b)
     {
         const juce::int64  globalStart  = static_cast<juce::int64> (b) * blockSize;
-        const juce::String globalRow    = buildIndicesRow      (globalStart, blockSize);
-        const juce::String localRow     = buildIndicesRow      (0,           blockSize);
+        const juce::String idxStr       = juce::String (globalStart);
+        const juce::String globalRow    = buildIndicesRow        (globalStart, blockSize);
+        const juce::String localRow     = buildIndicesRow        (0,           blockSize);
         const juce::String inChannelRow = buildConstantValuesRow (blockSize, 1.0f);
         const juce::String outChannelRow= buildConstantValuesRow (blockSize, gain);
 
-        const int base = b * rowsPerBlock;
+        auto startDir = outputDir.getChildFile ("process_block_start_" + idxStr);
+        auto endDir   = outputDir.getChildFile ("process_block_end_"   + idxStr);
 
-        REQUIRE (inLines [base + 0] == globalRow);
-        REQUIRE (inLines [base + 1] == localRow);
-        REQUIRE (inLines [base + 2] == inChannelRow);   // ch0 all 1.0
-        REQUIRE (inLines [base + 3] == inChannelRow);   // ch1 all 1.0
+        auto inFile  = startDir.getChildFile ("input_samples.csv");
+        auto outFile = endDir  .getChildFile ("output_samples.csv");
+        REQUIRE (inFile .existsAsFile());
+        REQUIRE (outFile.existsAsFile());
 
-        REQUIRE (outLines[base + 0] == globalRow);
-        REQUIRE (outLines[base + 1] == localRow);
-        REQUIRE (outLines[base + 2] == outChannelRow);  // ch0 all gain
-        REQUIRE (outLines[base + 3] == outChannelRow);  // ch1 all gain
+        auto inLines  = juce::StringArray::fromLines (inFile .loadFileAsString().trimEnd());
+        auto outLines = juce::StringArray::fromLines (outFile.loadFileAsString().trimEnd());
+        REQUIRE (inLines .size() == rowsPerBlock);
+        REQUIRE (outLines.size() == rowsPerBlock);
+
+        REQUIRE (inLines [0] == globalRow);
+        REQUIRE (inLines [1] == localRow);
+        REQUIRE (inLines [2] == inChannelRow);
+        REQUIRE (inLines [3] == inChannelRow);
+
+        REQUIRE (outLines[0] == globalRow);
+        REQUIRE (outLines[1] == localRow);
+        REQUIRE (outLines[2] == outChannelRow);
+        REQUIRE (outLines[3] == outChannelRow);
     }
 
     processor.stopLogging();
@@ -183,9 +200,9 @@ TEST_CASE("GainProcessor prepareToPlay logs sampleRate and maxBlockSize", "[Gain
 
     auto timestamp = juce::Time::getCurrentTime().formatted ("%Y-%m-%d_%H-%M-%S");
     juce::File rootDir = juce::File ("c:/REPOS/PLUGIN_PROJECTS/RD/TESTS/PROCESSORS/GAIN_PROCESSOR/OUTPUT/GainProcessor prepareToPlay logs sampleRate and maxBlockSize")
-                             .getChildFile (timestamp);
+                             .getChildFile ("TEST_CASE_ROOT_DIR");
 
-    const juce::String outputName = "run";
+    const juce::String outputName = "DATA_LOG_OUTPUT_DIR_" + timestamp;
 
     GainProcessor processor;
     processor.setDataLogRootDirectory (rootDir);
@@ -197,7 +214,7 @@ TEST_CASE("GainProcessor prepareToPlay logs sampleRate and maxBlockSize", "[Gain
     processor.prepareToPlay (sampleRate, maxBlockSize);
 
     auto outputDir = processor.getDataLogOutputDirectory();
-    auto prepFile  = outputDir.getChildFile ("prepare_to_play.csv");
+    auto prepFile  = outputDir.getChildFile ("prepare_to_play").getChildFile ("prepare_to_play.csv");
     REQUIRE (prepFile.existsAsFile());
 
     auto lines = juce::StringArray::fromLines (prepFile.loadFileAsString().trimEnd());
@@ -216,9 +233,17 @@ TEST_CASE("GainProcessor::createProcessorDataLogFile captures default and modifi
 {
     TestUtils::SetupAndTeardown setup;
 
-    auto timestamp = juce::Time::getCurrentTime().formatted ("%Y-%m-%d_%H-%M-%S");
-    juce::File outputDir = juce::File ("c:/REPOS/PLUGIN_PROJECTS/RD/TESTS/PROCESSORS/GAIN_PROCESSOR/OUTPUT/GainProcessor createProcessorDataLogFile captures default and modified gain")
-                               .getChildFile (timestamp);
+    juce::File testDir = juce::File ("c:/REPOS/PLUGIN_PROJECTS/RD/TESTS/PROCESSORS/GAIN_PROCESSOR/OUTPUT/GainProcessor createProcessorDataLogFile captures default and modified gain");
+
+    auto makeSectionRoot = [&] (const juce::String& sectionName)
+    {
+        return testDir.getChildFile (sectionName).getChildFile ("TEST_CASE_ROOT_DIR");
+    };
+    auto makeOutputName = [] ()
+    {
+        return juce::String ("DATA_LOG_OUTPUT_DIR_")
+             + juce::Time::getCurrentTime().formatted ("%Y-%m-%d_%H-%M-%S");
+    };
 
     auto readGainFromXml = [] (const juce::File& file) -> float
     {
@@ -236,8 +261,8 @@ TEST_CASE("GainProcessor::createProcessorDataLogFile captures default and modifi
     SECTION("Default gain = 1.0 written to processor_state.xml")
     {
         GainProcessor processor;
-        processor.setDataLogRootDirectory (outputDir);
-        processor.setDataLogOutputName ("default");
+        processor.setDataLogRootDirectory (makeSectionRoot ("default"));
+        processor.setDataLogOutputName (makeOutputName());
         processor.startLogging();
 
         auto stateFile = processor.createProcessorDataLogFile();
@@ -256,8 +281,8 @@ TEST_CASE("GainProcessor::createProcessorDataLogFile captures default and modifi
     SECTION("Modified gain = 0.25 written to processor_state.xml")
     {
         GainProcessor processor;
-        processor.setDataLogRootDirectory (outputDir);
-        processor.setDataLogOutputName ("modified");
+        processor.setDataLogRootDirectory (makeSectionRoot ("modified"));
+        processor.setDataLogOutputName (makeOutputName());
         processor.startLogging();
 
         auto* gainParam = processor.getAPVTS().getParameter ("gain");

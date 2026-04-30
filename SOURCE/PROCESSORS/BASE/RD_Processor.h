@@ -137,7 +137,8 @@ private:
     bool _logProcessBlockStart();
     bool _logProcessBlockEnd();
 
-    void _writeBlockSamplesCsv (const juce::String& filenamePrefix);
+    juce::File _writeProcessorStateXml (const juce::File& dir);
+    void       _writeBlockSamplesCsv   (const juce::File& file);
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (RD_Processor)
 };

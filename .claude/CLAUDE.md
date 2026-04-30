@@ -77,21 +77,33 @@ For any processor inheriting `RD_Processor` / `DataLogger`, the `_DataLogger.cpp
    ```cpp
    processor.setDataLogRootDirectory (outputDir);
    processor.setDataLogOutputName ("<section name>");
-   processor.startLogging();   // sets isLogging=true, clears any prior CSVs
+   processor.startLogging();   // sets isLogging=true, deletes outputDir recursively
    ```
    so each section's logs are isolated under `outputDir/<section name>/`.
-3. Run `processBlock` one or more times. While logging, each call appends `2 + numChannels` rows to two CSVs in the output directory:
-   - `input_samples.csv`  — pre-process buffer
-   - `output_samples.csv` — post-process buffer
+3. Each lifecycle log event lands in **its own subdirectory** under `getDataLogOutputDirectory()`:
 
-   Per-block row layout (in order):
-   - Row 0: global sample indices (`mProcessSampleCount + s` for s in `[0, blockSize)`)
+   | Event | Subdirectory | Files |
+   |-------|--------------|-------|
+   | `prepareToPlay` | `prepare_to_play/` | `prepare_to_play.csv`, `processor_state.xml` |
+   | `processBlock` (start) | `process_block_start_<startIdx>/` | `input_samples.csv`, `processor_state.xml` |
+   | `processBlock` (end)   | `process_block_end_<startIdx>/`   | `output_samples.csv`, `processor_state.xml` |
+
+   `<startIdx>` is the global sample index at the start of the block (`mLogBlockStartIndex`, equal to `mProcessSampleCount` snapshotted before the block runs). `mProcessSampleCount` is cumulative since `prepareToPlay` and increments by `blockSize` each block.
+
+   Per-block CSV row layout (one block per file, `2 + numChannels` rows total):
+   - Row 0: global sample indices (`startIdx + s` for s in `[0, blockSize)`)
    - Row 1: local sample indices (`0..blockSize-1`)
    - Rows 2..(1+numChannels): per-channel sample values, one row per channel
 
-   After N blocks, each file has `(2 + numChannels) * N` rows. Global indices are cumulative since `prepareToPlay` (driven by `mProcessSampleCount`); local indices reset every block. Call `stopLogging()` when done. `REQUIRE` the files exist and contain the expected row count.
+   `_writeBlockSamplesCsv` calls `replaceWithText` — files are overwritten per call, never appended. Call `stopLogging()` when done.
 
-A `DataLogger`'s output is **always a directory** containing files, never a loose file. The output directory is composed dynamically from `getDataLogParentDirectory()` (which equals `mDataLogRootDirectory` if no parent logger is registered, or `parentLogger->getDataLogOutputDirectory()` otherwise) plus `mDataLogOutputName` (defaults to construction timestamp). Files written by `_createDataLogEventFile`, `createProcessorDataLogFile`, and the per-block sample CSVs always land inside `getDataLogOutputDirectory()`. The directory is materialized on disk at `logData()` time as a single side-effect; callers should not pre-create it.
+A `DataLogger`'s output is **always a directory** containing files, never a loose file. The output directory is composed dynamically from `getDataLogParentDirectory()` (which equals `mDataLogRootDirectory` if no parent logger is registered, or `parentLogger->getDataLogOutputDirectory()` otherwise) plus `mDataLogOutputName` (defaults to construction timestamp).
+
+Two ways `processor_state.xml` gets written:
+- **Lifecycle logs**: each event subdir (above) contains its own `processor_state.xml` snapshotting the APVTS at the moment of the event.
+- **External API**: `createProcessorDataLogFile()` writes `processor_state.xml` directly into `getDataLogOutputDirectory()` (root, not a subdir) for callers that want a one-off snapshot independent of lifecycle.
+
+Lifecycle subdirs are materialized at `logData()` time. Callers should not pre-create them.
 
 `DataLogger` owns a non-owning child registry (`addChild` / `removeChild` / `getNumChildren`). When a parent's `logData()` fires, it cascades to registered children. If the parent's `mIsLogging` is false, `logData()` short-circuits and children are not visited.
 

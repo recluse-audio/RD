@@ -8,13 +8,13 @@
 //===================== DATA LOGGING =====================
 //========================================================
 // Protocol for DataLogger inheriters:
-//   1. Build timestamped outputDir under
-//      TESTS/PROCESSORS/<PROCESSOR>/OUTPUT/<TEST CASE NAME>/<timestamp>.
-//   2. Per SECTION, configure the logger then call startLogging():
-//        processor.setDataLogRootDirectory(outputDir);
-//        processor.setDataLogOutputName("<section name>");
+//   Path layout:
+//     <OUTPUT_BASE>/<TEST_NAME>[/<SECTION_NAME>]/TEST_CASE_ROOT_DIR/DATA_LOG_OUTPUT_DIR_<timestamp>
+//   1. Per SECTION (or once per case), configure the logger then call startLogging():
+//        processor.setDataLogRootDirectory (testDir/[sectionName]/"TEST_CASE_ROOT_DIR");
+//        processor.setDataLogOutputName ("DATA_LOG_OUTPUT_DIR_" + timestamp);
 //        processor.startLogging();
-//   3. Run processBlock; appends happen automatically. Call stopLogging() when done.
+//   2. Run processBlock; appends happen automatically. Call stopLogging() when done.
 
 TEST_CASE("RD_ProcessorSwapper registers every contained RD_Processor as a DataLogger child", "[RD_ProcessorSwapper][DataLogger]")
 {
@@ -49,10 +49,10 @@ TEST_CASE("RD_ProcessorSwapper child loggers nest output directory under swapper
     juce::File rootDir = juce::File (__FILE__).getParentDirectory()
                                               .getChildFile ("OUTPUT")
                                               .getChildFile ("RD_ProcessorSwapper child loggers nest under swapper output directory")
-                                              .getChildFile (timestamp);
+                                              .getChildFile ("TEST_CASE_ROOT_DIR");
 
     swapper.setDataLogRootDirectory (rootDir);
-    swapper.setDataLogOutputName ("swapper");
+    swapper.setDataLogOutputName ("DATA_LOG_OUTPUT_DIR_" + timestamp);
 
     const auto swapperDir = swapper.getDataLogOutputDirectory();
 
@@ -70,7 +70,7 @@ TEST_CASE("RD_ProcessorSwapper child loggers nest output directory under swapper
     }
 }
 
-TEST_CASE("RD_ProcessorSwapper applies gain and writes DataLogger output", "[RD_ProcessorSwapper][DataLogger]")
+TEST_CASE("RD_ProcessorSwapper routes through GainProcessor child and nests its DataLog", "[RD_ProcessorSwapper][DataLogger]")
 {
     TestUtils::SetupAndTeardown setup;
     RD_ProcessorSwapper swapper;
@@ -82,17 +82,26 @@ TEST_CASE("RD_ProcessorSwapper applies gain and writes DataLogger output", "[RD_
     swapper.prepareToPlay (sampleRate, numSamples);
     swapper.setActiveProcessor (RD_ProcessorSwapper::ProcessorIndex::kGain);
 
-    auto timestamp = juce::Time::getCurrentTime().formatted ("%Y-%m-%d_%H-%M-%S");
-    juce::File outputDir = juce::File ("c:/REPOS/PLUGIN_PROJECTS/RD/TESTS/PROCESSORS/RD_PROCESSOR_SWAPPER/OUTPUT/RD_ProcessorSwapper applies gain and writes DataLogger output")
-                               .getChildFile (timestamp);
+    auto* gainProc = dynamic_cast<RD_Processor*> (
+        swapper.getProcessorByIndex (RD_ProcessorSwapper::ProcessorIndex::kGain));
+    REQUIRE (gainProc != nullptr);
+
+    juce::File testDir = juce::File ("c:/REPOS/PLUGIN_PROJECTS/RD/TESTS/PROCESSORS/RD_PROCESSOR_SWAPPER/OUTPUT/RD_ProcessorSwapper routes through GainProcessor child");
 
     auto runGainSection = [&] (float gain, const juce::String& sectionName)
     {
-        swapper.setDataLogRootDirectory (outputDir);
-        swapper.setDataLogOutputName (sectionName);
-        swapper.startLogging();
+        auto timestamp  = juce::Time::getCurrentTime().formatted ("%Y-%m-%d_%H-%M-%S");
+        auto rootDir    = testDir.getChildFile (sectionName).getChildFile ("TEST_CASE_ROOT_DIR");
+        auto outputName = "DATA_LOG_OUTPUT_DIR_" + timestamp;
 
-        swapper.setGain (gain);
+        swapper.setDataLogRootDirectory (rootDir);
+        swapper.setDataLogOutputName (outputName);
+        swapper.startLogging();
+        gainProc->startLogging();
+
+        auto* gainParam = gainProc->getAPVTS().getParameter ("gain");
+        REQUIRE (gainParam != nullptr);
+        gainParam->setValueNotifyingHost (gainParam->getNormalisableRange().convertTo0to1 (gain));
 
         juce::MidiBuffer midi;
         const int numBlocks = 2;
@@ -108,13 +117,23 @@ TEST_CASE("RD_ProcessorSwapper applies gain and writes DataLogger output", "[RD_
                     REQUIRE (buffer.getSample (ch, s) == Catch::Approx (gain).margin (1e-6));
         }
 
-        auto sectionDir = outputDir.getChildFile (sectionName);
-        REQUIRE (sectionDir.getChildFile ("input_samples.csv") .existsAsFile());
-        REQUIRE (sectionDir.getChildFile ("output_samples.csv").existsAsFile());
+        auto swapperDir = swapper.getDataLogOutputDirectory();
+        auto gainDir    = gainProc->getDataLogOutputDirectory();
+        REQUIRE (gainDir.isAChildOf (swapperDir));
 
-        auto stateLog = swapper.createProcessorDataLogFile();
-        REQUIRE (stateLog.existsAsFile());
+        for (int b = 0; b < numBlocks; ++b)
+        {
+            const auto idx = juce::String (static_cast<juce::int64> (b) * numSamples);
+            REQUIRE (swapperDir.getChildFile ("process_block_start_" + idx).getChildFile ("input_samples.csv") .existsAsFile());
+            REQUIRE (swapperDir.getChildFile ("process_block_end_"   + idx).getChildFile ("output_samples.csv").existsAsFile());
+            REQUIRE (gainDir   .getChildFile ("process_block_start_" + idx).getChildFile ("input_samples.csv") .existsAsFile());
+            REQUIRE (gainDir   .getChildFile ("process_block_end_"   + idx).getChildFile ("output_samples.csv").existsAsFile());
+        }
 
+        auto swapperState = swapper.createProcessorDataLogFile();
+        REQUIRE (swapperState.existsAsFile());
+
+        gainProc->stopLogging();
         swapper.stopLogging();
     };
 
@@ -143,14 +162,16 @@ TEST_CASE("RD_ProcessorSwapper writes no CSV when global logging is disabled", "
     swapper.prepareToPlay (sampleRate, numSamples);
     swapper.setActiveProcessor (RD_ProcessorSwapper::ProcessorIndex::kGain);
 
-    auto timestamp = juce::Time::getCurrentTime().formatted ("%Y-%m-%d_%H-%M-%S");
-    juce::File outputDir = juce::File ("c:/REPOS/PLUGIN_PROJECTS/RD/TESTS/PROCESSORS/RD_PROCESSOR_SWAPPER/OUTPUT/RD_ProcessorSwapper writes no CSV when global logging is disabled")
-                               .getChildFile (timestamp);
+    juce::File testDir = juce::File ("c:/REPOS/PLUGIN_PROJECTS/RD/TESTS/PROCESSORS/RD_PROCESSOR_SWAPPER/OUTPUT/RD_ProcessorSwapper writes no CSV when global logging is disabled");
 
     auto runNoLogSection = [&] (float gain, const juce::String& sectionName)
     {
-        swapper.setDataLogRootDirectory (outputDir);
-        swapper.setDataLogOutputName (sectionName);
+        auto timestamp  = juce::Time::getCurrentTime().formatted ("%Y-%m-%d_%H-%M-%S");
+        auto rootDir    = testDir.getChildFile (sectionName).getChildFile ("TEST_CASE_ROOT_DIR");
+        auto outputName = "DATA_LOG_OUTPUT_DIR_" + timestamp;
+
+        swapper.setDataLogRootDirectory (rootDir);
+        swapper.setDataLogOutputName (outputName);
         auto sectionDir = swapper.getDataLogOutputDirectory();
 
         swapper.setIsLogging (false);
@@ -162,8 +183,8 @@ TEST_CASE("RD_ProcessorSwapper writes no CSV when global logging is disabled", "
         juce::MidiBuffer midi;
         swapper.processBlock (buffer, midi);
 
-        REQUIRE_FALSE (sectionDir.getChildFile ("input_samples.csv") .existsAsFile());
-        REQUIRE_FALSE (sectionDir.getChildFile ("output_samples.csv").existsAsFile());
+        REQUIRE_FALSE (sectionDir.getChildFile ("process_block_start_0").getChildFile ("input_samples.csv") .existsAsFile());
+        REQUIRE_FALSE (sectionDir.getChildFile ("process_block_end_0")  .getChildFile ("output_samples.csv").existsAsFile());
 
         for (int ch = 0; ch < numChannels; ++ch)
             for (int s = 0; s < numSamples; ++s)
@@ -193,14 +214,16 @@ TEST_CASE("RD_ProcessorSwapper writes APVTS gain value into processor state log"
 
     swapper.prepareToPlay (sampleRate, numSamples);
 
-    auto timestamp = juce::Time::getCurrentTime().formatted ("%Y-%m-%d_%H-%M-%S");
-    juce::File outputDir = juce::File ("c:/REPOS/PLUGIN_PROJECTS/RD/TESTS/PROCESSORS/RD_PROCESSOR_SWAPPER/OUTPUT/RD_ProcessorSwapper writes APVTS gain value into processor state log")
-                               .getChildFile (timestamp);
+    juce::File testDir = juce::File ("c:/REPOS/PLUGIN_PROJECTS/RD/TESTS/PROCESSORS/RD_PROCESSOR_SWAPPER/OUTPUT/RD_ProcessorSwapper writes APVTS gain value into processor state log");
 
     auto runApvtsSection = [&] (float gain, const juce::String& sectionName)
     {
-        swapper.setDataLogRootDirectory (outputDir);
-        swapper.setDataLogOutputName (sectionName);
+        auto timestamp  = juce::Time::getCurrentTime().formatted ("%Y-%m-%d_%H-%M-%S");
+        auto rootDir    = testDir.getChildFile (sectionName).getChildFile ("TEST_CASE_ROOT_DIR");
+        auto outputName = "DATA_LOG_OUTPUT_DIR_" + timestamp;
+
+        swapper.setDataLogRootDirectory (rootDir);
+        swapper.setDataLogOutputName (outputName);
         swapper.getDataLogOutputDirectory().createDirectory();
 
         auto* param = swapper.getAPVTS().getParameter ("gain");

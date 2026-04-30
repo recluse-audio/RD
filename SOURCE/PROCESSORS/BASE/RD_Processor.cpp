@@ -151,8 +151,8 @@ void RD_Processor::startLogging()
     setIsLogging (true);
 
     auto dir = getDataLogOutputDirectory();
-    dir.getChildFile ("input_samples.csv") .deleteFile();
-    dir.getChildFile ("output_samples.csv").deleteFile();
+    if (dir.isDirectory())
+        dir.deleteRecursively();
 }
 
 void RD_Processor::stopLogging()
@@ -180,32 +180,61 @@ void RD_Processor::_fireLifecycleLog (LifecycleState state)
     mLifecycleState = LifecycleState::kIdle;
 }
 
+static void writeTextDirect (const juce::File& file, const juce::String& text)
+{
+    file.deleteFile();
+    juce::FileOutputStream stream (file);
+    if (stream.openedOk())
+        stream.writeText (text, false, false, nullptr);
+}
+
 bool RD_Processor::_logPrepareToPlay()
 {
-    auto file = getDataLogOutputDirectory().getChildFile ("prepare_to_play.csv");
+    auto dir = getDataLogOutputDirectory().getChildFile ("prepare_to_play");
+    dir.createDirectory();
+
+    auto file = dir.getChildFile ("prepare_to_play.csv");
 
     juce::String contents;
     contents << "sampleRate,maxBlockSize\n";
     contents << juce::String (mSampleRate) << "," << juce::String (mBlockSize) << "\n";
 
-    file.replaceWithText (contents);
+    writeTextDirect (file, contents);
+    _writeProcessorStateXml (dir);
     return true;
 }
 
 bool RD_Processor::_logProcessBlockStart()
 {
-    _writeBlockSamplesCsv ("input_samples.csv");
+    auto dir = getDataLogOutputDirectory()
+                 .getChildFile ("process_block_start_" + juce::String (mLogBlockStartIndex));
+    dir.createDirectory();
+
+    _writeBlockSamplesCsv  (dir.getChildFile ("input_samples.csv"));
+    _writeProcessorStateXml (dir);
     return true;
 }
 
 bool RD_Processor::_logProcessBlockEnd()
 {
-    _writeBlockSamplesCsv ("output_samples.csv");
+    auto dir = getDataLogOutputDirectory()
+                 .getChildFile ("process_block_end_" + juce::String (mLogBlockStartIndex));
+    dir.createDirectory();
+
+    _writeBlockSamplesCsv  (dir.getChildFile ("output_samples.csv"));
+    _writeProcessorStateXml (dir);
     return true;
 }
 
 
 juce::File RD_Processor::createProcessorDataLogFile()
+{
+    auto outputDir = getDataLogOutputDirectory();
+    outputDir.createDirectory();
+    return _writeProcessorStateXml (outputDir);
+}
+
+juce::File RD_Processor::_writeProcessorStateXml (const juce::File& dir)
 {
     auto xmlState = getAPVTS().copyState().createXml();
     if (xmlState == nullptr)
@@ -213,36 +242,37 @@ juce::File RD_Processor::createProcessorDataLogFile()
 
     xmlState->setAttribute ("processorName", getName());
 
-    auto outputDir = getDataLogOutputDirectory();
-    outputDir.createDirectory();
+    auto logFile = dir.getChildFile ("processor_state.xml");
 
-    auto logFile = outputDir.getChildFile ("processor_state.xml");
-    xmlState->writeTo (logFile);
+    logFile.deleteFile();
+    juce::FileOutputStream stream (logFile);
+    if (stream.openedOk())
+        xmlState->writeTo (stream);
 
     return logFile;
 }
 
-void RD_Processor::_writeBlockSamplesCsv (const juce::String& filename)
+void RD_Processor::_writeBlockSamplesCsv (const juce::File& file)
 {
-    const auto file        = getDataLogOutputDirectory().getChildFile (filename);
     const int  numChannels = mLogBuffer.getNumChannels();
     const int  numSamples  = mLogBuffer.getNumSamples();
 
-    juce::String globalRow, localRow;
-    globalRow.preallocateBytes (static_cast<size_t> (numSamples * 8));
-    localRow .preallocateBytes (static_cast<size_t> (numSamples * 8));
+    juce::String contents;
+    contents.preallocateBytes (static_cast<size_t> (numSamples * (12 + 12 * numChannels)));
 
     for (int s = 0; s < numSamples; ++s)
     {
-        if (s > 0) { globalRow << ","; localRow << ","; }
-        globalRow << juce::String (mLogBlockStartIndex + s);
-        localRow  << juce::String (s);
+        if (s > 0) contents << ",";
+        contents << juce::String (mLogBlockStartIndex + s);
     }
-    globalRow << "\n";
-    localRow  << "\n";
+    contents << "\n";
 
-    file.appendText (globalRow);
-    file.appendText (localRow);
+    for (int s = 0; s < numSamples; ++s)
+    {
+        if (s > 0) contents << ",";
+        contents << juce::String (s);
+    }
+    contents << "\n";
 
     for (int ch = 0; ch < numChannels; ++ch)
     {
@@ -256,8 +286,10 @@ void RD_Processor::_writeBlockSamplesCsv (const juce::String& filename)
         }
         channelRow << "\n";
 
-        file.appendText (channelRow);
+        contents << channelRow;
     }
+
+    writeTextDirect (file, contents);
 }
 
 void RD_Processor::parameterChanged (const juce::String& parameterID, float newValue)
