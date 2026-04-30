@@ -95,7 +95,7 @@ For any processor inheriting `RD_Processor` / `DataLogger`, the `_DataLogger.cpp
    - Row 1: local sample indices (`0..blockSize-1`)
    - Rows 2..(1+numChannels): per-channel sample values, one row per channel
 
-   `_writeBlockSamplesCsv` calls `replaceWithText` — files are overwritten per call, never appended. Call `stopLogging()` when done.
+   `_writeBlockSamplesCsv` and `_writeProcessorStateXml` write via `juce::FileOutputStream` directly (not `replaceWithText` / `XmlElement::writeTo(File)`) to avoid JUCE's `TemporaryFile` suffix overflowing Windows MAX_PATH on deeply nested test paths. Files are overwritten per call, never appended. Call `stopLogging()` when done.
 
 A `DataLogger`'s output is **always a directory** containing files, never a loose file. The output directory is composed dynamically from `getDataLogParentDirectory()` (which equals `mDataLogRootDirectory` if no parent logger is registered, or `parentLogger->getDataLogOutputDirectory()` otherwise) plus `mDataLogOutputName` (defaults to construction timestamp).
 
@@ -163,15 +163,17 @@ Each processor owns its own `mAPVTS` via override, rather than sharing a single 
 
 `RD_Processor::processBlock` is `final` — child classes **cannot** override it. Instead, override `virtual void doProcessBlock(buffer, midi)`. The base `processBlock` wraps the child call with shared concerns:
 
-1. Snapshot `mProcessSampleCount` as the block's start index.
-2. If `getIsLogging()` is true, append `[global indices, local indices, ch0 values, ch1 values, ...]` rows to `input_samples.csv`.
+1. Snapshot `mProcessSampleCount` into `mLogBlockStartIndex`.
+2. If `getIsLogging()`, copy buffer into `mLogBuffer` and fire `kProcessBlockStart` lifecycle log → writes `process_block_start_<idx>/{input_samples.csv, processor_state.xml}`.
 3. Call `doProcessBlock(buffer, midi)` — child does its DSP work in place on `buffer`.
-4. If `getIsLogging()` is true, append the same `2 + numChannels`-row block to `output_samples.csv` (using the same start index, so input/output blocks align).
-5. Increment `mProcessSampleCount` by the block size.
+4. If `getIsLogging()`, copy post-DSP buffer into `mLogBuffer` and fire `kProcessBlockEnd` lifecycle log → writes `process_block_end_<idx>/{output_samples.csv, processor_state.xml}`.
+5. Increment `mProcessSampleCount` by `buffer.getNumSamples()`.
 
-Use `startLogging()` / `stopLogging()` to toggle. `startLogging()` also deletes any prior `input_samples.csv` / `output_samples.csv` in the output directory so appends start clean.
+`prepareToPlay` is also `final`; override `doPrepareToPlay`. The base fires `kPreparedToPlay` → writes `prepare_to_play/{prepare_to_play.csv, processor_state.xml}`.
 
-When adding a new processor, override `doProcessBlock`, not `processBlock`. `RD_ProcessorSwapper` also inherits `RD_Processor` and follows the same convention — its graph dispatch lives in `doProcessBlock`.
+`startLogging()` deletes the entire output directory recursively for a clean slate. `stopLogging()` flips the flag. See DataLogger Test Protocol above for the per-event subdirectory layout.
+
+When adding a new processor, override `doProcessBlock` / `doPrepareToPlay`, not the `final` versions. `RD_ProcessorSwapper` also inherits `RD_Processor` and follows the same convention — its graph dispatch lives in `doProcessBlock`.
 
 ### Real-Time Safety
 
