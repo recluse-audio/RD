@@ -16,6 +16,60 @@
 //        processor.startLogging();
 //   3. Run processBlock; appends happen automatically. Call stopLogging() when done.
 
+TEST_CASE("RD_ProcessorSwapper registers every contained RD_Processor as a DataLogger child", "[RD_ProcessorSwapper][DataLogger]")
+{
+    TestUtils::SetupAndTeardown setup;
+    RD_ProcessorSwapper swapper;
+
+    const int numProcessors = swapper.getNumProcessors();
+    REQUIRE (numProcessors > 0);
+
+    REQUIRE (swapper.getNumChildren() == static_cast<size_t> (numProcessors));
+
+    for (int i = 0; i < numProcessors; ++i)
+    {
+        auto index = static_cast<RD_ProcessorSwapper::ProcessorIndex> (i);
+        auto* audioProc = swapper.getProcessorByIndex (index);
+        REQUIRE (audioProc != nullptr);
+
+        auto* rdProc = dynamic_cast<RD_Processor*> (audioProc);
+        REQUIRE (rdProc != nullptr);
+
+        DataLogger* asLogger = rdProc;
+        REQUIRE (asLogger->getParentLogger() == static_cast<DataLogger*> (&swapper));
+    }
+}
+
+TEST_CASE("RD_ProcessorSwapper child loggers nest output directory under swapper output directory", "[RD_ProcessorSwapper][DataLogger]")
+{
+    TestUtils::SetupAndTeardown setup;
+    RD_ProcessorSwapper swapper;
+
+    auto timestamp = juce::Time::getCurrentTime().formatted ("%Y-%m-%d_%H-%M-%S");
+    juce::File rootDir = juce::File (__FILE__).getParentDirectory()
+                                              .getChildFile ("OUTPUT")
+                                              .getChildFile ("RD_ProcessorSwapper child loggers nest under swapper output directory")
+                                              .getChildFile (timestamp);
+
+    swapper.setDataLogRootDirectory (rootDir);
+    swapper.setDataLogOutputName ("swapper");
+
+    const auto swapperDir = swapper.getDataLogOutputDirectory();
+
+    for (int i = 0; i < swapper.getNumProcessors(); ++i)
+    {
+        auto index = static_cast<RD_ProcessorSwapper::ProcessorIndex> (i);
+        auto* audioProc = swapper.getProcessorByIndex (index);
+        REQUIRE (audioProc != nullptr);
+        auto* rdProc = dynamic_cast<RD_Processor*> (audioProc);
+        REQUIRE (rdProc != nullptr);
+
+        REQUIRE (rdProc->getDataLogParentDirectory() == swapperDir);
+        REQUIRE (rdProc->getDataLogOutputDirectory()
+                 == swapperDir.getChildFile (rdProc->getDataLogOutputName()));
+    }
+}
+
 TEST_CASE("RD_ProcessorSwapper applies gain and writes DataLogger output", "[RD_ProcessorSwapper][DataLogger]")
 {
     TestUtils::SetupAndTeardown setup;

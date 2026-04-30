@@ -4,9 +4,24 @@
 RD_ProcessorSwapper::RD_ProcessorSwapper()
 {
     _buildGraph();
+
+    for (int i = 0; i < getNumProcessors(); ++i)
+    {
+        auto* audioProc = getProcessorByIndex (static_cast<ProcessorIndex> (i));
+        if (auto* rdProc = dynamic_cast<RD_Processor*> (audioProc))
+            addChild (rdProc);
+    }
 }
 
-RD_ProcessorSwapper::~RD_ProcessorSwapper() {}
+RD_ProcessorSwapper::~RD_ProcessorSwapper()
+{
+    for (int i = 0; i < getNumProcessors(); ++i)
+    {
+        auto* audioProc = getProcessorByIndex (static_cast<ProcessorIndex> (i));
+        if (auto* rdProc = dynamic_cast<RD_Processor*> (audioProc))
+            removeChild (rdProc);
+    }
+}
 
 //==============================================================================
 void RD_ProcessorSwapper::_buildGraph()
