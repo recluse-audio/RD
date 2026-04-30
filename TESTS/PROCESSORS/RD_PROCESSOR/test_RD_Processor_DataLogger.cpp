@@ -20,13 +20,12 @@ TEST_CASE("RD_Processor processBlock writes input/output sample CSVs to composed
 {
     TestUtils::SetupAndTeardown setup;
 
-    auto timestamp = juce::Time::getCurrentTime().formatted ("%Y-%m-%d_%H-%M-%S");
     juce::File rootDir = juce::File (__FILE__).getParentDirectory()
                                               .getChildFile ("OUTPUT")
                                               .getChildFile ("RD_Processor processBlock writes input_output sample CSVs")
                                               .getChildFile ("TEST_CASE_ROOT_DIR");
 
-    const juce::String outputName = "DATA_LOG_OUTPUT_DIR_" + timestamp;
+    const juce::String outputName = "DATA_LOG_OUTPUT_DIR";
 
     RD_Processor processor;
     processor.setDataLogRootDirectory (rootDir);
@@ -68,13 +67,12 @@ TEST_CASE("RD_Processor prepareToPlay logs sampleRate and maxBlockSize", "[RD_Pr
 {
     TestUtils::SetupAndTeardown setup;
 
-    auto timestamp = juce::Time::getCurrentTime().formatted ("%Y-%m-%d_%H-%M-%S");
     juce::File rootDir = juce::File (__FILE__).getParentDirectory()
                                               .getChildFile ("OUTPUT")
                                               .getChildFile ("RD_Processor prepareToPlay logs sampleRate and maxBlockSize")
                                               .getChildFile ("TEST_CASE_ROOT_DIR");
 
-    const juce::String outputName = "DATA_LOG_OUTPUT_DIR_" + timestamp;
+    const juce::String outputName = "DATA_LOG_OUTPUT_DIR";
 
     RD_Processor processor;
     processor.setDataLogRootDirectory (rootDir);
@@ -105,13 +103,12 @@ TEST_CASE("RD_Processor::createProcessorDataLogFile writes processor_state.xml i
 {
     TestUtils::SetupAndTeardown setup;
 
-    auto timestamp = juce::Time::getCurrentTime().formatted ("%Y-%m-%d_%H-%M-%S");
     juce::File rootDir = juce::File (__FILE__).getParentDirectory()
                                               .getChildFile ("OUTPUT")
                                               .getChildFile ("RD_Processor createProcessorDataLogFile writes processor_state xml")
                                               .getChildFile ("TEST_CASE_ROOT_DIR");
 
-    const juce::String outputName = "DATA_LOG_OUTPUT_DIR_" + timestamp;
+    const juce::String outputName = "DATA_LOG_OUTPUT_DIR";
 
     RD_Processor processor;
     processor.setDataLogRootDirectory (rootDir);
@@ -140,13 +137,12 @@ TEST_CASE("RD_Processor lifecycle log calls also write processor_state.xml", "[R
 {
     TestUtils::SetupAndTeardown setup;
 
-    auto timestamp = juce::Time::getCurrentTime().formatted ("%Y-%m-%d_%H-%M-%S");
     juce::File rootDir = juce::File (__FILE__).getParentDirectory()
                                               .getChildFile ("OUTPUT")
                                               .getChildFile ("RD_Processor lifecycle log calls write processor_state xml")
                                               .getChildFile ("TEST_CASE_ROOT_DIR");
 
-    const juce::String outputName = "DATA_LOG_OUTPUT_DIR_" + timestamp;
+    const juce::String outputName = "DATA_LOG_OUTPUT_DIR";
 
     RD_Processor processor;
     processor.setDataLogRootDirectory (rootDir);
@@ -212,13 +208,12 @@ TEST_CASE("RD_Processor logs global + local indices and per-channel samples acro
 {
     TestUtils::SetupAndTeardown setup;
 
-    auto timestamp = juce::Time::getCurrentTime().formatted ("%Y-%m-%d_%H-%M-%S");
     juce::File rootDir = juce::File (__FILE__).getParentDirectory()
                                               .getChildFile ("OUTPUT")
                                               .getChildFile ("RD_Processor logs global_local indices and per-channel samples across processBlock calls")
                                               .getChildFile ("TEST_CASE_ROOT_DIR");
 
-    const juce::String outputName = "DATA_LOG_OUTPUT_DIR_" + timestamp;
+    const juce::String outputName = "DATA_LOG_OUTPUT_DIR";
 
     RD_Processor processor;
     processor.setDataLogRootDirectory (rootDir);

@@ -12,13 +12,12 @@ TEST_CASE("GrainShifterProcessor prepareToPlay logs sampleRate and maxBlockSize"
 {
     TestUtils::SetupAndTeardown setup;
 
-    auto timestamp = juce::Time::getCurrentTime().formatted ("%Y-%m-%d_%H-%M-%S");
     juce::File rootDir = juce::File (__FILE__).getParentDirectory()
                                               .getChildFile ("OUTPUT")
                                               .getChildFile ("GrainShifterProcessor prepareToPlay logs sampleRate and maxBlockSize")
                                               .getChildFile ("TEST_CASE_ROOT_DIR");
 
-    const juce::String outputName = "DATA_LOG_OUTPUT_DIR_" + timestamp;
+    const juce::String outputName = "DATA_LOG_OUTPUT_DIR";
 
     GrainShifterProcessor processor;
     processor.setDataLogRootDirectory (rootDir);

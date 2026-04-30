@@ -9,13 +9,13 @@
 //========================================================
 // Protocol for DataLogger inheriters:
 //   Path layout:
-//     <OUTPUT_BASE>/<TEST_NAME>[/<SECTION_NAME>]/TEST_CASE_ROOT_DIR/DATA_LOG_OUTPUT_DIR_<timestamp>
+//     <OUTPUT_BASE>/<TEST_NAME>[/<SECTION_NAME>]/TEST_CASE_ROOT_DIR/DATA_LOG_OUTPUT_DIR
 //   where TEST_CASE_ROOT_DIR is the literal root passed to setDataLogRootDirectory
-//   and DATA_LOG_OUTPUT_DIR_<timestamp> is the literal name passed to
+//   and DATA_LOG_OUTPUT_DIR is the literal name passed to
 //   setDataLogOutputName. Drop the SECTION_NAME segment for tests with no SECTION.
 //   1. Per SECTION (or once per case), configure the logger then call startLogging():
 //        processor.setDataLogRootDirectory (testDir/[sectionName]/"TEST_CASE_ROOT_DIR");
-//        processor.setDataLogOutputName ("DATA_LOG_OUTPUT_DIR_" + timestamp);
+//        processor.setDataLogOutputName ("DATA_LOG_OUTPUT_DIR");
 //        processor.startLogging();
 //   2. Run processBlock one or more times. Each call appends 2 + numChannels
 //      rows to input_samples.csv (pre) and output_samples.csv (post):
@@ -35,9 +35,8 @@ TEST_CASE("GainProcessor applies gain and writes DataLogger output", "[GainProce
 
     auto runGainSection = [&] (float gain, const juce::String& sectionName)
     {
-        auto timestamp  = juce::Time::getCurrentTime().formatted ("%Y-%m-%d_%H-%M-%S");
         auto rootDir    = testDir.getChildFile (sectionName).getChildFile ("TEST_CASE_ROOT_DIR");
-        auto outputName = "DATA_LOG_OUTPUT_DIR_" + timestamp;
+        auto outputName = juce::String ("DATA_LOG_OUTPUT_DIR");
 
         processor.setDataLogRootDirectory (rootDir);
         processor.setDataLogOutputName (outputName);
@@ -105,11 +104,10 @@ TEST_CASE("GainProcessor logs raw input and gain-scaled output rows across conse
 {
     TestUtils::SetupAndTeardown setup;
 
-    auto timestamp = juce::Time::getCurrentTime().formatted ("%Y-%m-%d_%H-%M-%S");
     juce::File rootDir = juce::File ("c:/REPOS/PLUGIN_PROJECTS/RD/TESTS/PROCESSORS/GAIN_PROCESSOR/OUTPUT/GainProcessor logs raw input and gain-scaled output rows")
                              .getChildFile ("TEST_CASE_ROOT_DIR");
 
-    const juce::String outputName = "DATA_LOG_OUTPUT_DIR_" + timestamp;
+    const juce::String outputName = "DATA_LOG_OUTPUT_DIR";
 
     GainProcessor processor;
     processor.setDataLogRootDirectory (rootDir);
@@ -198,11 +196,10 @@ TEST_CASE("GainProcessor prepareToPlay logs sampleRate and maxBlockSize", "[Gain
 {
     TestUtils::SetupAndTeardown setup;
 
-    auto timestamp = juce::Time::getCurrentTime().formatted ("%Y-%m-%d_%H-%M-%S");
     juce::File rootDir = juce::File ("c:/REPOS/PLUGIN_PROJECTS/RD/TESTS/PROCESSORS/GAIN_PROCESSOR/OUTPUT/GainProcessor prepareToPlay logs sampleRate and maxBlockSize")
                              .getChildFile ("TEST_CASE_ROOT_DIR");
 
-    const juce::String outputName = "DATA_LOG_OUTPUT_DIR_" + timestamp;
+    const juce::String outputName = "DATA_LOG_OUTPUT_DIR";
 
     GainProcessor processor;
     processor.setDataLogRootDirectory (rootDir);
@@ -241,8 +238,7 @@ TEST_CASE("GainProcessor::createProcessorDataLogFile captures default and modifi
     };
     auto makeOutputName = [] ()
     {
-        return juce::String ("DATA_LOG_OUTPUT_DIR_")
-             + juce::Time::getCurrentTime().formatted ("%Y-%m-%d_%H-%M-%S");
+        return juce::String ("DATA_LOG_OUTPUT_DIR");
     };
 
     auto readGainFromXml = [] (const juce::File& file) -> float

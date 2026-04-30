@@ -4,7 +4,7 @@
 namespace
 {
     // Path layout:
-    //   OUTPUT/<TEST_NAME>[/<SECTION_NAME>]/TEST_CASE_ROOT_DIR/DATA_LOG_OUTPUT_DIR_<timestamp>
+    //   OUTPUT/<TEST_NAME>[/<SECTION_NAME>]/TEST_CASE_ROOT_DIR/DATA_LOG_OUTPUT_DIR
     juce::File makeRootDir (const juce::String& testName, const juce::String& sectionName = {})
     {
         auto base = juce::File ("c:/REPOS/PLUGIN_PROJECTS/RD/TESTS/DATA_LOGGER/OUTPUT/" + testName);
@@ -15,7 +15,7 @@ namespace
 
     juce::String makeOutputName()
     {
-        return "DATA_LOG_OUTPUT_DIR_" + juce::Time::getCurrentTime().formatted ("%Y-%m-%d_%H-%M-%S");
+        return "DATA_LOG_OUTPUT_DIR";
     }
 }
 
