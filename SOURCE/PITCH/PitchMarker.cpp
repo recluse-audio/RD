@@ -10,8 +10,8 @@
 //=======================================
 PitchMarker::PitchMarker()
 {
-    // Allocate FIFO for 32 pitch marks
-    mMaxPitchMarks = 32;
+    // Allocate FIFO for 128 pitch marks
+    mMaxPitchMarks = 128;
     mPitchMarks.resize(mMaxPitchMarks, PitchMark()); // Default construct invalid pitch marks
     mPitchMarkWritePos = 0;
     mNumStoredMarks = 0;

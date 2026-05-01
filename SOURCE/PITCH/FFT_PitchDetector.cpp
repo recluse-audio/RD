@@ -96,20 +96,53 @@ float FFT_PitchDetector::process(const juce::AudioBuffer<float>& buffer)
     // Inverse FFT to get autocorrelation
     mFFT->performRealOnlyInverseTransform(fftData);
 
-    // Find peak in autocorrelation within period range
-    int peakIndex   = mMinPeriod;
-    float peakValue = fftData[mMinPeriod];
+    // Octave-error mitigation: autocorrelation peaks at every multiple of the
+    // true period. Picking the largest lag in [mMinPeriod, mMaxPeriod] biases
+    // toward 2T/3T (octave-down). Instead:
+    //   1. Find the global max in the search range.
+    //   2. Pick the lowest lag whose local-peak autocorrelation reaches
+    //      mThreshold * globalMax. This favors the true fundamental.
+    const int searchEnd = std::min (mMaxPeriod, fftSize / 2);
 
-    for (int i = mMinPeriod + 1; i < std::min(mMaxPeriod, fftSize / 2); i++)
+    float globalMax = fftData[mMinPeriod];
+    for (int i = mMinPeriod + 1; i < searchEnd; ++i)
+        if (fftData[i] > globalMax)
+            globalMax = fftData[i];
+
+    if (globalMax <= 0.0f)
     {
-        float value = fftData[i];
-        if (value > peakValue)
+        mCurrentPeriod = -1.0f;
+        return mCurrentPeriod;
+    }
+
+    const float acceptThreshold = mThreshold * globalMax;
+
+    int chosenIndex = -1;
+    for (int i = mMinPeriod + 1; i < searchEnd - 1; ++i)
+    {
+        const float v = fftData[i];
+        if (v >= acceptThreshold && v > fftData[i - 1] && v > fftData[i + 1])
         {
-            peakValue = value;
-            peakIndex = i;
+            chosenIndex = i;
+            break;
         }
     }
 
-    mCurrentPeriod = static_cast<float>(peakIndex);
+    if (chosenIndex < 0)
+    {
+        // Fallback: pick the global-max location.
+        chosenIndex = mMinPeriod;
+        float peakValue = fftData[mMinPeriod];
+        for (int i = mMinPeriod + 1; i < searchEnd; ++i)
+        {
+            if (fftData[i] > peakValue)
+            {
+                peakValue = fftData[i];
+                chosenIndex = i;
+            }
+        }
+    }
+
+    mCurrentPeriod = static_cast<float>(chosenIndex);
     return mCurrentPeriod;
 }

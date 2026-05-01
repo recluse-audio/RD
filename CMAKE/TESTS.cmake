@@ -4,6 +4,7 @@ set(TEST_SOURCES
     TESTS/DATA_LOGGER/test_DataLogger.cpp
     TESTS/GRANULATOR/test_Grain.cpp
     TESTS/GRANULATOR/test_Granulator.cpp
+    TESTS/GRANULATOR/test_Granulator_DataLogger.cpp
     TESTS/PITCH_MANAGER/test_FFT_PitchDetector.cpp
     TESTS/PITCH_MANAGER/test_PitchDetection_Arpeggios.cpp
     TESTS/PITCH_MANAGER/test_PitchDetection_Somewhere.cpp

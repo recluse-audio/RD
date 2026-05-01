@@ -15,6 +15,7 @@
 #include "CircularBuffer.h"
 #include "DATA_LOGGER/DataLogger.h"
 #include <vector>
+#include <unordered_map>
 
 /**
  * Granulator manages grain-based synthesis for TD-PSOLA pitch shifting.
@@ -37,9 +38,9 @@ public:
     explicit Granulator(CircularBuffer& sourceBuffer);
     ~Granulator();
 
-    /** DataLogger override. Appends one row to generate_grains_log.csv when a
-     *  generateGrains() call has flagged a pending log; no-op otherwise (so
-     *  parent cascade invocations don't double-log). */
+    /** DataLogger override. Appends per-grain rows to synthesis_grains.csv
+     *  when a generateGrains() call flagged a pending log; no-op otherwise
+     *  (so parent cascade invocations don't double-log). */
     bool doLogData() override;
 
     /**
@@ -90,10 +91,13 @@ private:
     double             mSampleRate       = 44100.0;
     int                mNumChannels      = 2;
 
-    // Snapshot of last generateGrains() call for range-only logging.
-    size_t      mLastInputSynthMarkCount = 0;
-    size_t      mLastGrainsAssigned      = 0;
-    juce::int64 mLastSynthMarkRangeStart = -1;
-    juce::int64 mLastSynthMarkRangeEnd   = -1;
-    bool        mGenerateLogPending      = false;
+    // Snapshot of last generateGrains() call for per-grain logging.
+    std::vector<SynthMark> mLastSynthMarks;
+    bool                   mGenerateLogPending = false;
+
+    // Running counters / id-assignment for synthesis_grains.csv.
+    int mNextGrainId    = 0;
+    int mNextAnalysisId = 0;
+    std::unordered_map<juce::int64, int> mAnalysisIdByPitchCenter;
+    float mWindowAlpha = 0.5f; // Tukey alpha currently configured (BufferFiller default).
 };

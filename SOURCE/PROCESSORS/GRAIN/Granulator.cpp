@@ -59,22 +59,11 @@ void Granulator::generateGrains(const std::vector<SynthMark>& synthMarks)
     jassert(synthMarkIndex == static_cast<int>(synthMarks.size()) &&
             "Not enough available grains - increase maxGrains or implement voice stealing");
 
-    // Snapshot range info for data logging.
-    mLastInputSynthMarkCount = synthMarks.size();
-    mLastGrainsAssigned      = static_cast<size_t> (synthMarkIndex);
-    if (! synthMarks.empty())
-    {
-        mLastSynthMarkRangeStart = synthMarks.front().synthMark;
-        mLastSynthMarkRangeEnd   = synthMarks.back().synthMark;
-    }
-    else
-    {
-        mLastSynthMarkRangeStart = -1;
-        mLastSynthMarkRangeEnd   = -1;
-    }
-
+    // Snapshot synth marks for per-grain logging (only the ones actually assigned).
     if (getIsLogging())
     {
+        mLastSynthMarks.assign (synthMarks.begin(),
+                                synthMarks.begin() + synthMarkIndex);
         mGenerateLogPending = true;
         logData();
     }
@@ -86,24 +75,71 @@ bool Granulator::doLogData()
         return true;
     mGenerateLogPending = false;
 
-    auto file = getDataLogOutputDirectory().getChildFile ("generate_grains_log.csv");
+    auto file = getDataLogOutputDirectory().getChildFile ("synthesis_grains.csv");
     const bool needsHeader = ! file.existsAsFile();
 
-    juce::String row;
-    if (needsHeader)
-        row << "input_synth_mark_count,grains_assigned,synth_mark_range_start,synth_mark_range_end\n";
+    juce::String contents;
+    contents.preallocateBytes (static_cast<size_t> (128 + 96 * mLastSynthMarks.size()));
 
-    row << juce::String (static_cast<juce::int64> (mLastInputSynthMarkCount)) << ","
-        << juce::String (static_cast<juce::int64> (mLastGrainsAssigned))      << ","
-        << juce::String (mLastSynthMarkRangeStart) << ","
-        << juce::String (mLastSynthMarkRangeEnd)   << "\n";
+    if (needsHeader)
+        contents << "source_analysis_id,source_start,source_center,source_end,"
+                    "grain_id,start_sample,center_sample,end_sample,"
+                    "source_period,synthesis_period,duration_samples,window_alpha\n";
+
+    const int N = static_cast<int> (mLastSynthMarks.size());
+    for (int i = 0; i < N; ++i)
+    {
+        const auto& sm = mLastSynthMarks[static_cast<size_t> (i)];
+        if (! sm.isValid())
+            continue;
+
+        // Each unique source pitch-mark center gets a stable analysis id.
+        int analysisId;
+        auto it = mAnalysisIdByPitchCenter.find (sm.pitchMark);
+        if (it != mAnalysisIdByPitchCenter.end())
+        {
+            analysisId = it->second;
+        }
+        else
+        {
+            analysisId = mNextAnalysisId++;
+            mAnalysisIdByPitchCenter.emplace (sm.pitchMark, analysisId);
+        }
+
+        const juce::int64 sourcePeriod = sm.pitchRangeEnd - sm.pitchMark;
+
+        // synthesis_period = inter-mark hop in synth-time. Use forward delta when
+        // next mark exists in this batch; otherwise fall back to backward delta.
+        juce::int64 synthesisPeriod;
+        if (i + 1 < N)
+            synthesisPeriod = mLastSynthMarks[static_cast<size_t> (i + 1)].synthMark - sm.synthMark;
+        else if (i > 0)
+            synthesisPeriod = sm.synthMark - mLastSynthMarks[static_cast<size_t> (i - 1)].synthMark;
+        else
+            synthesisPeriod = sourcePeriod; // single-mark batch fallback
+
+        const juce::int64 duration = sm.synthRangeEnd - sm.synthRangeStart;
+
+        contents << analysisId           << ","
+                 << sm.pitchRangeStart   << ","
+                 << sm.pitchMark         << ","
+                 << sm.pitchRangeEnd     << ","
+                 << mNextGrainId++       << ","
+                 << sm.synthRangeStart   << ","
+                 << sm.synthMark         << ","
+                 << sm.synthRangeEnd     << ","
+                 << sourcePeriod         << ","
+                 << synthesisPeriod      << ","
+                 << duration             << ","
+                 << juce::String (mWindowAlpha, 2) << "\n";
+    }
 
     juce::FileOutputStream stream (file);
     if (! stream.openedOk())
         return false;
 
     stream.setPosition (stream.getFile().getSize());
-    stream.writeText (row, false, false, nullptr);
+    stream.writeText (contents, false, false, nullptr);
     return true;
 }
 

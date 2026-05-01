@@ -164,7 +164,7 @@ TEST_CASE("GrainShifterProcessor child loggers (PitchManager, Granulator) write 
 
     auto outputDir   = processor.getDataLogOutputDirectory();
     auto pitchCsv    = outputDir.getChildFile ("pitch_manager").getChildFile ("detect_log.csv");
-    auto granCsv     = outputDir.getChildFile ("granulator").getChildFile ("generate_grains_log.csv");
+    auto granCsv     = outputDir.getChildFile ("granulator").getChildFile ("synthesis_grains.csv");
 
     REQUIRE (pitchCsv.existsAsFile());
 
@@ -186,7 +186,7 @@ TEST_CASE("GrainShifterProcessor child loggers (PitchManager, Granulator) write 
     {
         auto granLines = juce::StringArray::fromLines (granCsv.loadFileAsString().trimEnd());
         REQUIRE (granLines.size() >= 2);
-        REQUIRE (granLines[0] == "input_synth_mark_count,grains_assigned,synth_mark_range_start,synth_mark_range_end");
+        REQUIRE (granLines[0] == "source_analysis_id,source_start,source_center,source_end,grain_id,start_sample,center_sample,end_sample,source_period,synthesis_period,duration_samples,window_alpha");
     }
 
     processor.stopLogging();

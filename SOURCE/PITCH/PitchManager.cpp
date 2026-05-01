@@ -76,37 +76,32 @@ float PitchManager::detect(CircularBuffer& circularBuffer, juce::int64 startAbsI
     const juce::int64 windowEnd = startAbsIndex + windowSize;
     const juce::Range<juce::int64> windowRange(startAbsIndex, windowEnd);
     const int maxIterations = static_cast<int>(windowSize / mCurrentPeriod) + 4;
+    int marksAdded = 0;
 
     for (int i = 0; i < maxIterations; ++i)
     {
-        const juce::int64 predicted = mPitchMarker->getPredictedNextMark();
-        if (predicted > 0 && predicted >= windowEnd)
-            break;
-
         const juce::int64 mark = mPitchMarker->doPitchMarking(circularBuffer, windowRange, mCurrentPeriod, windowEnd, true);
 
-        if (mark < 0 || mark >= windowEnd)
+        if (mark < 0)
             break;
+
+        ++marksAdded;
     }
 
-    // Generate synth marks using the shifted output period.
-    // Only feed pitch marks that fall within this detection window — the FIFO
-    // holds up to 32 historical marks, but synth-mark generation must be scoped
-    // to current window content.
+    // Generate synth marks using the shifted output period
     const float safeShift     = std::max(shiftRatio, 0.01f);
     const float shiftedPeriod = mCurrentPeriod / safeShift;
-    const auto windowPitchMarks = mPitchMarker->getPitchMarksInRange(windowRange);
-    mSynthMarker->generateSynthMarks(windowPitchMarks, shiftedPeriod, windowRange);
+    mSynthMarker->generateSynthMarks(mPitchMarker->getPitchMarks(), shiftedPeriod, windowRange);
 
     // Snapshot range info for data logging.
     mLastDetectStartAbs   = startAbsIndex;
     mLastDetectEndAbs     = windowEnd;
     mLastDetectWindowSize = windowSize;
     mLastDetectedPeriod   = mCurrentPeriod;
-    // FIFO-backed vectors have fixed .size() (capped at FIFO max), so report
-    // only the marks that fall within this detect() window.
-    mLastPitchMarkCount   = mPitchMarker->getPitchMarksInRange (windowRange).size();
-    mLastSynthMarkCount   = mSynthMarker->getSynthMarksInRange (windowRange).size();
+    // Report unclipped count: how many marks this detect() call actually generated,
+    // including ones whose center landed past windowEnd (matches reference TD-PSOLA).
+    mLastPitchMarkCount   = static_cast<size_t> (marksAdded);
+    mLastSynthMarkCount   = mSynthMarker->getSynthMarks().size();
 
     if (getIsLogging())
     {
