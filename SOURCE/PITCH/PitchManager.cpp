@@ -61,6 +61,22 @@ void PitchManager::reset()
 }
 
 //=======================================
+namespace
+{
+    void appendCsv (const juce::File& file, const juce::String& header, const juce::String& rows)
+    {
+        const bool needsHeader = ! file.existsAsFile();
+        juce::FileOutputStream stream (file);
+        if (! stream.openedOk())
+            return;
+        stream.setPosition (stream.getFile().getSize());
+        if (needsHeader)
+            stream.writeText (header, false, false, nullptr);
+        stream.writeText (rows, false, false, nullptr);
+    }
+}
+
+//=======================================
 float PitchManager::detect(CircularBuffer& circularBuffer, juce::int64 startAbsIndex, float shiftRatio)
 {
     const int wrappedStart = circularBuffer.getWrappedIndex(startAbsIndex);
@@ -68,44 +84,52 @@ float PitchManager::detect(CircularBuffer& circularBuffer, juce::int64 startAbsI
 
     mCurrentPeriod = mPitchDetector.process(mDetectionBuffer);
 
-    // if (mCurrentPeriod <= 0.0f)
-    //     return mCurrentPeriod;
-
-    // Generate pitch marks across this detection window
     const int windowSize = mDetectionWindowSize.get();
     const juce::int64 windowEnd = startAbsIndex + windowSize;
     const juce::Range<juce::int64> windowRange(startAbsIndex, windowEnd);
-    const int maxIterations = static_cast<int>(windowSize / mCurrentPeriod) + 4;
-    int marksAdded = 0;
 
-    for (int i = 0; i < maxIterations; ++i)
-    {
-        const juce::int64 mark = mPitchMarker->doPitchMarking(circularBuffer, windowRange, mCurrentPeriod, windowEnd, true);
-
-        if (mark < 0)
-            break;
-
-        ++marksAdded;
-    }
-
-    // Generate synth marks using the shifted output period
-    const float safeShift     = std::max(shiftRatio, 0.01f);
-    const float shiftedPeriod = mCurrentPeriod / safeShift;
-    mSynthMarker->generateSynthMarks(mPitchMarker->getPitchMarks(), shiftedPeriod, windowRange);
-
-    // Snapshot range info for data logging.
+    // ---- 1. Detect event ----
     mLastDetectStartAbs   = startAbsIndex;
     mLastDetectEndAbs     = windowEnd;
     mLastDetectWindowSize = windowSize;
     mLastDetectedPeriod   = mCurrentPeriod;
-    // Report unclipped count: how many marks this detect() call actually generated,
-    // including ones whose center landed past windowEnd (matches reference TD-PSOLA).
-    mLastPitchMarkCount   = static_cast<size_t> (marksAdded);
-    mLastSynthMarkCount   = mSynthMarker->getSynthMarks().size();
-
+    ++mLastDetectCallId;
     if (getIsLogging())
     {
-        mDetectLogPending = true;
+        mPendingLogEvent = LogEvent::kDetect;
+        logData();
+    }
+
+    // Generate pitch marks across this detection window.
+    const int maxIterations = static_cast<int>(windowSize / mCurrentPeriod) + 4;
+    mLastAnalysisMarks.clear();
+    for (int i = 0; i < maxIterations; ++i)
+    {
+        const juce::int64 mark = mPitchMarker->doPitchMarking(circularBuffer, windowRange, mCurrentPeriod, windowEnd, true);
+        if (mark < 0)
+            break;
+        mLastAnalysisMarks.emplace_back (mark, mCurrentPeriod);
+    }
+
+    // ---- 2. AnalysisMarks event ----
+    if (getIsLogging())
+    {
+        mPendingLogEvent = LogEvent::kAnalysisMarks;
+        logData();
+    }
+
+    // Generate synth marks using the shifted output period.
+    const float safeShift     = std::max(shiftRatio, 0.01f);
+    const float shiftedPeriod = mCurrentPeriod / safeShift;
+    mSynthMarker->generateSynthMarks(mPitchMarker->getPitchMarks(), shiftedPeriod, windowRange);
+
+    // Snapshot synth marks emitted this call (SynthMarker clears on each call).
+    mLastSynthesisMarks = mSynthMarker->getSynthMarks();
+
+    // ---- 3. SynthesisMarks event ----
+    if (getIsLogging())
+    {
+        mPendingLogEvent = LogEvent::kSynthesisMarks;
         logData();
     }
 
@@ -115,29 +139,69 @@ float PitchManager::detect(CircularBuffer& circularBuffer, juce::int64 startAbsI
 //=======================================
 bool PitchManager::doLogData()
 {
-    if (! mDetectLogPending)
-        return true;
-    mDetectLogPending = false;
+    const LogEvent ev = mPendingLogEvent;
+    mPendingLogEvent = LogEvent::kIdle;
 
-    auto file = getDataLogOutputDirectory().getChildFile ("detect_log.csv");
-    const bool needsHeader = ! file.existsAsFile();
+    switch (ev)
+    {
+        case LogEvent::kDetect:
+        {
+            auto file = getDataLogOutputDirectory().getChildFile ("detect_log.csv");
+            const juce::String header = "detect_call_id,start_abs,end_abs,window_size,period\n";
+            juce::String row;
+            row << juce::String (mLastDetectCallId)     << ","
+                << juce::String (mLastDetectStartAbs)   << ","
+                << juce::String (mLastDetectEndAbs)     << ","
+                << juce::String (mLastDetectWindowSize) << ","
+                << juce::String (mLastDetectedPeriod, 6) << "\n";
+            appendCsv (file, header, row);
+            return true;
+        }
 
-    juce::String row;
-    if (needsHeader)
-        row << "start_abs,end_abs,window_size,period,num_pitch_marks,num_synth_marks\n";
+        case LogEvent::kAnalysisMarks:
+        {
+            auto file = getDataLogOutputDirectory().getChildFile ("analysis_marks_log.csv");
+            const juce::String header = "detect_call_id,analysis_mark_id,range_start,mark,range_end,period\n";
+            juce::String rows;
+            rows.preallocateBytes (64 * mLastAnalysisMarks.size() + 64);
+            for (const auto& pm : mLastAnalysisMarks)
+            {
+                rows << juce::String (mLastDetectCallId)        << ","
+                     << juce::String (mNextAnalysisMarkId++)    << ","
+                     << juce::String (pm.rangeStart)            << ","
+                     << juce::String (pm.mark)                  << ","
+                     << juce::String (pm.rangeEnd)              << ","
+                     << juce::String (mLastDetectedPeriod, 6)   << "\n";
+            }
+            appendCsv (file, header, rows);
+            return true;
+        }
 
-    row << juce::String (mLastDetectStartAbs)   << ","
-        << juce::String (mLastDetectEndAbs)     << ","
-        << juce::String (mLastDetectWindowSize) << ","
-        << juce::String (mLastDetectedPeriod, 6) << ","
-        << juce::String (static_cast<juce::int64> (mLastPitchMarkCount)) << ","
-        << juce::String (static_cast<juce::int64> (mLastSynthMarkCount)) << "\n";
+        case LogEvent::kSynthesisMarks:
+        {
+            auto file = getDataLogOutputDirectory().getChildFile ("synthesis_marks_log.csv");
+            const juce::String header = "detect_call_id,synthesis_mark_id,synth_range_start,synth_mark,synth_range_end,source_range_start,source_pitch_mark,source_range_end\n";
+            juce::String rows;
+            rows.preallocateBytes (96 * mLastSynthesisMarks.size() + 96);
+            for (const auto& sm : mLastSynthesisMarks)
+            {
+                if (! sm.isValid())
+                    continue;
+                rows << juce::String (mLastDetectCallId)         << ","
+                     << juce::String (mNextSynthesisMarkId++)    << ","
+                     << juce::String (sm.synthRangeStart)        << ","
+                     << juce::String (sm.synthMark)              << ","
+                     << juce::String (sm.synthRangeEnd)          << ","
+                     << juce::String (sm.pitchRangeStart)        << ","
+                     << juce::String (sm.pitchMark)              << ","
+                     << juce::String (sm.pitchRangeEnd)          << "\n";
+            }
+            appendCsv (file, header, rows);
+            return true;
+        }
 
-    juce::FileOutputStream stream (file);
-    if (! stream.openedOk())
-        return false;
-
-    stream.setPosition (stream.getFile().getSize());
-    stream.writeText (row, false, false, nullptr);
-    return true;
+        case LogEvent::kIdle:
+        default:
+            return true; // parent cascade with no pending event — no-op
+    }
 }

@@ -170,14 +170,14 @@ TEST_CASE("GrainShifterProcessor child loggers (PitchManager, Granulator) write 
 
     auto pitchLines = juce::StringArray::fromLines (pitchCsv.loadFileAsString().trimEnd());
     REQUIRE (pitchLines.size() >= 2);
-    REQUIRE (pitchLines[0] == "start_abs,end_abs,window_size,period,num_pitch_marks,num_synth_marks");
+    REQUIRE (pitchLines[0] == "detect_call_id,start_abs,end_abs,window_size,period");
 
     // Verify first data row's start_abs/end_abs span equals window_size.
     auto firstRow = juce::StringArray::fromTokens (pitchLines[1], ",", "");
-    REQUIRE (firstRow.size() == 6);
-    const auto startAbs   = firstRow[0].getLargeIntValue();
-    const auto endAbs     = firstRow[1].getLargeIntValue();
-    const auto windowSize = firstRow[2].getIntValue();
+    REQUIRE (firstRow.size() == 5);
+    const auto startAbs   = firstRow[1].getLargeIntValue();
+    const auto endAbs     = firstRow[2].getLargeIntValue();
+    const auto windowSize = firstRow[3].getIntValue();
     REQUIRE (endAbs - startAbs == windowSize);
 
     // Granulator only logs when synth marks were present and the granulation

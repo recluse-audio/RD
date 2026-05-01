@@ -87,16 +87,18 @@ TEST_CASE("PitchManager appends detect_log.csv row per detect() call", "[PitchMa
 
         auto lines = juce::StringArray::fromLines (outputCsv.loadFileAsString().trimEnd());
         REQUIRE (lines.size() == numCalls + 1);
-        REQUIRE (lines[0] == "start_abs,end_abs,window_size,period,num_pitch_marks,num_synth_marks");
+        REQUIRE (lines[0] == "detect_call_id,start_abs,end_abs,window_size,period");
 
         for (int i = 0; i < numCalls; ++i)
         {
             auto cols = juce::StringArray::fromTokens (lines[i + 1], ",", "");
-            REQUIRE (cols.size() == 6);
-            const auto startAbs = cols[0].getLargeIntValue();
-            const auto endAbs   = cols[1].getLargeIntValue();
-            const auto winSize  = cols[2].getIntValue();
-            const auto period   = cols[3].getFloatValue();
+            REQUIRE (cols.size() == 5);
+            const auto callId   = cols[0].getLargeIntValue();
+            const auto startAbs = cols[1].getLargeIntValue();
+            const auto endAbs   = cols[2].getLargeIntValue();
+            const auto winSize  = cols[3].getIntValue();
+            const auto period   = cols[4].getFloatValue();
+            REQUIRE (callId == i + 1);
             REQUIRE (startAbs == startIndices[static_cast<size_t> (i)]);
             REQUIRE (endAbs - startAbs == winSize);
             REQUIRE (winSize == windowSize);
@@ -160,17 +162,17 @@ TEST_CASE("PitchManager logs every detection across Somewhere wav file", "[Pitch
 
     auto lines = juce::StringArray::fromLines (outputCsv.loadFileAsString().trimEnd());
     REQUIRE (lines.size() == expectedCalls + 1);
-    REQUIRE (lines[0] == "start_abs,end_abs,window_size,period,num_pitch_marks,num_synth_marks");
+    REQUIRE (lines[0] == "detect_call_id,start_abs,end_abs,window_size,period");
 
     int rowsWithDetectedPitch = 0;
     for (int i = 0; i < expectedCalls; ++i)
     {
         auto cols = juce::StringArray::fromTokens (lines[i + 1], ",", "");
-        REQUIRE (cols.size() == 6);
-        const auto startAbs = cols[0].getLargeIntValue();
-        const auto endAbs   = cols[1].getLargeIntValue();
-        const auto winSize  = cols[2].getIntValue();
-        const auto period   = cols[3].getFloatValue();
+        REQUIRE (cols.size() == 5);
+        const auto startAbs = cols[1].getLargeIntValue();
+        const auto endAbs   = cols[2].getLargeIntValue();
+        const auto winSize  = cols[3].getIntValue();
+        const auto period   = cols[4].getFloatValue();
         REQUIRE (startAbs == static_cast<juce::int64> (i) * hopSize);
         REQUIRE (winSize == windowSize);
         REQUIRE (endAbs - startAbs == winSize);
@@ -180,6 +182,19 @@ TEST_CASE("PitchManager logs every detection across Somewhere wav file", "[Pitch
 
     INFO ("Detected pitch on " << rowsWithDetectedPitch << "/" << expectedCalls << " windows");
     REQUIRE (rowsWithDetectedPitch > 0);
+
+    // Verify the two new per-mark CSVs also produced.
+    auto analysisCsv  = manager.getDataLogOutputDirectory().getChildFile ("analysis_marks_log.csv");
+    auto synthesisCsv = manager.getDataLogOutputDirectory().getChildFile ("synthesis_marks_log.csv");
+    REQUIRE (analysisCsv.existsAsFile());
+    REQUIRE (synthesisCsv.existsAsFile());
+
+    auto aLines = juce::StringArray::fromLines (analysisCsv.loadFileAsString().trimEnd());
+    auto sLines = juce::StringArray::fromLines (synthesisCsv.loadFileAsString().trimEnd());
+    REQUIRE (aLines.size() > 1);
+    REQUIRE (sLines.size() > 1);
+    REQUIRE (aLines[0] == "detect_call_id,analysis_mark_id,range_start,mark,range_end,period");
+    REQUIRE (sLines[0] == "detect_call_id,synthesis_mark_id,synth_range_start,synth_mark,synth_range_end,source_range_start,source_pitch_mark,source_range_end");
 
     manager.setIsLogging (false);
 }

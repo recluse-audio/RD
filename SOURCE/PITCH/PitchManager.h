@@ -45,9 +45,17 @@ public:
     PitchManager();
     ~PitchManager();
 
-    /** DataLogger override. Appends one row to detect_log.csv when a detect()
-     *  call has flagged a pending log; no-op otherwise (so parent cascade
-     *  invocations don't double-log). */
+    enum class LogEvent
+    {
+        kIdle,
+        kDetect,           // detect() entry: range + detected period
+        kAnalysisMarks,    // pitch marks generated this detect() call
+        kSynthesisMarks    // synth marks generated this detect() call
+    };
+
+    /** DataLogger override. Dispatches on mPendingLogEvent — writes to a
+     *  different CSV per event. No-op when called from parent cascade with
+     *  no pending event. */
     bool doLogData() override;
 
     /**
@@ -161,7 +169,13 @@ private:
     juce::int64 mLastDetectEndAbs    = 0;
     int         mLastDetectWindowSize = 0;
     float       mLastDetectedPeriod  = -1.f;
-    size_t      mLastPitchMarkCount  = 0;
-    size_t      mLastSynthMarkCount  = 0;
-    bool        mDetectLogPending    = false;
+
+    // Per-call snapshots for analysis / synthesis mark logging.
+    std::vector<PitchMark> mLastAnalysisMarks;
+    std::vector<SynthMark> mLastSynthesisMarks;
+    int mNextAnalysisMarkId = 0;
+    int mNextSynthesisMarkId = 0;
+    juce::int64 mLastDetectCallId = 0; // increments per detect() call
+
+    LogEvent mPendingLogEvent = LogEvent::kIdle;
 };
