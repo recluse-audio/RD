@@ -106,6 +106,14 @@ public:
     void startLogging();
     void stopLogging();
 
+    /** Per-processBlock CSV logging gate.
+     *  Independent of getIsLogging(): both must be true for input_samples.csv /
+     *  output_samples.csv to be appended each processBlock. prepareToPlay
+     *  logs and external createProcessorDataLogFile() are unaffected.
+     *  Setter cascades to RD_Processor children registered via DataLogger. */
+    bool getIsBlockLogging() const { return mIsBlockLogging; }
+    void setIsBlockLogging (bool shouldBlockLog);
+
     bool doLogData() override;
 
     // data logging specific to RD_Processor
@@ -125,6 +133,7 @@ protected:
 
     juce::AudioBuffer<float> mLogBuffer;
     juce::int64              mLogBlockStartIndex = 0;
+    bool                     mIsBlockLogging = true;
 
 private:
     static BusesProperties _getDefaultBusesProperties();

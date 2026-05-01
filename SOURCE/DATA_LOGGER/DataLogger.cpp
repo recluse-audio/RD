@@ -119,6 +119,11 @@ size_t DataLogger::getNumChildren() const
     return mChildren.size();
 }
 
+DataLogger* DataLogger::getChild (size_t index) const
+{
+    return index < mChildren.size() ? mChildren[index] : nullptr;
+}
+
 DataLogger* DataLogger::getParentLogger() const
 {
     return mParentLogger;

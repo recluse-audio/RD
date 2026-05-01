@@ -44,7 +44,7 @@ void RD_Processor::processBlock (juce::AudioBuffer<float>& buffer, juce::MidiBuf
 {
     mLogBlockStartIndex = mProcessSampleCount;
 
-    if (getIsLogging())
+    if (getIsLogging() && mIsBlockLogging)
     {
         mLogBuffer.makeCopyOf (buffer);
         _fireLifecycleLog (LifecycleState::kProcessBlockStart);
@@ -52,7 +52,7 @@ void RD_Processor::processBlock (juce::AudioBuffer<float>& buffer, juce::MidiBuf
 
     doProcessBlock (buffer, midiBuffer);
 
-    if (getIsLogging())
+    if (getIsLogging() && mIsBlockLogging)
     {
         mLogBuffer.makeCopyOf (buffer);
         _fireLifecycleLog (LifecycleState::kProcessBlockEnd);
@@ -158,6 +158,16 @@ void RD_Processor::startLogging()
 void RD_Processor::stopLogging()
 {
     setIsLogging (false);
+}
+
+void RD_Processor::setIsBlockLogging (bool shouldBlockLog)
+{
+    mIsBlockLogging = shouldBlockLog;
+
+    const size_t n = getNumChildren();
+    for (size_t i = 0; i < n; ++i)
+        if (auto* c = dynamic_cast<RD_Processor*> (getChild (i)))
+            c->setIsBlockLogging (shouldBlockLog);
 }
 
 bool RD_Processor::doLogData()

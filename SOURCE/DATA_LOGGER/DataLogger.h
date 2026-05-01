@@ -66,6 +66,7 @@ public:
     void addChild (DataLogger* child);
     void removeChild (DataLogger* child);
     size_t getNumChildren() const;
+    DataLogger* getChild (size_t index) const;
 
     DataLogger* getParentLogger() const;
 
