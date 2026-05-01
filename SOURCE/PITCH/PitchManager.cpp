@@ -89,18 +89,24 @@ float PitchManager::detect(CircularBuffer& circularBuffer, juce::int64 startAbsI
             break;
     }
 
-    // Generate synth marks using the shifted output period
+    // Generate synth marks using the shifted output period.
+    // Only feed pitch marks that fall within this detection window — the FIFO
+    // holds up to 32 historical marks, but synth-mark generation must be scoped
+    // to current window content.
     const float safeShift     = std::max(shiftRatio, 0.01f);
     const float shiftedPeriod = mCurrentPeriod / safeShift;
-    mSynthMarker->generateSynthMarks(mPitchMarker->getPitchMarks(), shiftedPeriod, windowRange);
+    const auto windowPitchMarks = mPitchMarker->getPitchMarksInRange(windowRange);
+    mSynthMarker->generateSynthMarks(windowPitchMarks, shiftedPeriod, windowRange);
 
     // Snapshot range info for data logging.
     mLastDetectStartAbs   = startAbsIndex;
     mLastDetectEndAbs     = windowEnd;
     mLastDetectWindowSize = windowSize;
     mLastDetectedPeriod   = mCurrentPeriod;
-    mLastPitchMarkCount   = mPitchMarker->getPitchMarks().size();
-    mLastSynthMarkCount   = mSynthMarker->getSynthMarks().size();
+    // FIFO-backed vectors have fixed .size() (capped at FIFO max), so report
+    // only the marks that fall within this detect() window.
+    mLastPitchMarkCount   = mPitchMarker->getPitchMarksInRange (windowRange).size();
+    mLastSynthMarkCount   = mSynthMarker->getSynthMarksInRange (windowRange).size();
 
     if (getIsLogging())
     {
