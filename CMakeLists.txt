@@ -223,6 +223,7 @@ if(BUILD_TESTS)
         target_compile_options(Tests PRIVATE
             /wd4244
             /FS
+            /bigobj
         )
     endif()
 

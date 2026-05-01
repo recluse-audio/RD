@@ -179,6 +179,83 @@ TEST_CASE("GainProcessor logs raw input and gain-scaled output rows across conse
     processor.stopLogging();
 }
 
+TEST_CASE("GainProcessor rotates samples CSV at max size byte limit", "[GainProcessor][DataLogger]")
+{
+    TestUtils::SetupAndTeardown setup;
+
+    juce::File rootDir = juce::File ("c:/REPOS/PLUGIN_PROJECTS/RD/TESTS/PROCESSORS/GAIN_PROCESSOR/OUTPUT/GainProcessor rotates samples CSV at max size byte limit")
+                             .getChildFile ("TEST_CASE_ROOT_DIR");
+    const juce::String outputName = "DATA_LOG_OUTPUT_DIR";
+
+    GainProcessor processor;
+    processor.setDataLogRootDirectory (rootDir);
+    processor.setDataLogOutputName    (outputName);
+
+    const size_t maxBytes   = 512;
+    const int    numChannels = 2;
+    const int    blockSize   = 64;
+    const int    numBlocks   = 12;
+
+    processor.setMaxCsvSizeBytes (maxBytes);
+    processor.startLogging();
+    processor.setGain (0.5f);
+
+    juce::AudioBuffer<float> buffer (numChannels, blockSize);
+    juce::MidiBuffer midi;
+
+    for (int b = 0; b < numBlocks; ++b)
+    {
+        BufferFiller::fillWithAllOnes (buffer);
+        processor.processBlock (buffer, midi);
+    }
+
+    auto outputDir = processor.getDataLogOutputDirectory();
+
+    auto collectRotated = [&] (const juce::String& stem)
+    {
+        std::vector<juce::File> files;
+        files.push_back (outputDir.getChildFile (stem + ".csv"));
+        for (int i = 1;; ++i)
+        {
+            auto f = outputDir.getChildFile (stem + "_" + juce::String (i) + ".csv");
+            if (! f.existsAsFile()) break;
+            files.push_back (f);
+        }
+        return files;
+    };
+
+    auto countLines = [] (const juce::File& f)
+    {
+        return juce::StringArray::fromLines (f.loadFileAsString().trimEnd()).size();
+    };
+
+    const int rowsPerBlock = 2 + numChannels;
+
+    for (const auto& stem : { juce::String ("input_samples"), juce::String ("output_samples") })
+    {
+        auto files = collectRotated (stem);
+        REQUIRE (files.size() >= 3);
+        REQUIRE (files[0].existsAsFile());
+
+        int totalRows = 0;
+        for (size_t i = 0; i < files.size(); ++i)
+        {
+            REQUIRE (files[i].existsAsFile());
+            totalRows += countLines (files[i]);
+            if (i + 1 < files.size())
+                REQUIRE (static_cast<size_t> (files[i].getSize()) >= maxBytes);
+        }
+        REQUIRE (totalRows == rowsPerBlock * numBlocks);
+    }
+
+    processor.stopLogging();
+
+    processor.startLogging();
+    REQUIRE_FALSE (outputDir.getChildFile ("input_samples_1.csv").existsAsFile());
+    REQUIRE_FALSE (outputDir.getChildFile ("output_samples_1.csv").existsAsFile());
+    processor.stopLogging();
+}
+
 TEST_CASE("GainProcessor prepareToPlay logs sampleRate and maxBlockSize", "[GainProcessor][DataLogger]")
 {
     TestUtils::SetupAndTeardown setup;

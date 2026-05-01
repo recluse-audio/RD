@@ -150,9 +150,17 @@ void RD_Processor::startLogging()
 {
     setIsLogging (true);
 
+    mInputCsvIndex  = 0;
+    mOutputCsvIndex = 0;
+
     auto dir = getDataLogOutputDirectory();
     if (dir.isDirectory())
         dir.deleteRecursively();
+}
+
+void RD_Processor::setMaxCsvSizeBytes (size_t maxBytes)
+{
+    mMaxCsvSizeBytes = maxBytes;
 }
 
 void RD_Processor::stopLogging()
@@ -218,7 +226,7 @@ bool RD_Processor::_logProcessBlockStart()
 {
     auto dir = getDataLogOutputDirectory();
     dir.createDirectory();
-    _appendBlockSamplesCsv (dir.getChildFile ("input_samples.csv"));
+    _appendBlockSamplesCsv (_resolveRotatedCsvFile (dir, "input_samples", mInputCsvIndex));
     return true;
 }
 
@@ -226,8 +234,32 @@ bool RD_Processor::_logProcessBlockEnd()
 {
     auto dir = getDataLogOutputDirectory();
     dir.createDirectory();
-    _appendBlockSamplesCsv (dir.getChildFile ("output_samples.csv"));
+    _appendBlockSamplesCsv (_resolveRotatedCsvFile (dir, "output_samples", mOutputCsvIndex));
     return true;
+}
+
+juce::File RD_Processor::_resolveRotatedCsvFile (const juce::File&   outputDir,
+                                                 const juce::String& baseStem,
+                                                 int&                fileIndex) const
+{
+    auto fileForIndex = [&] (int idx)
+    {
+        const auto name = idx == 0 ? baseStem + ".csv"
+                                   : baseStem + "_" + juce::String (idx) + ".csv";
+        return outputDir.getChildFile (name);
+    };
+
+    if (mMaxCsvSizeBytes == 0)
+        return fileForIndex (0);
+
+    auto candidate = fileForIndex (fileIndex);
+    if (candidate.existsAsFile()
+        && static_cast<size_t> (candidate.getSize()) >= mMaxCsvSizeBytes)
+    {
+        ++fileIndex;
+        candidate = fileForIndex (fileIndex);
+    }
+    return candidate;
 }
 
 

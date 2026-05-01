@@ -114,6 +114,15 @@ public:
     bool getIsBlockLogging() const { return mIsBlockLogging; }
     void setIsBlockLogging (bool shouldBlockLog);
 
+    /** Max bytes per input/output samples CSV before rolling over to a numbered
+     *  successor file. 0 = unlimited (default, single file with no suffix).
+     *  When > 0: base file keeps original name (input_samples.csv); on overflow
+     *  the next block writes to input_samples_1.csv, then _2.csv, etc.
+     *  Soft cap: a block that pushes the file past the limit still completes;
+     *  rotation triggers on the *next* block. Counter resets in startLogging(). */
+    void   setMaxCsvSizeBytes (size_t maxBytes);
+    size_t getMaxCsvSizeBytes() const { return mMaxCsvSizeBytes; }
+
     bool doLogData() override;
 
     // data logging specific to RD_Processor
@@ -135,6 +144,10 @@ protected:
     juce::int64              mLogBlockStartIndex = 0;
     bool                     mIsBlockLogging = true;
 
+    size_t                   mMaxCsvSizeBytes = 0;
+    int                      mInputCsvIndex   = 0;
+    int                      mOutputCsvIndex  = 0;
+
 private:
     static BusesProperties _getDefaultBusesProperties();
     static juce::AudioProcessorValueTreeState::ParameterLayout _createParameterLayout();
@@ -148,6 +161,9 @@ private:
 
     juce::File _writeProcessorStateXml (const juce::File& dir);
     void       _appendBlockSamplesCsv  (const juce::File& file);
+    juce::File _resolveRotatedCsvFile  (const juce::File&   outputDir,
+                                        const juce::String& baseStem,
+                                        int&                fileIndex) const;
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (RD_Processor)
 };
