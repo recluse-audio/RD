@@ -1,0 +1,4 @@
+start_abs,end_abs,window_size,period,num_pitch_marks,num_synth_marks
+0,2048,2048,221.000000,32,2
+2048,4096,2048,219.000000,32,9
+4096,6144,2048,219.000000,32,9

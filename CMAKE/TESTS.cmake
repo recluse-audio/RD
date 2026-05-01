@@ -2,6 +2,17 @@ set(TEST_SOURCES
     TESTS/BUFFER_FILLER/test_BufferFiller.cpp
     TESTS/BUFFER_FILLER/test_BufferFiller_WavFile.cpp
     TESTS/DATA_LOGGER/test_DataLogger.cpp
+    TESTS/GRANULATOR/test_Grain.cpp
+    TESTS/GRANULATOR/test_Granulator.cpp
+    TESTS/PITCH_MANAGER/test_FFT_PitchDetector.cpp
+    TESTS/PITCH_MANAGER/test_PitchDetection_Arpeggios.cpp
+    TESTS/PITCH_MANAGER/test_PitchDetection_Somewhere.cpp
+    TESTS/PITCH_MANAGER/test_PitchManager.cpp
+    TESTS/PITCH_MANAGER/test_PitchManager_DataLogger.cpp
+    TESTS/PITCH_MANAGER/test_PitchMarker.cpp
+    TESTS/PITCH_MANAGER/test_SynthMark.cpp
+    TESTS/PITCH_MANAGER/test_SynthMarker.cpp
+    TESTS/PITCH_MANAGER/test_YIN_PitchDetector.cpp
     TESTS/PROCESSORS/GAIN_PROCESSOR/test_GainProcessor.cpp
     TESTS/PROCESSORS/GAIN_PROCESSOR/test_GainProcessor_DataLogger.cpp
     TESTS/PROCESSORS/GRAIN_SHIFTER_PROCESSOR/test_GrainShifterProcessor.cpp
@@ -23,19 +34,9 @@ set(TEST_SOURCES
     TESTS/test_BufferRange.cpp
     TESTS/test_BufferWriter.cpp
     TESTS/test_CircularBuffer.cpp
-    TESTS/test_FFT_PitchDetector.cpp
     TESTS/test_Fade.cpp
-    TESTS/test_Grain.cpp
-    TESTS/test_Granulator.cpp
-    TESTS/test_PitchDetection_Arpeggios.cpp
-    TESTS/test_PitchDetection_Somewhere.cpp
-    TESTS/test_PitchManager.cpp
-    TESTS/test_PitchMarker.cpp
     TESTS/test_RelativeFilePath.cpp
-    TESTS/test_SynthMark.cpp
-    TESTS/test_SynthMarker.cpp
     TESTS/test_Windowing.cpp
-    TESTS/test_YIN_PitchDetector.cpp
     TESTS/test_main.cpp
     TESTS/tests_Interpolator.cpp
 )

@@ -27,7 +27,7 @@ void validateSynthMarksAgainstGolden(const std::vector<SynthMark>& synthMarks, f
     {
         goldenPath = goldenPath.substr(0, lastSlash + 1);
     }
-    goldenPath += "GOLDEN/PITCH/GOLDEN_Sine_Wave_PitchMarks_4096range_256period_64peak.csv";
+    goldenPath += "../GOLDEN/PITCH/GOLDEN_Sine_Wave_PitchMarks_4096range_256period_64peak.csv";
 
     std::ifstream file(goldenPath);
     INFO("Trying to open: " << goldenPath);
