@@ -109,7 +109,7 @@ Two ways `processor_state.xml` gets written:
 
 Lifecycle subdirs are materialized at `logData()` time. Callers should not pre-create them.
 
-`DataLogger` owns a non-owning child registry (`addChild` / `removeChild` / `getNumChildren`). When a parent's `logData()` fires, it cascades to registered children. If the parent's `mIsLogging` is false, `logData()` short-circuits and children are not visited.
+`DataLogger` owns a non-owning child registry (`addChild` / `removeChild` / `getNumChildren`). When a parent's `logData()` fires, it cascades to registered children. If the parent's `mIsLogging` is false, `logData()` short-circuits and children are not visited. `setIsLogging()` also cascades — flipping a parent's flag flips every registered child to match.
 
 Children also hold a non-owning back-pointer to their parent logger (`mParentLogger`, set by `addChild`, cleared by `removeChild`). The child's `getDataLogParentDirectory()` walks up to the parent's current `getDataLogOutputDirectory()` on every call, so child output always nests under the parent's current location and follows parent renames automatically:
 `child.getDataLogOutputDirectory() == parent.getDataLogOutputDirectory() / child.getDataLogOutputName()`.

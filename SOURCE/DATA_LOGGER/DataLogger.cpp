@@ -11,6 +11,10 @@ DataLogger::DataLogger()
 void DataLogger::setIsLogging (bool isLogging)
 {
     mIsLogging = isLogging;
+
+    for (auto* child : mChildren)
+        if (child != nullptr)
+            child->setIsLogging (isLogging);
 }
 
 bool DataLogger::getIsLogging() const

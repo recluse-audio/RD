@@ -52,6 +52,61 @@ TEST_CASE("DataLogger mIsLogging getter and setter", "[DataLogger]")
     }
 }
 
+TEST_CASE("DataLogger setIsLogging cascades to registered children", "[DataLogger]")
+{
+    DataLogger parent;
+    DataLogger childA;
+    DataLogger childB;
+    DataLogger grandchild;
+
+    parent.addChild (&childA);
+    parent.addChild (&childB);
+    childA.addChild (&grandchild);
+
+    REQUIRE_FALSE (parent    .getIsLogging());
+    REQUIRE_FALSE (childA    .getIsLogging());
+    REQUIRE_FALSE (childB    .getIsLogging());
+    REQUIRE_FALSE (grandchild.getIsLogging());
+
+    SECTION("setIsLogging(true) on parent flips every descendant")
+    {
+        parent.setIsLogging (true);
+        REQUIRE (parent    .getIsLogging());
+        REQUIRE (childA    .getIsLogging());
+        REQUIRE (childB    .getIsLogging());
+        REQUIRE (grandchild.getIsLogging());
+    }
+
+    SECTION("setIsLogging(false) on parent flips every descendant back")
+    {
+        parent.setIsLogging (true);
+        parent.setIsLogging (false);
+        REQUIRE_FALSE (parent    .getIsLogging());
+        REQUIRE_FALSE (childA    .getIsLogging());
+        REQUIRE_FALSE (childB    .getIsLogging());
+        REQUIRE_FALSE (grandchild.getIsLogging());
+    }
+
+    SECTION("setIsLogging on a child does not flip its parent or sibling")
+    {
+        childA.setIsLogging (true);
+        REQUIRE       (childA    .getIsLogging());
+        REQUIRE       (grandchild.getIsLogging());
+        REQUIRE_FALSE (parent    .getIsLogging());
+        REQUIRE_FALSE (childB    .getIsLogging());
+    }
+
+    SECTION("removed child no longer cascades")
+    {
+        parent.removeChild (&childA);
+        parent.setIsLogging (true);
+        REQUIRE       (parent    .getIsLogging());
+        REQUIRE       (childB    .getIsLogging());
+        REQUIRE_FALSE (childA    .getIsLogging());
+        REQUIRE_FALSE (grandchild.getIsLogging());
+    }
+}
+
 TEST_CASE("DataLogger root + name compose output directory", "[DataLogger]")
 {
     DataLogger logger;
