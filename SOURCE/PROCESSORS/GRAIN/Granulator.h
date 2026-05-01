@@ -13,6 +13,7 @@
 #include "PITCH/SynthMark.h"
 #include "Window.h"
 #include "CircularBuffer.h"
+#include "DATA_LOGGER/DataLogger.h"
 #include <vector>
 
 /**
@@ -30,11 +31,16 @@
  * 2. generateGrains() to assign new SynthMarks to available grains
  * 3. Access grains via getGrains() for synthesis processing
  */
-class Granulator
+class Granulator : public DataLogger
 {
 public:
     explicit Granulator(CircularBuffer& sourceBuffer);
     ~Granulator();
+
+    /** DataLogger override. Appends one row to generate_grains_log.csv when a
+     *  generateGrains() call has flagged a pending log; no-op otherwise (so
+     *  parent cascade invocations don't double-log). */
+    bool doLogData() override;
 
     /**
      * Prepare the granulator.
@@ -83,4 +89,11 @@ private:
     int                mMaxGrains        = 0;
     double             mSampleRate       = 44100.0;
     int                mNumChannels      = 2;
+
+    // Snapshot of last generateGrains() call for range-only logging.
+    size_t      mLastInputSynthMarkCount = 0;
+    size_t      mLastGrainsAssigned      = 0;
+    juce::int64 mLastSynthMarkRangeStart = -1;
+    juce::int64 mLastSynthMarkRangeEnd   = -1;
+    bool        mGenerateLogPending      = false;
 };

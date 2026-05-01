@@ -68,7 +68,8 @@ private:
     int                 mDetectionSampleCount = 0;
     juce::Atomic<float> mShiftRatio           { 1.0f };
     bool                mWasPlaying           = false;
-
+    float mLastDetectedPeriod = -1.f;
+    int mGranulationSampleCount = 0;
     bool _didTransportJustStop();
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (GrainShifterProcessor)

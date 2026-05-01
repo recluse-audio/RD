@@ -94,5 +94,49 @@ float PitchManager::detect(CircularBuffer& circularBuffer, juce::int64 startAbsI
     const float shiftedPeriod = mCurrentPeriod / safeShift;
     mSynthMarker->generateSynthMarks(mPitchMarker->getPitchMarks(), shiftedPeriod, windowRange);
 
+    // Snapshot range info for data logging.
+    mLastDetectStartAbs   = startAbsIndex;
+    mLastDetectEndAbs     = windowEnd;
+    mLastDetectWindowSize = windowSize;
+    mLastDetectedPeriod   = mCurrentPeriod;
+    mLastPitchMarkCount   = mPitchMarker->getPitchMarks().size();
+    mLastSynthMarkCount   = mSynthMarker->getSynthMarks().size();
+
+    if (getIsLogging())
+    {
+        mDetectLogPending = true;
+        logData();
+    }
+
     return mCurrentPeriod;
+}
+
+//=======================================
+bool PitchManager::doLogData()
+{
+    if (! mDetectLogPending)
+        return true;
+    mDetectLogPending = false;
+
+    auto file = getDataLogOutputDirectory().getChildFile ("detect_log.csv");
+    const bool needsHeader = ! file.existsAsFile();
+
+    juce::String row;
+    if (needsHeader)
+        row << "start_abs,end_abs,window_size,period,num_pitch_marks,num_synth_marks\n";
+
+    row << juce::String (mLastDetectStartAbs)   << ","
+        << juce::String (mLastDetectEndAbs)     << ","
+        << juce::String (mLastDetectWindowSize) << ","
+        << juce::String (mLastDetectedPeriod, 6) << ","
+        << juce::String (static_cast<juce::int64> (mLastPitchMarkCount)) << ","
+        << juce::String (static_cast<juce::int64> (mLastSynthMarkCount)) << "\n";
+
+    juce::FileOutputStream stream (file);
+    if (! stream.openedOk())
+        return false;
+
+    stream.setPosition (stream.getFile().getSize());
+    stream.writeText (row, false, false, nullptr);
+    return true;
 }

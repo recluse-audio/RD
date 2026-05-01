@@ -116,3 +116,78 @@ TEST_CASE("GrainShifterProcessor::createProcessorDataLogFile", "[GrainShifterPro
         processor.stopLogging();
     }
 }
+
+TEST_CASE("GrainShifterProcessor child loggers (PitchManager, Granulator) write range CSVs", "[GrainShifterProcessor][DataLogger]")
+{
+    TestUtils::SetupAndTeardown setup;
+
+    juce::File rootDir = juce::File (__FILE__).getParentDirectory()
+                                              .getChildFile ("OUTPUT")
+                                              .getChildFile ("GrainShifterProcessor child range CSVs")
+                                              .getChildFile ("TEST_CASE_ROOT_DIR");
+
+    const juce::String outputName = "DATA_LOG_OUTPUT_DIR";
+
+    GrainShifterProcessor processor;
+    processor.setDataLogRootDirectory (rootDir);
+    processor.setDataLogOutputName    (outputName);
+    processor.startLogging();
+    // Block-level CSVs aren't needed here and bloat the output dir; disable.
+    processor.setIsBlockLogging (false);
+
+    const double sampleRate = 48000.0;
+    const int    blockSize  = 1024;
+    const int    numChannels = 2;
+
+    processor.setPlayConfigDetails (numChannels, numChannels, sampleRate, blockSize);
+    processor.prepareToPlay (sampleRate, blockSize);
+
+    // Run enough blocks to exceed several detection windows (default 2048).
+    juce::AudioBuffer<float> buffer (numChannels, blockSize);
+    juce::MidiBuffer midi;
+
+    const int numBlocks = 8;
+    for (int b = 0; b < numBlocks; ++b)
+    {
+        // Fill with a 220 Hz sine so pitch detection has something coherent.
+        for (int ch = 0; ch < numChannels; ++ch)
+        {
+            auto* data = buffer.getWritePointer (ch);
+            for (int s = 0; s < blockSize; ++s)
+            {
+                const double t = static_cast<double> (b * blockSize + s) / sampleRate;
+                data[s] = 0.5f * std::sin (juce::MathConstants<double>::twoPi * 220.0 * t);
+            }
+        }
+        processor.processBlock (buffer, midi);
+    }
+
+    auto outputDir   = processor.getDataLogOutputDirectory();
+    auto pitchCsv    = outputDir.getChildFile ("pitch_manager").getChildFile ("detect_log.csv");
+    auto granCsv     = outputDir.getChildFile ("granulator").getChildFile ("generate_grains_log.csv");
+
+    REQUIRE (pitchCsv.existsAsFile());
+
+    auto pitchLines = juce::StringArray::fromLines (pitchCsv.loadFileAsString().trimEnd());
+    REQUIRE (pitchLines.size() >= 2);
+    REQUIRE (pitchLines[0] == "start_abs,end_abs,window_size,period,num_pitch_marks,num_synth_marks");
+
+    // Verify first data row's start_abs/end_abs span equals window_size.
+    auto firstRow = juce::StringArray::fromTokens (pitchLines[1], ",", "");
+    REQUIRE (firstRow.size() == 6);
+    const auto startAbs   = firstRow[0].getLargeIntValue();
+    const auto endAbs     = firstRow[1].getLargeIntValue();
+    const auto windowSize = firstRow[2].getIntValue();
+    REQUIRE (endAbs - startAbs == windowSize);
+
+    // Granulator only logs when synth marks were present and the granulation
+    // counter elapsed; over 8 blocks of clean sine that should fire at least once.
+    if (granCsv.existsAsFile())
+    {
+        auto granLines = juce::StringArray::fromLines (granCsv.loadFileAsString().trimEnd());
+        REQUIRE (granLines.size() >= 2);
+        REQUIRE (granLines[0] == "input_synth_mark_count,grains_assigned,synth_mark_range_start,synth_mark_range_end");
+    }
+
+    processor.stopLogging();
+}

@@ -9,7 +9,8 @@
       "Bash(grep -zv '\\\\.gitkeep$')",
       "Bash(xargs -0 git rm --cached --ignore-unmatch)",
       "Read(//c/Users/rdeve/.claude/skills/**)",
-      "Read(//c/Users/rdeve/.claude/plugins/**)"
+      "Read(//c/Users/rdeve/.claude/plugins/**)",
+      "PowerShell(Get-ChildItem -Path \"C:\\\\REPOS\\\\PLUGIN_PROJECTS\\\\RD\" -Recurse -Directory | Select-Object -First 20 | ForEach-Object { $_.FullName })"
     ]
   }
 }

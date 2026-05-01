@@ -50,10 +50,18 @@ GrainShifterProcessor::GrainShifterProcessor()
     mAPVTS.addParameterListener (GrainShifter::kThresholdID,       this);
     mAPVTS.addParameterListener (GrainShifter::kPitchWindowSizeID, this);
     mAPVTS.addParameterListener (GrainShifter::kPitchHopSizeID,    this);
+
+    mPitchManager.setDataLogOutputName ("pitch_manager");
+    mGranulator  .setDataLogOutputName ("granulator");
+    addChild (&mPitchManager);
+    addChild (&mGranulator);
 }
 
 GrainShifterProcessor::~GrainShifterProcessor()
 {
+    removeChild (&mPitchManager);
+    removeChild (&mGranulator);
+
     mAPVTS.removeParameterListener (GrainShifter::kShiftRatioID,      this);
     mAPVTS.removeParameterListener (GrainShifter::kThresholdID,       this);
     mAPVTS.removeParameterListener (GrainShifter::kPitchWindowSizeID, this);
@@ -128,21 +136,36 @@ void GrainShifterProcessor::doProcessBlock (juce::AudioBuffer<float>& buffer, ju
 
     const int currentHopSize    = mPitchManager.getHopSize();
     const int currentWindowSize = mPitchManager.getDetectionWindowSize();
+    const juce::int64 detectionWindowEnd   = blockEnd;
+    const juce::int64 detectionWindowStart = detectionWindowEnd - currentWindowSize;
+    std::vector<SynthMark> synthMarks;
 
     if (mDetectionSampleCount >= currentHopSize)
     {
-        const juce::int64 detectionWindowEnd   = blockEnd;
-        const juce::int64 detectionWindowStart = detectionWindowEnd - currentWindowSize;
+        mLastDetectedPeriod = mPitchManager.detect (mCircularBuffer, detectionWindowStart, mShiftRatio.get());
 
-        [[maybe_unused]] float detectedPeriod = mPitchManager.detect (mCircularBuffer, detectionWindowStart, mShiftRatio.get());
+        synthMarks = mPitchManager.getSynthMarksInRange (juce::Range<juce::int64> (detectionWindowStart, detectionWindowEnd));
 
-        auto synthMarks = mPitchManager.getSynthMarksInRange (juce::Range<juce::int64> (detectionWindowStart, detectionWindowEnd));
-
-        if (!synthMarks.empty())
-            mGranulator.generateGrains (synthMarks);
+        // if (!synthMarks.empty())
+        //     mGranulator.generateGrains (synthMarks);
 
         mDetectionSampleCount -= currentHopSize;
     }
+
+    // logic ot this temporary chunk is that we should not generate grains ever detection hop. We should generate grains when it is detected, and 
+    // finish reading/writing them, and generate new ones wehn the oold ones run out. Have to have overlap ofc.
+
+    if (!synthMarks.empty())
+    {
+        if(mGranulationSampleCount - numSamples <= 0) // going to run out this block
+        {
+            mGranulator.generateGrains(synthMarks);
+            mGranulationSampleCount = (int)(mPitchManager.getDetectionWindowSize() * 0.5f);
+        }
+
+    }
+
+    mGranulationSampleCount = mGranulationSampleCount - numSamples; // decrement the granulation counter.
 
     buffer.clear();
     mGranulator.process (buffer, blockStart, blockEnd);

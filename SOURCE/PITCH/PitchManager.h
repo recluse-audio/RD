@@ -14,6 +14,7 @@
 #include "../CircularBuffer.h"
 #include "PitchMarker.h"
 #include "SynthMarker.h"
+#include "DATA_LOGGER/DataLogger.h"
 
 
 namespace PitchManagerConstants
@@ -38,11 +39,16 @@ namespace PitchManagerConstants
  * 3. Query getCurrentPeriod() to get detected period
  * 4. Use getPitchMarker().doPitchMarking() to locate pitch marks in the circular buffer
  */
-class PitchManager
+class PitchManager : public DataLogger
 {
 public:
     PitchManager();
     ~PitchManager();
+
+    /** DataLogger override. Appends one row to detect_log.csv when a detect()
+     *  call has flagged a pending log; no-op otherwise (so parent cascade
+     *  invocations don't double-log). */
+    bool doLogData() override;
 
     /**
      * Prepare the pitch manager.
@@ -149,4 +155,13 @@ private:
     // State
     double mSampleRate = 44100.0;
     float mCurrentPeriod = -1.0f;
+
+    // Snapshot of last detect() call for range-only logging.
+    juce::int64 mLastDetectStartAbs  = 0;
+    juce::int64 mLastDetectEndAbs    = 0;
+    int         mLastDetectWindowSize = 0;
+    float       mLastDetectedPeriod  = -1.f;
+    size_t      mLastPitchMarkCount  = 0;
+    size_t      mLastSynthMarkCount  = 0;
+    bool        mDetectLogPending    = false;
 };
