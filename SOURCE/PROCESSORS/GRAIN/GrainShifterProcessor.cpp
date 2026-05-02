@@ -126,6 +126,8 @@ bool GrainShifterProcessor::_didTransportJustStop()
 void GrainShifterProcessor::doProcessBlock (juce::AudioBuffer<float>& buffer, juce::MidiBuffer&)
 {
     if (_didTransportJustStop())
+        mCircularBuffer.clear();
+
     {
         const int pendingWindow = mDetectionWindowSize.get();
         const int pendingHop    = mDetectionHopSize.get();

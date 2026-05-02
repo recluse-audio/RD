@@ -1,4 +1,0 @@
-detect_call_id,abs_process_count,read_start_abs_process_count,read_end_abs_process_count,window_size,period
-1,0,0,2048,2048,221.000000
-2,0,2048,4096,2048,219.000000
-3,0,4096,6144,2048,219.000000

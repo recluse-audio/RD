@@ -48,6 +48,75 @@ TEST_CASE("GrainShifterProcessor output is not silent after processing sine inpu
     REQUIRE(peakRMS > 0.0f);
 }
 
+TEST_CASE("GrainShifterProcessor defers window/hop changes to audio thread", "[GrainShifterProcessor]")
+{
+    TestUtils::SetupAndTeardown setup;
+
+    GrainShifterProcessor processor;
+
+    const double sampleRate  = 48000.0;
+    const int    blockSize   = 512;
+    const int    numChannels = 2;
+
+    processor.prepareToPlay(sampleRate, blockSize);
+
+    auto& pm = processor.getPitchManager();
+
+    const int initialWindow = pm.getDetectionWindowSize();
+    const int initialHop    = pm.getHopSize();
+
+    // Defaults from createParameterLayout: window idx 1 = 1024, hop idx 1 = 512.
+    CHECK(initialWindow == 1024);
+    CHECK(initialHop    == 512);
+
+    // Choice indices: window {512,1024,2048,4096,8192}, hop {256,512,1024,2048,4096}.
+    SECTION("window size change is staged on message thread, applied on audio thread")
+    {
+        // idx 2 -> 2048
+        processor.parameterChanged("pitch_window_size", 2.0f);
+
+        // Must not have touched the PitchManager from the listener call.
+        CHECK(pm.getDetectionWindowSize() == initialWindow);
+
+        juce::AudioBuffer<float> buffer(numChannels, blockSize);
+        juce::MidiBuffer midi;
+        processor.processBlock(buffer, midi);
+
+        CHECK(pm.getDetectionWindowSize() == 2048);
+    }
+
+    SECTION("hop size change is staged on message thread, applied on audio thread")
+    {
+        // idx 0 -> 256
+        processor.parameterChanged("pitch_hop_size", 0.0f);
+
+        CHECK(pm.getHopSize() == initialHop);
+
+        juce::AudioBuffer<float> buffer(numChannels, blockSize);
+        juce::MidiBuffer midi;
+        processor.processBlock(buffer, midi);
+
+        CHECK(pm.getHopSize() == 256);
+    }
+
+    SECTION("repeated changes coalesce — only final value is applied")
+    {
+        processor.parameterChanged("pitch_window_size", 0.0f); // 512
+        processor.parameterChanged("pitch_window_size", 3.0f); // 4096
+        processor.parameterChanged("pitch_window_size", 2.0f); // 2048
+
+        CHECK(pm.getDetectionWindowSize() == initialWindow);
+
+        juce::AudioBuffer<float> buffer(numChannels, blockSize);
+        juce::MidiBuffer midi;
+        processor.processBlock(buffer, midi);
+
+        CHECK(pm.getDetectionWindowSize() == 2048);
+    }
+
+    processor.releaseResources();
+}
+
 TEST_CASE("GrainShifterProcessor generates correct number of synth marks for given period and shift ratio", "[GrainShifterProcessor]")
 {
     TestUtils::SetupAndTeardown setup;
@@ -57,12 +126,13 @@ TEST_CASE("GrainShifterProcessor generates correct number of synth marks for giv
     const double sampleRate          = 44100.0;
     const int    blockSize           = 512;
     const int    numChannels         = 2;
-    const int    sinePeriod          = 100;  // ~441 Hz
-    const int    detectionWindowSize = 2048;
+    const int    sinePeriod          = 50;  //
     const float  shiftRatio          = 1.0f;
 
     processor.prepareToPlay(sampleRate, blockSize);
 
+    const int detectionWindowSize = processor.getPitchManager().getDetectionWindowSize();
+    const int hopSize             = processor.getPitchManager().getHopSize();
     const int blocksToTriggerDetection = (detectionWindowSize / blockSize) + 1;
     const int numBlocks = blocksToTriggerDetection + 5;
 
@@ -89,8 +159,10 @@ TEST_CASE("GrainShifterProcessor generates correct number of synth marks for giv
     REQUIRE(detectedPeriod > 0.0f);
     REQUIRE(std::abs(detectedPeriod - expectedPeriod) < periodTolerance);
 
+    // SynthMarker clears its mark list at the start of each generateSynthMarks() call,
+    // so only marks emitted during the last detect (covering hopSize samples) remain.
     const float shiftedPeriod           = detectedPeriod / shiftRatio;
-    const int   approximateExpectedMarks = static_cast<int>(detectionWindowSize / shiftedPeriod);
+    const int   approximateExpectedMarks = static_cast<int>(hopSize / shiftedPeriod);
     const int   actualSynthMarks         = static_cast<int>(synthMarks.size());
 
     INFO("Approximate expected synth marks: " << approximateExpectedMarks);
@@ -112,7 +184,6 @@ TEST_CASE("GrainShifterProcessor generates correct number of synth marks with pi
     const int    blockSize           = 512;
     const int    numChannels         = 2;
     const int    sinePeriod          = 100;
-    const int    detectionWindowSize = 2048;
     const float  shiftRatio          = 0.5f;  // pitch down by octave
 
     processor.prepareToPlay(sampleRate, blockSize);
@@ -122,6 +193,8 @@ TEST_CASE("GrainShifterProcessor generates correct number of synth marks with pi
     REQUIRE(shiftParam != nullptr);
     shiftParam->setValueNotifyingHost(shiftParam->convertTo0to1(shiftRatio));
 
+    const int detectionWindowSize = processor.getPitchManager().getDetectionWindowSize();
+    const int hopSize             = processor.getPitchManager().getHopSize();
     const int blocksToTriggerDetection = (detectionWindowSize / blockSize) + 1;
     const int numBlocks = blocksToTriggerDetection + 5;
 
@@ -145,9 +218,10 @@ TEST_CASE("GrainShifterProcessor generates correct number of synth marks with pi
     REQUIRE(detectedPeriod > 0.0f);
     REQUIRE(std::abs(detectedPeriod - expectedPeriod) < periodTolerance);
 
-    // With shiftRatio = 0.5, shiftedPeriod = period / 0.5 = period * 2 → fewer marks
+    // With shiftRatio = 0.5, shiftedPeriod = period / 0.5 = period * 2 → fewer marks.
+    // SynthMarker clears on each call, so only the last hopSize-worth of marks remain.
     const float shiftedPeriod           = detectedPeriod / shiftRatio;
-    const int   approximateExpectedMarks = static_cast<int>(detectionWindowSize / shiftedPeriod);
+    const int   approximateExpectedMarks = static_cast<int>(hopSize / shiftedPeriod);
     const int   actualSynthMarks         = static_cast<int>(synthMarks.size());
 
     REQUIRE(actualSynthMarks >= approximateExpectedMarks - 2);

@@ -32,6 +32,9 @@ void PitchManager::prepare(double sampleRate, int numChannels, int detectionWind
     mDetectionBuffer.clear();
     mDetectionBuffer.setSize(numChannels, detectionWindowSize, false, false, true);
 
+    // Re-run window-size logic so detector frequency range matches the initial window.
+    setDetectionWindowSize(detectionWindowSize);
+
     reset();
 }
 
@@ -43,6 +46,18 @@ void PitchManager::setDetectionWindowSize(int newSize)
     const int numChannels = mDetectionBuffer.getNumChannels();
     if (numChannels > 0)
         mDetectionBuffer.setSize(numChannels, newSize, false, false, true);
+
+    // Detector requires numSamples >= 2 * maxPeriod, where maxPeriod = sampleRate / minHz.
+    // Raise minHz when the window shrinks so the constraint stays satisfied.
+    // 2.2 factor gives a small margin over the strict 2.0 ratio.
+    if (mSampleRate > 0.0)
+    {
+        const float requiredMinHz = static_cast<float>(2.2 * mSampleRate / newSize);
+        const float effectiveMinHz = juce::jmax (FFT_PitchDetectorConstants::kDefaultMinHz, requiredMinHz);
+        const float effectiveMaxHz = juce::jmax (effectiveMinHz + 1.0f,
+                                                 FFT_PitchDetectorConstants::kDefaultMaxHz);
+        mPitchDetector.setFrequencyRange (effectiveMinHz, effectiveMaxHz);
+    }
 }
 
 void PitchManager::setHopSize(int newSize)
