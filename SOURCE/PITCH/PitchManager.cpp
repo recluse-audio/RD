@@ -73,6 +73,35 @@ void PitchManager::reset()
     mDetectionBuffer.clear();
     mPitchMarker->reset();
     mSynthMarker->reset();
+    mPeriodHistory.fill(-1.0f);
+    mPeriodHistoryIndex = 0;
+}
+
+//=======================================
+float PitchManager::_smoothPeriod(float rawPeriod)
+{
+    // Voiced -> unvoiced: do not smooth across the boundary; flush the ring.
+    if (rawPeriod <= 0.0f)
+    {
+        mPeriodHistory.fill(-1.0f);
+        mPeriodHistoryIndex = 0;
+        return -1.0f;
+    }
+
+    mPeriodHistory[mPeriodHistoryIndex] = rawPeriod;
+    mPeriodHistoryIndex = (mPeriodHistoryIndex + 1) % static_cast<int>(mPeriodHistory.size());
+
+    std::array<float, 3> valid {};
+    int validCount = 0;
+    for (float p : mPeriodHistory)
+        if (p > 0.0f)
+            valid[validCount++] = p;
+
+    if (validCount < 3)
+        return rawPeriod;
+
+    std::sort(valid.begin(), valid.begin() + validCount);
+    return valid[validCount / 2];
 }
 
 //=======================================
@@ -97,7 +126,8 @@ float PitchManager::detect(CircularBuffer& circularBuffer, juce::int64 startAbsI
     const int wrappedStart = circularBuffer.getWrappedIndex(startAbsIndex);
     circularBuffer.readRange(mDetectionBuffer, wrappedStart);
 
-    mCurrentPeriod = mPitchDetector.process(mDetectionBuffer);
+    const float rawPeriod = mPitchDetector.process(mDetectionBuffer);
+    mCurrentPeriod = _smoothPeriod(rawPeriod);
 
     const int windowSize = mDetectionWindowSize.get();
     const juce::int64 windowEnd = startAbsIndex + windowSize;
@@ -113,6 +143,22 @@ float PitchManager::detect(CircularBuffer& circularBuffer, juce::int64 startAbsI
     {
         mPendingLogEvent = LogEvent::kDetect;
         logData();
+    }
+
+    // No valid pitch this hop — skip mark generation. Callers must treat -1 as
+    // "hold prior state". Downstream divides depend on a positive period.
+    if (mCurrentPeriod <= 0.0f)
+    {
+        mLastAnalysisMarks.clear();
+        mLastSynthesisMarks.clear();
+        if (getIsLogging())
+        {
+            mPendingLogEvent = LogEvent::kAnalysisMarks;
+            logData();
+            mPendingLogEvent = LogEvent::kSynthesisMarks;
+            logData();
+        }
+        return mCurrentPeriod;
     }
 
     // Generate pitch marks across this detection window.

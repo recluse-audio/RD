@@ -7,6 +7,7 @@
  */
 
 #pragma once
+#include <array>
 #include <vector>
 
 #include "Util/Juce_Header.h"
@@ -178,4 +179,10 @@ private:
     juce::int64 mLastDetectCallId = 0; // increments per detect() call
 
     LogEvent mPendingLogEvent = LogEvent::kIdle;
+
+    // Median-of-3 smoothing ring (-1 entries are ignored when computing median).
+    std::array<float, 3> mPeriodHistory { -1.0f, -1.0f, -1.0f };
+    int                  mPeriodHistoryIndex = 0;
+
+    float _smoothPeriod(float rawPeriod);
 };

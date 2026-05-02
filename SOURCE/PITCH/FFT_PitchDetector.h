@@ -73,6 +73,7 @@ private:
     float  mThreshold     = FFT_PitchDetectorConstants::kDefaultThreshold;
     int    mMinPeriod     = 0;
     int    mMaxPeriod     = 0;
+    float  mLastValidPeriod = -1.0f;
 
     std::unique_ptr<juce::dsp::FFT> mFFT;
     juce::AudioBuffer<float>        mFFTBuffer;

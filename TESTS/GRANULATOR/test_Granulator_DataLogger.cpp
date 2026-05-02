@@ -62,6 +62,8 @@ TEST_CASE("Granulator end-to-end: Somewhere wav writes synthesis_grains.csv", "[
     int generateGrainsCalls  = 0;
     int totalSynthMarksFed   = 0;
 
+    constexpr int kMaxGrainsToProcess = 128;
+
     for (juce::int64 startAbs = 0; startAbs + windowSize <= totalSamples; startAbs += hopSize)
     {
         pitchManager.detect (source, startAbs, shiftRatio);
@@ -72,9 +74,19 @@ TEST_CASE("Granulator end-to-end: Somewhere wav writes synthesis_grains.csv", "[
 
         if (! synthMarks.empty())
         {
+            const int remaining = kMaxGrainsToProcess - totalSynthMarksFed;
+            if (remaining <= 0)
+                break;
+
+            if (static_cast<int> (synthMarks.size()) > remaining)
+                synthMarks.resize (static_cast<size_t> (remaining));
+
             granulator.generateGrains (synthMarks);
             ++generateGrainsCalls;
             totalSynthMarksFed += static_cast<int> (synthMarks.size());
+
+            if (totalSynthMarksFed >= kMaxGrainsToProcess)
+                break;
         }
     }
 

@@ -52,7 +52,8 @@ float FFT_PitchDetector::process(const juce::AudioBuffer<float>& buffer)
     // letting an out-of-range spurious peak drive synthesis.
     if (numSamples < 2 * mMaxPeriod)
     {
-        mCurrentPeriod = -1.0f;
+        mCurrentPeriod   = -1.0f;
+        mLastValidPeriod = -1.0f;
         return mCurrentPeriod;
     }
 
@@ -96,13 +97,27 @@ float FFT_PitchDetector::process(const juce::AudioBuffer<float>& buffer)
     // Inverse FFT to get autocorrelation
     mFFT->performRealOnlyInverseTransform(fftData);
 
-    // Find peak in autocorrelation within period range
-    int peakIndex   = mMinPeriod;
+    // Lag-0 autocorrelation = signal energy (post DC removal). Used to normalize
+    // the peak value into a confidence score in [0, 1] range.
+    const float referenceEnergy = fftData[0];
+    const float kEnergyEpsilon  = 1.0e-12f;
+
+    if (referenceEnergy < kEnergyEpsilon)
+    {
+        mCurrentPeriod    = -1.0f;
+        mLastValidPeriod  = -1.0f;
+        return mCurrentPeriod;
+    }
+
+    const int searchEnd = std::min(mMaxPeriod, fftSize / 2);
+
+    // Find raw peak in autocorrelation within period range
+    int   peakIndex = mMinPeriod;
     float peakValue = fftData[mMinPeriod];
 
-    for (int i = mMinPeriod + 1; i < std::min(mMaxPeriod, fftSize / 2); i++)
+    for (int i = mMinPeriod + 1; i < searchEnd; i++)
     {
-        float value = fftData[i];
+        const float value = fftData[i];
         if (value > peakValue)
         {
             peakValue = value;
@@ -110,6 +125,79 @@ float FFT_PitchDetector::process(const juce::AudioBuffer<float>& buffer)
         }
     }
 
-    mCurrentPeriod = static_cast<float>(peakIndex);
+    // Confidence gate: reject when the autocorr peak is small relative to signal
+    // energy — this is the unvoiced / silence rejection.
+    const float normalizedPeak = peakValue / referenceEnergy;
+    if (normalizedPeak < mThreshold)
+    {
+        mCurrentPeriod   = -1.0f;
+        mLastValidPeriod = -1.0f;
+        return mCurrentPeriod;
+    }
+
+    // Octave-error correction: when previous detection is valid, score the raw
+    // peak against octave-related candidates (prev, 2*prev, prev/2) with a
+    // continuity weight. Protects steady pitch from harmonic flips while still
+    // allowing real pitch changes when the raw peak strongly dominates.
+    int chosenIndex = peakIndex;
+
+    if (mLastValidPeriod > 0.0f)
+    {
+        const int prev = static_cast<int>(mLastValidPeriod + 0.5f);
+
+        auto inRange = [&] (int lag)
+        {
+            return lag >= mMinPeriod && lag < searchEnd;
+        };
+
+        struct Candidate { int lag; float weight; };
+        const Candidate candidates[] = {
+            { prev,         1.00f },
+            { 2 * prev,     0.85f },
+            { prev / 2,     0.85f }
+        };
+
+        int   bestLag   = peakIndex;
+        float bestScore = peakValue * 0.70f; // raw peak weight when outside family
+
+        for (const auto& c : candidates)
+        {
+            if (! inRange(c.lag))
+                continue;
+            const float score = fftData[c.lag] * c.weight;
+            if (score > bestScore)
+            {
+                bestScore = score;
+                bestLag   = c.lag;
+            }
+        }
+
+        // If the raw peak is more than one octave away from prev AND does not
+        // dominate continuity candidates by >2x, defer to the continuity pick.
+        const float ratio = static_cast<float>(peakIndex) / static_cast<float>(prev);
+        const bool  octaveJump = std::fabs(std::log2(ratio)) > 1.0f;
+
+        if (octaveJump)
+        {
+            float bestContinuity = 0.0f;
+            for (const auto& c : candidates)
+            {
+                if (! inRange(c.lag))
+                    continue;
+                bestContinuity = std::max(bestContinuity, fftData[c.lag]);
+            }
+            if (peakValue < 2.0f * bestContinuity)
+                chosenIndex = bestLag;
+            else
+                chosenIndex = peakIndex;
+        }
+        else
+        {
+            chosenIndex = bestLag;
+        }
+    }
+
+    mCurrentPeriod   = static_cast<float>(chosenIndex);
+    mLastValidPeriod = mCurrentPeriod;
     return mCurrentPeriod;
 }
