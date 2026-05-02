@@ -99,5 +99,5 @@ private:
     int mNextGrainId    = 0;
     int mNextAnalysisId = 0;
     std::unordered_map<juce::int64, int> mAnalysisIdByPitchCenter;
-    float mWindowAlpha = 0.5f; // Tukey alpha currently configured (BufferFiller default).
+    float mWindowAlpha = 0.8f; // Tukey alpha currently configured.
 };

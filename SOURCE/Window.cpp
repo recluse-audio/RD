@@ -71,7 +71,7 @@ void Window::_update()
     if(mCurrentShape == Window::Shape::kHanning)
         BufferFiller::generateHanning(mBuffer);
     else if(mCurrentShape == Window::Shape::kTukey)
-        BufferFiller::generateTukey(mBuffer);
+        BufferFiller::generateTukey(mBuffer, 0.8f);
     else if(mCurrentShape == Window::Shape::kNone)
         BufferFiller::fillWithAllOnes(mBuffer);
 }
