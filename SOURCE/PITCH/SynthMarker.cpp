@@ -32,6 +32,10 @@ void SynthMarker::generateSynthMarks(const std::vector<PitchMark>& pitchMarks, f
     if (pitchMarks.empty() || absSampleRange.isEmpty())
         return;
 
+    // Guard against non-positive period — would cause infinite loop below.
+    if (! (shiftedPeriod > 0.0f))
+        return;
+
     juce::int64 currentSynthPos;
 
     // Determine starting position

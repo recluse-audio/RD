@@ -14,7 +14,7 @@ namespace FFT_PitchDetectorConstants
 {
     static constexpr float kDefaultMinHz       = 80.0f;    // ~E2
     static constexpr float kDefaultMaxHz       = 1000.0f;  // ~B5 (covers full vocal and most instrumental range)
-    static constexpr float kDefaultThreshold   = 0.1f;     // normalized autocorrelation minimum
+    static constexpr float kDefaultThreshold   = 0.15f;    // normalized autocorrelation minimum
 }
 
 /**

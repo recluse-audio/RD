@@ -49,6 +49,7 @@ public:
 
     juce::int64 getAbsoluteSampleCount() const { return mAbsoluteSampleCount; }
     float       getShiftRatio()          const { return mShiftRatio.get(); }
+    bool        isTransportPlaying()     const { return mWasPlaying.load (std::memory_order_relaxed); }
 
     juce::AudioProcessorValueTreeState& getAPVTS() override { return mAPVTS; }
 
@@ -67,7 +68,9 @@ private:
     juce::int64         mAbsoluteSampleCount  = 0;
     int                 mDetectionSampleCount = 0;
     juce::Atomic<float> mShiftRatio           { 1.0f };
-    bool                mWasPlaying           = false;
+    juce::Atomic<int>   mDetectionWindowSize  { 1024 };
+    juce::Atomic<int>   mDetectionHopSize     { 512 };
+    std::atomic<bool>   mWasPlaying           { false };
     float mLastDetectedPeriod = -1.f;
     int mGranulationSampleCount = 0;
     bool _didTransportJustStop();
