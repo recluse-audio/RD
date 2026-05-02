@@ -89,10 +89,10 @@ float PitchManager::detect(CircularBuffer& circularBuffer, juce::int64 startAbsI
     const juce::Range<juce::int64> windowRange(startAbsIndex, windowEnd);
 
     // ---- 1. Detect event ----
-    mLastDetectStartAbs   = startAbsIndex;
-    mLastDetectEndAbs     = windowEnd;
-    mLastDetectWindowSize = windowSize;
-    mLastDetectedPeriod   = mCurrentPeriod;
+    mLastDetectStartAbs        = startAbsIndex;
+    mLastDetectEndAbs          = windowEnd;
+    mLastDetectWindowSize      = windowSize;
+    mLastDetectedPeriod        = mCurrentPeriod;
     ++mLastDetectCallId;
     if (getIsLogging())
     {
@@ -147,13 +147,13 @@ bool PitchManager::doLogData()
         case LogEvent::kDetect:
         {
             auto file = getDataLogOutputDirectory().getChildFile ("detect_log.csv");
-            const juce::String header = "detect_call_id,start_abs,end_abs,window_size,period\n";
+            const juce::String header = "detect_call_id,read_start_abs_process_count,read_end_abs_process_count,window_size,period\n";
             juce::String row;
-            row << juce::String (mLastDetectCallId)     << ","
-                << juce::String (mLastDetectStartAbs)   << ","
-                << juce::String (mLastDetectEndAbs)     << ","
-                << juce::String (mLastDetectWindowSize) << ","
-                << juce::String (mLastDetectedPeriod, 6) << "\n";
+            row << juce::String (mLastDetectCallId)            << ","
+                << juce::String (mLastDetectStartAbs)          << ","
+                << juce::String (mLastDetectEndAbs)            << ","
+                << juce::String (mLastDetectWindowSize)        << ","
+                << juce::String (mLastDetectedPeriod, 6)       << "\n";
             appendCsv (file, header, row);
             return true;
         }

@@ -165,10 +165,10 @@ private:
     float mCurrentPeriod = -1.0f;
 
     // Snapshot of last detect() call for range-only logging.
-    juce::int64 mLastDetectStartAbs  = 0;
-    juce::int64 mLastDetectEndAbs    = 0;
-    int         mLastDetectWindowSize = 0;
-    float       mLastDetectedPeriod  = -1.f;
+    juce::int64 mLastDetectStartAbs        = 0;
+    juce::int64 mLastDetectEndAbs          = 0;
+    int         mLastDetectWindowSize      = 0;
+    float       mLastDetectedPeriod        = -1.f;
 
     // Per-call snapshots for analysis / synthesis mark logging.
     std::vector<PitchMark> mLastAnalysisMarks;

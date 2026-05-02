@@ -170,9 +170,9 @@ TEST_CASE("GrainShifterProcessor child loggers (PitchManager, Granulator) write 
 
     auto pitchLines = juce::StringArray::fromLines (pitchCsv.loadFileAsString().trimEnd());
     REQUIRE (pitchLines.size() >= 2);
-    REQUIRE (pitchLines[0] == "detect_call_id,start_abs,end_abs,window_size,period");
+    REQUIRE (pitchLines[0] == "detect_call_id,read_start_abs_process_count,read_end_abs_process_count,window_size,period");
 
-    // Verify first data row's start_abs/end_abs span equals window_size.
+    // Verify first data row's read_start/read_end span equals window_size.
     auto firstRow = juce::StringArray::fromTokens (pitchLines[1], ",", "");
     REQUIRE (firstRow.size() == 5);
     const auto startAbs   = firstRow[1].getLargeIntValue();

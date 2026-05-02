@@ -87,7 +87,7 @@ TEST_CASE("PitchManager appends detect_log.csv row per detect() call", "[PitchMa
 
         auto lines = juce::StringArray::fromLines (outputCsv.loadFileAsString().trimEnd());
         REQUIRE (lines.size() == numCalls + 1);
-        REQUIRE (lines[0] == "detect_call_id,start_abs,end_abs,window_size,period");
+        REQUIRE (lines[0] == "detect_call_id,read_start_abs_process_count,read_end_abs_process_count,window_size,period");
 
         for (int i = 0; i < numCalls; ++i)
         {
@@ -162,7 +162,7 @@ TEST_CASE("PitchManager logs every detection across Somewhere wav file", "[Pitch
 
     auto lines = juce::StringArray::fromLines (outputCsv.loadFileAsString().trimEnd());
     REQUIRE (lines.size() == expectedCalls + 1);
-    REQUIRE (lines[0] == "detect_call_id,start_abs,end_abs,window_size,period");
+    REQUIRE (lines[0] == "detect_call_id,read_start_abs_process_count,read_end_abs_process_count,window_size,period");
 
     int rowsWithDetectedPitch = 0;
     for (int i = 0; i < expectedCalls; ++i)
