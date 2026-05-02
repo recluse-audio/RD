@@ -105,9 +105,15 @@ float PitchManager::detect(CircularBuffer& circularBuffer, juce::int64 startAbsI
     mLastAnalysisMarks.clear();
     for (int i = 0; i < maxIterations; ++i)
     {
-        const juce::int64 mark = mPitchMarker->doPitchMarking(circularBuffer, windowRange, mCurrentPeriod, windowEnd, true);
-        if (mark < 0)
+        const juce::int64 predicted = mPitchMarker->getPredictedNextMark();
+        if (predicted > 0 && predicted >= windowEnd)
             break;
+
+        const juce::int64 mark = mPitchMarker->doPitchMarking(circularBuffer, windowRange, mCurrentPeriod, windowEnd, true);
+
+        if (mark < 0 || mark >= windowEnd)
+            break;
+
         mLastAnalysisMarks.emplace_back (mark, mCurrentPeriod);
     }
 
