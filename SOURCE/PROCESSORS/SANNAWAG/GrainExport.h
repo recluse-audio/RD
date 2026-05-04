@@ -74,7 +74,7 @@ inline bool exportGrainsToCSV(const GrainData& grainData, const juce::String& ou
         return false;
 
     // Write CSV header
-    csvStream << "source_analysis_id,source_start,source_center,source_end,";
+    csvStream << "pitch_mark_id,source_start,source_center,source_end,";
     csvStream << "grain_id,start_sample,center_sample,end_sample,";
     csvStream << "source_period,synthesis_period,duration_samples,window_alpha\n";
 

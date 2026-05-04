@@ -62,31 +62,22 @@ TEST_CASE("Granulator end-to-end: Somewhere wav writes synthesis_grains.csv", "[
     int generateGrainsCalls  = 0;
     int totalSynthMarksFed   = 0;
 
-    constexpr int kMaxGrainsToProcess = 128;
+    juce::int64 lastWindowStart = 0;
 
     for (juce::int64 startAbs = 0; startAbs + windowSize <= totalSamples; startAbs += hopSize)
     {
         pitchManager.detect (source, startAbs, shiftRatio);
         ++detectCalls;
+        lastWindowStart = startAbs;
 
         const juce::Range<juce::int64> windowRange (startAbs, startAbs + windowSize);
         auto synthMarks = pitchManager.getSynthMarksInRange (windowRange);
 
         if (! synthMarks.empty())
         {
-            const int remaining = kMaxGrainsToProcess - totalSynthMarksFed;
-            if (remaining <= 0)
-                break;
-
-            if (static_cast<int> (synthMarks.size()) > remaining)
-                synthMarks.resize (static_cast<size_t> (remaining));
-
             granulator.generateGrains (synthMarks);
             ++generateGrainsCalls;
             totalSynthMarksFed += static_cast<int> (synthMarks.size());
-
-            if (totalSynthMarksFed >= kMaxGrainsToProcess)
-                break;
         }
     }
 
@@ -103,7 +94,7 @@ TEST_CASE("Granulator end-to-end: Somewhere wav writes synthesis_grains.csv", "[
 
     auto lines = juce::StringArray::fromLines (outputCsv.loadFileAsString().trimEnd());
     REQUIRE (lines.size() >= 2); // header + at least one grain
-    REQUIRE (lines[0] == "source_analysis_id,source_start,source_center,source_end,"
+    REQUIRE (lines[0] == "pitch_mark_id,source_start,source_center,source_end,"
                          "grain_id,start_sample,center_sample,end_sample,"
                          "source_period,synthesis_period,duration_samples,window_alpha");
 
@@ -156,6 +147,29 @@ TEST_CASE("Granulator end-to-end: Somewhere wav writes synthesis_grains.csv", "[
     INFO ("avg src period: " << (counted ? sumSrc / counted : 0)
           << "  avg syn period: " << (counted ? sumSyn / counted : 0));
     REQUIRE (sumSyn < sumSrc); // pitched up → smaller synth period
+
+    // End-to-end coverage: last logged grain must be near end of input.
+    // Catches regressions where logging stops early or test caps grain count.
+    auto lastCols = juce::StringArray::fromTokens (lines[lines.size() - 1], ",", "");
+    REQUIRE (lastCols.size() == 12);
+    const juce::int64 lastSrcCenter = lastCols[2].getLargeIntValue();
+    const juce::int64 lastSrcEnd    = lastCols[3].getLargeIntValue();
+
+    INFO ("totalSamples="     << totalSamples
+          << "  lastWindowStart=" << lastWindowStart
+          << "  lastSrcCenter="   << lastSrcCenter
+          << "  lastSrcEnd="      << lastSrcEnd);
+
+    // Loop must have advanced to final analysis window.
+    REQUIRE (lastWindowStart + hopSize + windowSize > totalSamples);
+
+    // Last grain's source center must lie within the final analysis window
+    // (i.e. logging tracked pitch detection all the way to end of file).
+    REQUIRE (lastSrcCenter >= lastWindowStart);
+    REQUIRE (lastSrcCenter <= totalSamples);
+
+    // Sanity: full file is meaningfully covered (>= 90% of samples).
+    REQUIRE (lastSrcEnd > (totalSamples * 9) / 10);
 
     granulator.setIsLogging (false);
 }

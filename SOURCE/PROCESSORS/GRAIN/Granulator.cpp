@@ -82,7 +82,7 @@ bool Granulator::doLogData()
     contents.preallocateBytes (static_cast<size_t> (128 + 96 * mLastSynthMarks.size()));
 
     if (needsHeader)
-        contents << "source_analysis_id,source_start,source_center,source_end,"
+        contents << "pitch_mark_id,source_start,source_center,source_end,"
                     "grain_id,start_sample,center_sample,end_sample,"
                     "source_period,synthesis_period,duration_samples,window_alpha\n";
 
