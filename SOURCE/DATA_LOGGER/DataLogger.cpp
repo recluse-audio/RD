@@ -131,7 +131,9 @@ DataLogger* DataLogger::getParentLogger() const
 
 juce::File DataLogger::_createDataLogEventFile()
 {
-    auto logFile = getDataLogOutputDirectory().getChildFile ("data_log_event.txt");
+    auto outputDir = getDataLogOutputDirectory();
+    outputDir.createDirectory(); // replaceWithText writes via TemporaryFile sibling — needs the parent dir to exist
+    auto logFile = outputDir.getChildFile ("data_log_event.txt");
     juce::String logText = juce::String("Log Time: ") + mCurrentTime;
     logFile.replaceWithText (logText);
 

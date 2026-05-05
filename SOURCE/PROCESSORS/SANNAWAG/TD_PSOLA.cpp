@@ -11,6 +11,8 @@
 namespace TD_PSOLA
 {
 
+TDPSOLA::Config::Config() = default;
+
 TDPSOLA::TDPSOLA()
 {
     // Initialize with default FFT size

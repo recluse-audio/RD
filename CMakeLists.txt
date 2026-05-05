@@ -6,7 +6,7 @@ set(PROJECT_NAME "RD")
 file(STRINGS "${CMAKE_CURRENT_SOURCE_DIR}/VERSION.txt" CURRENT_VERSION)
 string(STRIP "${CURRENT_VERSION}" CURRENT_VERSION)
 
-project(${PROJECT_NAME} VERSION ${CURRENT_VERSION} LANGUAGES CXX)
+project(${PROJECT_NAME} VERSION ${CURRENT_VERSION} LANGUAGES C CXX)
 
 # C++ Standard
 set(CMAKE_CXX_STANDARD 20)
@@ -70,6 +70,9 @@ option(BUILD_AS_PLUGIN "Build RD as a VST3/Standalone plugin" ${_RD_PLUGIN_DEFAU
 if(BUILD_AS_PLUGIN)
     # Plugin target
     set(FORMATS VST3 Standalone)
+    if(APPLE)
+        list(APPEND FORMATS AU)
+    endif()
     juce_add_plugin("${PROJECT_NAME}"
         COMPANY_NAME "Recluse-Audio"
         BUNDLE_ID com.recluseaudio.rd

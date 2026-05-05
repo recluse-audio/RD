@@ -48,10 +48,9 @@ SetupAndTeardown::SetupAndTeardown()
 
 SetupAndTeardown::~SetupAndTeardown()
 {
-	// deletes shared TooltipWindow
-	juce::DeletedAtShutdown::deleteAll();
-	// must be last
-	juce::MessageManager::deleteInstance();
+	// MessageManager / DeletedAtShutdown lifetime is owned by the
+	// ScopedJuceInitialiser_GUI in test_main.cpp. Tearing them down
+	// here would invalidate timers/singletons before later tests run.
 }
 
 juce::MouseEvent mockMouseDownEvent(juce::Component* component) noexcept

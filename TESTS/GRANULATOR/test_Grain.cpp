@@ -216,7 +216,7 @@ TEST_CASE("Grain - process() with ones buffer shows only window coefficients", "
         window.setPeriod(grainSize);
 
         juce::AudioBuffer<float> ref(1, grainSize);
-        BufferFiller::generateTukey(ref);
+        BufferFiller::generateTukey(ref, 0.8f); // Window.cpp uses alpha=0.8
 
         output.clear();
         Grain grain(mark, window, source, 0);

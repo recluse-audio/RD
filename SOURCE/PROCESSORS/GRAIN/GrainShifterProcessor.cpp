@@ -11,7 +11,7 @@ namespace GrainShifter
     // (PitchManagerConstants::kDefaultDetectionWindowSize = 2048 samples = 2^11)
     // This ensures proper alignment and uses a power-of-two value.
 
-    constexpr int kMaxGrains = 64;
+    constexpr int kMaxGrains = 128;
 
     static const juce::String kShiftRatioID       = "shift_ratio";
     static const juce::String kThresholdID        = "pitch_threshold";

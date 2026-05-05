@@ -91,6 +91,7 @@ public:
 
         // Write the JSON data to the output file
         juce::String jsonString = juce::JSON::toString(jsonVar);
+        outputFile.getParentDirectory().createDirectory(); // replaceWithText needs parent dir to exist
         outputFile.replaceWithText(jsonString);
     }
 
