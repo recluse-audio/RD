@@ -52,6 +52,7 @@ set(SOURCES
     SOURCE/PROCESSORS/SANNAWAG/Sannawag_TDPSOLA_Processor.h
     SOURCE/PROCESSORS/SANNAWAG/TD_PSOLA.cpp
     SOURCE/PROCESSORS/SANNAWAG/TD_PSOLA.h
+    SOURCE/ParamHelper.h
     SOURCE/RelativeFilePath.h
     SOURCE/Util/DebugLog.h
     SOURCE/Util/DebugLogger.cpp

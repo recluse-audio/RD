@@ -11,7 +11,12 @@
       "Read(//c/Users/rdeve/.claude/skills/**)",
       "Read(//c/Users/rdeve/.claude/plugins/**)",
       "PowerShell(Get-ChildItem -Path \"C:\\\\REPOS\\\\PLUGIN_PROJECTS\\\\RD\" -Recurse -Directory | Select-Object -First 20 | ForEach-Object { $_.FullName })",
-      "Bash(Select-String -Pattern \"predicted|doPitchMarking|generateSynthMarks|getPitchMarks\" -Context 1,1)"
+      "Bash(Select-String -Pattern \"predicted|doPitchMarking|generateSynthMarks|getPitchMarks\" -Context 1,1)",
+      "Bash(cmake -B /Users/ryandevens/REPOS/PLUGIN_PROJECTS/RD/BUILD/ -S /Users/ryandevens/REPOS/PLUGIN_PROJECTS/RD -DBUILD_TESTS=ON)",
+      "Bash(xcode-select -p)",
+      "Read(//Library/Developer/CommandLineTools/usr/bin/**)",
+      "Bash(cmake --version)",
+      "Bash(/usr/bin/clang --version)"
     ]
   }
 }
