@@ -45,6 +45,33 @@ public:
         const float worldValue = param->getNormalisableRange().convertFrom0to1 (normalized);
         return { worldValue, normalized };
     }
+
+    struct ParamRangeValues
+    {
+        ParamValues defaultValue;
+        ParamValues min;
+        ParamValues max;
+    };
+
+    // Returns the parameter's default, min, and max as (world, normalized) pairs.
+    // If the parameter is not found, returns all zeros.
+    static ParamRangeValues getParamRangeValues (juce::AudioProcessorValueTreeState& apvts,
+                                                 const juce::String& paramID)
+    {
+        auto* param = apvts.getParameter (paramID);
+        if (param == nullptr)
+            return {};
+
+        const auto& range = param->getNormalisableRange();
+        const float defaultNorm = param->getDefaultValue();
+        const float defaultWorld = range.convertFrom0to1 (defaultNorm);
+
+        return {
+            { defaultWorld, defaultNorm },
+            { range.start, 0.0f },
+            { range.end,   1.0f }
+        };
+    }
 };
 
 } // namespace RD

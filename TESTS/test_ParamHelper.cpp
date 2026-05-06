@@ -66,6 +66,51 @@ TEST_CASE("setParamWorldValue works on a different processor / param")
     CHECK (values.normalizedValue == Catch::Approx (0.25f).margin (0.001f));
 }
 
+TEST_CASE("getParamRangeValues returns default, min, and max for shift_ratio")
+{
+    GrainShifterProcessor processor;
+    auto rv = RD::ParamHelper::getParamRangeValues (processor.getAPVTS(), "shift_ratio");
+
+    // Default 1.0 in range [0.5, 2.0] → normalized = (1.0 - 0.5) / 1.5 ≈ 0.3333
+    CHECK (rv.defaultValue.worldValue      == Catch::Approx (1.0f).margin (0.001f));
+    CHECK (rv.defaultValue.normalizedValue == Catch::Approx (1.0f / 3.0f).margin (0.01f));
+
+    CHECK (rv.min.worldValue      == Catch::Approx (0.5f).margin (0.001f));
+    CHECK (rv.min.normalizedValue == Catch::Approx (0.0f).margin (0.001f));
+
+    CHECK (rv.max.worldValue      == Catch::Approx (2.0f).margin (0.001f));
+    CHECK (rv.max.normalizedValue == Catch::Approx (1.0f).margin (0.001f));
+}
+
+TEST_CASE("getParamRangeValues returns default, min, and max for gain")
+{
+    GainProcessor processor;
+    auto rv = RD::ParamHelper::getParamRangeValues (processor.getAPVTS(), "gain");
+
+    // gain range [0.0, 1.0], default 1.0 — world == normalized
+    CHECK (rv.defaultValue.worldValue      == Catch::Approx (1.0f).margin (0.001f));
+    CHECK (rv.defaultValue.normalizedValue == Catch::Approx (1.0f).margin (0.001f));
+
+    CHECK (rv.min.worldValue      == Catch::Approx (0.0f).margin (0.001f));
+    CHECK (rv.min.normalizedValue == Catch::Approx (0.0f).margin (0.001f));
+
+    CHECK (rv.max.worldValue      == Catch::Approx (1.0f).margin (0.001f));
+    CHECK (rv.max.normalizedValue == Catch::Approx (1.0f).margin (0.001f));
+}
+
+TEST_CASE("getParamRangeValues handles unknown paramID")
+{
+    GrainShifterProcessor processor;
+    auto rv = RD::ParamHelper::getParamRangeValues (processor.getAPVTS(), "nonexistent");
+
+    CHECK (rv.defaultValue.worldValue      == 0.0f);
+    CHECK (rv.defaultValue.normalizedValue == 0.0f);
+    CHECK (rv.min.worldValue      == 0.0f);
+    CHECK (rv.min.normalizedValue == 0.0f);
+    CHECK (rv.max.worldValue      == 0.0f);
+    CHECK (rv.max.normalizedValue == 0.0f);
+}
+
 TEST_CASE("setParamWorldValue and getParamValues handle unknown paramID")
 {
     GrainShifterProcessor processor;
