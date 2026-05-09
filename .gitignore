@@ -19,6 +19,7 @@ Install/*
 .idea/
 .vscode/
 cmake-build-*/
+.cache/
 
 # VS Code workspace
 *.code-workspace

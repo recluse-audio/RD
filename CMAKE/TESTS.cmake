@@ -36,6 +36,7 @@ set(TEST_SOURCES
     TESTS/test_BufferWriter.cpp
     TESTS/test_CircularBuffer.cpp
     TESTS/test_Fade.cpp
+    TESTS/test_ParamHelper.cpp
     TESTS/test_RelativeFilePath.cpp
     TESTS/test_Windowing.cpp
     TESTS/test_main.cpp

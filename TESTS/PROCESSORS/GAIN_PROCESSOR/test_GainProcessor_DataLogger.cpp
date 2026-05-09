@@ -28,7 +28,9 @@ TEST_CASE("GainProcessor applies gain and writes DataLogger output", "[GainProce
     TestUtils::SetupAndTeardown setup;
     GainProcessor processor;
 
-    juce::File testDir = juce::File ("c:/REPOS/PLUGIN_PROJECTS/RD/TESTS/PROCESSORS/GAIN_PROCESSOR/OUTPUT/GainProcessor applies gain and writes DataLogger output");
+    juce::File testDir = juce::File (__FILE__).getParentDirectory()
+                                               .getChildFile ("OUTPUT")
+                                               .getChildFile ("GainProcessor applies gain and writes DataLogger output");
 
     const int numChannels = 2;
     const int numSamples  = 256;
@@ -93,7 +95,9 @@ TEST_CASE("GainProcessor logs raw input and gain-scaled output rows across conse
 {
     TestUtils::SetupAndTeardown setup;
 
-    juce::File rootDir = juce::File ("c:/REPOS/PLUGIN_PROJECTS/RD/TESTS/PROCESSORS/GAIN_PROCESSOR/OUTPUT/GainProcessor logs raw input and gain-scaled output rows")
+    juce::File rootDir = juce::File (__FILE__).getParentDirectory()
+                                               .getChildFile ("OUTPUT")
+                                               .getChildFile ("GainProcessor logs raw input and gain-scaled output rows")
                              .getChildFile ("TEST_CASE_ROOT_DIR");
 
     const juce::String outputName = "DATA_LOG_OUTPUT_DIR";
@@ -183,7 +187,9 @@ TEST_CASE("GainProcessor rotates samples CSV at max size byte limit", "[GainProc
 {
     TestUtils::SetupAndTeardown setup;
 
-    juce::File rootDir = juce::File ("c:/REPOS/PLUGIN_PROJECTS/RD/TESTS/PROCESSORS/GAIN_PROCESSOR/OUTPUT/GainProcessor rotates samples CSV at max size byte limit")
+    juce::File rootDir = juce::File (__FILE__).getParentDirectory()
+                                               .getChildFile ("OUTPUT")
+                                               .getChildFile ("GainProcessor rotates samples CSV at max size byte limit")
                              .getChildFile ("TEST_CASE_ROOT_DIR");
     const juce::String outputName = "DATA_LOG_OUTPUT_DIR";
 
@@ -260,7 +266,9 @@ TEST_CASE("GainProcessor prepareToPlay logs sampleRate and maxBlockSize", "[Gain
 {
     TestUtils::SetupAndTeardown setup;
 
-    juce::File rootDir = juce::File ("c:/REPOS/PLUGIN_PROJECTS/RD/TESTS/PROCESSORS/GAIN_PROCESSOR/OUTPUT/GainProcessor prepareToPlay logs sampleRate and maxBlockSize")
+    juce::File rootDir = juce::File (__FILE__).getParentDirectory()
+                                               .getChildFile ("OUTPUT")
+                                               .getChildFile ("GainProcessor prepareToPlay logs sampleRate and maxBlockSize")
                              .getChildFile ("TEST_CASE_ROOT_DIR");
 
     const juce::String outputName = "DATA_LOG_OUTPUT_DIR";
@@ -294,7 +302,9 @@ TEST_CASE("GainProcessor::createProcessorDataLogFile captures default and modifi
 {
     TestUtils::SetupAndTeardown setup;
 
-    juce::File testDir = juce::File ("c:/REPOS/PLUGIN_PROJECTS/RD/TESTS/PROCESSORS/GAIN_PROCESSOR/OUTPUT/GainProcessor createProcessorDataLogFile captures default and modified gain");
+    juce::File testDir = juce::File (__FILE__).getParentDirectory()
+                                               .getChildFile ("OUTPUT")
+                                               .getChildFile ("GainProcessor createProcessorDataLogFile captures default and modified gain");
 
     auto makeSectionRoot = [&] (const juce::String& sectionName)
     {

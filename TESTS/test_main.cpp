@@ -9,13 +9,18 @@
 
 #include <catch2/catch_session.hpp>
 #include "../SOURCE/Util/DebugLogger.h"
+#include "../SOURCE/Util/Juce_Header.h"
 
 int main(int argc, char* argv[])
 {
-    // Disable all debug logging by default for clean test output
+    // Owns JUCE's GUI/event singletons (MessageManager, TimerThread, ShutdownDetector)
+    // for the whole process. Required so tests using AudioProcessorGraph / Timer don't
+    // leak ShutdownDetector and don't trip JUCE_ASSERT_MESSAGE_MANAGER_EXISTS during
+    // teardown. Per-test TestUtils::SetupAndTeardown still marks the message thread.
+    juce::ScopedJuceInitialiser_GUI juceInit;
+
     DebugLogger::enableAll(false);
 
-    // Run Catch2 tests
     int result = Catch::Session().run(argc, argv);
 
     return result;

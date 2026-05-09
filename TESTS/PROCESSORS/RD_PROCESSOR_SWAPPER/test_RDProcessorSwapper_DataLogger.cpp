@@ -85,7 +85,9 @@ TEST_CASE("RD_ProcessorSwapper routes through GainProcessor child and nests its 
         swapper.getProcessorByIndex (RD_ProcessorSwapper::ProcessorIndex::kGain));
     REQUIRE (gainProc != nullptr);
 
-    juce::File testDir = juce::File ("c:/REPOS/PLUGIN_PROJECTS/RD/TESTS/PROCESSORS/RD_PROCESSOR_SWAPPER/OUTPUT/RD_ProcessorSwapper routes through GainProcessor child");
+    juce::File testDir = juce::File (__FILE__).getParentDirectory()
+                                               .getChildFile ("OUTPUT")
+                                               .getChildFile ("RD_ProcessorSwapper routes through GainProcessor child");
 
     auto runGainSection = [&] (float gain, const juce::String& sectionName)
     {
@@ -156,7 +158,9 @@ TEST_CASE("RD_ProcessorSwapper writes no CSV when global logging is disabled", "
     swapper.prepareToPlay (sampleRate, numSamples);
     swapper.setActiveProcessor (RD_ProcessorSwapper::ProcessorIndex::kGain);
 
-    juce::File testDir = juce::File ("c:/REPOS/PLUGIN_PROJECTS/RD/TESTS/PROCESSORS/RD_PROCESSOR_SWAPPER/OUTPUT/RD_ProcessorSwapper writes no CSV when global logging is disabled");
+    juce::File testDir = juce::File (__FILE__).getParentDirectory()
+                                               .getChildFile ("OUTPUT")
+                                               .getChildFile ("RD_ProcessorSwapper writes no CSV when global logging is disabled");
 
     auto runNoLogSection = [&] (float gain, const juce::String& sectionName)
     {
@@ -207,7 +211,9 @@ TEST_CASE("RD_ProcessorSwapper writes APVTS gain value into processor state log"
 
     swapper.prepareToPlay (sampleRate, numSamples);
 
-    juce::File testDir = juce::File ("c:/REPOS/PLUGIN_PROJECTS/RD/TESTS/PROCESSORS/RD_PROCESSOR_SWAPPER/OUTPUT/RD_ProcessorSwapper writes APVTS gain value into processor state log");
+    juce::File testDir = juce::File (__FILE__).getParentDirectory()
+                                               .getChildFile ("OUTPUT")
+                                               .getChildFile ("RD_ProcessorSwapper writes APVTS gain value into processor state log");
 
     auto runApvtsSection = [&] (float gain, const juce::String& sectionName)
     {

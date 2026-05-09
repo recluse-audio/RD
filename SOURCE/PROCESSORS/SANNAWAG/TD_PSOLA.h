@@ -31,6 +31,7 @@ class TDPSOLA
 public:
     struct Config
     {
+        Config();
         float maxHz = 1700.0f;          // Maximum fundamental frequency (for voice)
         float minHz = 75.0f;            // Minimum fundamental frequency (for voice)
         float analysisWindowMs = 40.0f; // Analysis window size in ms

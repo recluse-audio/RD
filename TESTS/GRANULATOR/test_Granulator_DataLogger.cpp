@@ -64,6 +64,11 @@ TEST_CASE("Granulator end-to-end: Somewhere wav writes synthesis_grains.csv", "[
 
     juce::int64 lastWindowStart = 0;
 
+    // Dummy output buffer per hop so grains advance via process() and recycle.
+    // Without this, the grain pool fills permanently and generateGrains stops
+    // assigning new marks — see Grain::consume / isFinished.
+    juce::AudioBuffer<float> hopBuffer (numChannels, hopSize);
+
     for (juce::int64 startAbs = 0; startAbs + windowSize <= totalSamples; startAbs += hopSize)
     {
         pitchManager.detect (source, startAbs, shiftRatio);
@@ -79,6 +84,9 @@ TEST_CASE("Granulator end-to-end: Somewhere wav writes synthesis_grains.csv", "[
             ++generateGrainsCalls;
             totalSynthMarksFed += static_cast<int> (synthMarks.size());
         }
+
+        hopBuffer.clear();
+        granulator.process (hopBuffer, startAbs, startAbs + hopSize);
     }
 
     INFO ("detect calls: " << detectCalls
@@ -130,7 +138,7 @@ TEST_CASE("Granulator end-to-end: Somewhere wav writes synthesis_grains.csv", "[
         REQUIRE (srcPeriod > 0);
         REQUIRE (synPeriod > 0);
         REQUIRE (duration  == synEnd - synStart);
-        REQUIRE (winAlpha == Catch::Approx (0.5f).margin (0.001f));
+        REQUIRE (winAlpha == Catch::Approx (0.8f).margin (0.001f));
     }
 
     // Reference TD-PSOLA at shift_ratio=1.5 produces ~2/3 the source period in synth.

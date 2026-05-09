@@ -7,7 +7,9 @@ namespace
     //   OUTPUT/<TEST_NAME>[/<SECTION_NAME>]/TEST_CASE_ROOT_DIR/DATA_LOG_OUTPUT_DIR
     juce::File makeRootDir (const juce::String& testName, const juce::String& sectionName = {})
     {
-        auto base = juce::File ("c:/REPOS/PLUGIN_PROJECTS/RD/TESTS/DATA_LOGGER/OUTPUT/" + testName);
+        auto base = juce::File (__FILE__).getParentDirectory()
+                                         .getChildFile ("OUTPUT")
+                                         .getChildFile (testName);
         if (sectionName.isNotEmpty())
             base = base.getChildFile (sectionName);
         return base.getChildFile ("TEST_CASE_ROOT_DIR");
@@ -309,6 +311,7 @@ TEST_CASE("DataLogger addChild propagates logData to children", "[DataLogger]")
 TEST_CASE("DataLogger parent logging off skips children", "[DataLogger]")
 {
     auto rootDir = makeRootDir ("DataLogger parent logging off skips children");
+    rootDir.deleteRecursively(); // clear leftovers from prior runs (other sections write files)
 
     CountingLogger parent;
     CountingLogger childA;
