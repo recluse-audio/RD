@@ -19,6 +19,7 @@ set(TEST_SOURCES
     TESTS/PROCESSORS/GRAIN_SHIFTER_PROCESSOR/test_GrainShifterProcessor.cpp
     TESTS/PROCESSORS/GRAIN_SHIFTER_PROCESSOR/test_GrainShifterProcessor_DataLogger.cpp
     TESTS/PROCESSORS/GRAIN_SHIFTER_PROCESSOR/test_GrainShifter_Female_Scale.cpp
+    TESTS/PROCESSORS/OSCILLATOR_PROCESSOR/test_OscillatorProcessor.cpp
     TESTS/PROCESSORS/RD_PROCESSOR/test_RD_Processor.cpp
     TESTS/PROCESSORS/RD_PROCESSOR/test_RD_Processor_DataLogger.cpp
     TESTS/PROCESSORS/RD_PROCESSOR_SWAPPER/test_RDProcessorSwapper.cpp
