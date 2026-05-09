@@ -7,7 +7,7 @@
 
 TEST_CASE("Can get file relative to project root directory.")
 {
-    juce::String relativePath("/TESTS/GOLDEN/gold_incremental.json");
+    juce::String relativePath("/TESTS/GOLDEN/GOLDEN_incremental.json");
     auto file = RelativeFilePath::getFileFromProjectRoot(relativePath);
 
     juce::AudioBuffer<float> buffer(1, 128);
@@ -29,7 +29,7 @@ TEST_CASE("Can get file relative to project root directory.")
 
 TEST_CASE("Can get golden file directly.")
 {
-    juce::String relativePath("gold_incremental.json");
+    juce::String relativePath("GOLDEN_incremental.json");
     auto file = RelativeFilePath::getGoldenFileFromProjectRoot(relativePath);
 
     juce::AudioBuffer<float> buffer(1, 128);

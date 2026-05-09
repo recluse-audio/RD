@@ -36,7 +36,7 @@ TEST_CASE("Yin By Hand")
     juce::AudioBuffer<float> ioBuffer(1, 32);
     BufferFiller::generateSineCycles(ioBuffer, 16);
 
-    auto sinePath = BufferWriter::getTestOutputPath("handmade_sine.json");
+    auto sinePath = BufferWriter::getTestOutputPath("GOLDEN_handmade_sine.json");
     juce::File sineJson(sinePath);
     BufferWriter::writeToJson(ioBuffer, sineJson);
 
@@ -52,7 +52,7 @@ TEST_CASE("Yin By Hand")
     // Finally the test at hand, yin_difference
     BufferMath::yin_difference(ioBuffer, differenceBuffer, 16);
 
-    auto diffPath = BufferWriter::getTestOutputPath("handmade_diff.json");
+    auto diffPath = BufferWriter::getTestOutputPath("GOLDEN_handmade_diff.json");
     juce::File diffJson(diffPath);
     BufferWriter::writeToJson(differenceBuffer, diffJson);
 
@@ -66,7 +66,7 @@ TEST_CASE("Yin By Hand")
     BufferMath::yin_normalized_difference(differenceBuffer, cmndBuffer);
 
 
-    auto cmndJsonPath = BufferWriter::getTestOutputPath("handmade_cmnd.json");
+    auto cmndJsonPath = BufferWriter::getTestOutputPath("GOLDEN_handmade_cmnd.json");
     juce::File cmndJsonFile(cmndJsonPath);
     BufferWriter::writeToJson(cmndBuffer, cmndJsonFile);
 }
@@ -141,7 +141,7 @@ TEST_CASE("Cumulative Mean Normalized Difference function can be applied")
     diffBuffer.setSample(0, 5, 0.45f);   // tau = 5
 
     // Buffer filled with the difference values found in two identical sine waves,  
-    // auto diffPath = BufferFiller::getGoldenFilePath("gold_1024_difference_buffer.json");
+    // auto diffPath = BufferFiller::getGoldenFilePath("GOLDEN_1024_difference_buffer.json");
     // juce::File diffJson(diffPath);
     // BufferFiller::loadFromJsonFile(diffJson, diffBuffer); // populates and resizes diffBuffer
     // We've loaded our golden difference json into a buffer at this point.
