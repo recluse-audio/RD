@@ -26,14 +26,24 @@ TEST_CASE("OscillatorProcessor processes sine wave", "[OscillatorProcessor]")
     juce::AudioBuffer<float> processorBuffer(numChannels, blockSize);
     juce::AudioBuffer<float> oscillatorBuffer(numChannels, blockSize);
 
+    processorBuffer.clear();
+    oscillatorBuffer.clear();
+
     processor.prepareToPlay(sampleRate, blockSize);
     oscillator.prepare(sampleRate, blockSize);
+
+    float freq = 440.f;
+    processor.setFrequency(freq);
+    oscillator.setFreq(freq);
+
+    processor.setRunning(true);
+    oscillator.start();
 
     // not actually used but needed for call
     juce::MidiBuffer midiBuffer;
 
     // process through processor on its buffer
-    processor.doProcessBlock(processorBuffer, midiBuffer);
+    processor.processBlock(processorBuffer, midiBuffer);
 
     // get as write/read ptr and process through oscillator directly
     auto* readPtr = oscillatorBuffer.getArrayOfReadPointers();

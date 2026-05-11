@@ -19,5 +19,18 @@ void OscillatorProcessor::doProcessBlock (juce::AudioBuffer<float>& buffer, juce
     juce::ignoreUnused (buffer, midiMessages);
     auto* readPtr = buffer.getArrayOfReadPointers();
     auto* writePtr = buffer.getArrayOfWritePointers();
-    //mOscillator->process(readPtr, writePtr, buffer.getNumChannels(), buffer.getNumSamples());
+    mOscillator->process(readPtr, writePtr, buffer.getNumChannels(), buffer.getNumSamples());
+}
+
+void OscillatorProcessor::setRunning(bool shouldRun)
+{
+    if(shouldRun)
+        mOscillator->start();
+    else
+        mOscillator->stop();
+}
+
+void OscillatorProcessor::setFrequency(float freq)
+{
+    mOscillator->setFreq(freq);
 }

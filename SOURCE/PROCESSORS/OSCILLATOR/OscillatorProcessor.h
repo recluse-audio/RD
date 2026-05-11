@@ -20,7 +20,9 @@ public:
 
 
     const juce::String getName() const override{ return "Oscillator Processor"; }
-
+   
+    void setRunning(bool shouldRun);
+    void setFrequency(float freq);
 private:
     std::unique_ptr<rd_dsp::Oscillator> mOscillator;
 
