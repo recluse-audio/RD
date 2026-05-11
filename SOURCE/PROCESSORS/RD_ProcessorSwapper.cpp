@@ -37,8 +37,9 @@ void RD_ProcessorSwapper::_buildGraph()
     mAudioOutputNodeID = mGraph.addNode (std::make_unique<juce::AudioProcessorGraph::AudioGraphIOProcessor> (
         juce::AudioProcessorGraph::AudioGraphIOProcessor::audioOutputNode))->nodeID;
 
-    mGainNodeID    = mGraph.addNode (std::make_unique<GainProcessor>())->nodeID;
+    mGainNodeID         = mGraph.addNode (std::make_unique<GainProcessor>())->nodeID;
     mGrainShifterNodeID = mGraph.addNode (std::make_unique<GrainShifterProcessor>())->nodeID;
+    mOscillatorNodeID   = mGraph.addNode (std::make_unique<OscillatorProcessor>())->nodeID;
 
     _applyProcessorSwap();
 }
@@ -56,6 +57,12 @@ juce::AudioProcessor* RD_ProcessorSwapper::getProcessorByIndex (ProcessorIndex i
     {
         for (auto* node : mGraph.getNodes())
             if (auto* p = dynamic_cast<GrainShifterProcessor*> (node->getProcessor()))
+                return p;
+    }
+    else if (index == ProcessorIndex::kOscillator)
+    {
+        for (auto* node : mGraph.getNodes())
+            if (auto* p = dynamic_cast<OscillatorProcessor*> (node->getProcessor()))
                 return p;
     }
     return nullptr;
@@ -149,13 +156,22 @@ void RD_ProcessorSwapper::_applyProcessorSwap()
 {
     for (int ch = 0; ch < 2; ++ch)
     {
-        mGraph.removeConnection ({{ mAudioInputNodeID, ch }, { mGainNodeID,         ch }});
-        mGraph.removeConnection ({{ mAudioInputNodeID, ch }, { mGrainShifterNodeID, ch }});
-        mGraph.removeConnection ({{ mGainNodeID,         ch }, { mAudioOutputNodeID, ch }});
-        mGraph.removeConnection ({{ mGrainShifterNodeID, ch }, { mAudioOutputNodeID, ch }});
+        mGraph.removeConnection ({{ mAudioInputNodeID,    ch }, { mGainNodeID,         ch }});
+        mGraph.removeConnection ({{ mAudioInputNodeID,    ch }, { mGrainShifterNodeID, ch }});
+        mGraph.removeConnection ({{ mAudioInputNodeID,    ch }, { mOscillatorNodeID,   ch }});
+        mGraph.removeConnection ({{ mGainNodeID,          ch }, { mAudioOutputNodeID,  ch }});
+        mGraph.removeConnection ({{ mGrainShifterNodeID,  ch }, { mAudioOutputNodeID,  ch }});
+        mGraph.removeConnection ({{ mOscillatorNodeID,    ch }, { mAudioOutputNodeID,  ch }});
     }
 
-    auto activeNodeID = (mActiveProcessorIndex == ProcessorIndex::kGain) ? mGainNodeID : mGrainShifterNodeID;
+    juce::AudioProcessorGraph::NodeID activeNodeID;
+    switch (mActiveProcessorIndex)
+    {
+        case ProcessorIndex::kGain:         activeNodeID = mGainNodeID;         break;
+        case ProcessorIndex::kGrainShifter: activeNodeID = mGrainShifterNodeID; break;
+        case ProcessorIndex::kOscillator:   activeNodeID = mOscillatorNodeID;   break;
+        default:                            activeNodeID = mGainNodeID;         break;
+    }
 
     for (int ch = 0; ch < 2; ++ch)
     {

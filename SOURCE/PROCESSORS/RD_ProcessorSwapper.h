@@ -3,6 +3,7 @@
 #include "BASE/RD_Processor.h"
 #include "GAIN/GainProcessor.h"
 #include "GRAIN/GrainShifterProcessor.h"
+#include "OSCILLATOR/OscillatorProcessor.h"
 #include "FX/Fade.h"
 
 class RD_ProcessorSwapper : public RD_Processor
@@ -10,8 +11,9 @@ class RD_ProcessorSwapper : public RD_Processor
 public:
     enum class ProcessorIndex
     {
-        kGain    = 0,
+        kGain         = 0,
         kGrainShifter = 1,
+        kOscillator   = 2,
         kCount
     };
 
@@ -45,6 +47,7 @@ private:
     juce::AudioProcessorGraph::NodeID mAudioOutputNodeID;
     juce::AudioProcessorGraph::NodeID mGainNodeID;
     juce::AudioProcessorGraph::NodeID mGrainShifterNodeID;
+    juce::AudioProcessorGraph::NodeID mOscillatorNodeID;
 
     ProcessorIndex mActiveProcessorIndex { ProcessorIndex::kGain };
 
