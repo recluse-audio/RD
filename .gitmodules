@@ -4,3 +4,6 @@
 [submodule "SUBMODULES/RD_DSP"]
 	path = SUBMODULES/RD_DSP
 	url = https://github.com/recluse-audio/RD_DSP.git
+[submodule "SUBMODULES/PLUGIN_SCRIPTS"]
+	path = SUBMODULES/PLUGIN_SCRIPTS
+	url = https://github.com/recluse-audio/PLUGIN_SCRIPTS.git

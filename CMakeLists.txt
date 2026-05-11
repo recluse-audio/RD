@@ -184,7 +184,7 @@ find_package(Python3 REQUIRED COMPONENTS Interpreter)
 
 add_custom_target(update_version_header
     COMMAND ${Python3_EXECUTABLE}
-            "${CMAKE_SOURCE_DIR}/HELPER_SCRIPTS/update_version.py"
+            "${CMAKE_SOURCE_DIR}/SUBMODULES/PLUGIN_SCRIPTS/HELPER_SCRIPTS/update_version.py"
             "${VERSION_TXT}"
             "${VERSION_HEADER}"
     COMMENT "Updating version header"

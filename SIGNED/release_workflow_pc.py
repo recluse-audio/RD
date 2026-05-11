@@ -73,9 +73,9 @@ def main() -> int:
     standalone_build = ROOT / "BUILD" / f"{target}_artefacts" / "Release" / "Standalone" / f"{name}.exe"
     iss_file = ROOT / "INSTALLERS" / "PC" / f"{name}.iss"
     check_script = ROOT / "SIGNED" / "PC" / "check_if_signed_pc.py"
-    sign_builds_script = ROOT / "HELPER_SCRIPTS" / "sign_builds.py"
+    sign_builds_script = ROOT / "SUBMODULES" / "PLUGIN_SCRIPTS" / "HELPER_SCRIPTS" / "sign_builds.py"
     build_installer_script = ROOT / "INSTALLERS" / "PC" / "build_pc_installer.py"
-    sign_installers_script = ROOT / "HELPER_SCRIPTS" / "sign_installers.py"
+    sign_installers_script = ROOT / "SUBMODULES" / "PLUGIN_SCRIPTS" / "HELPER_SCRIPTS" / "sign_installers.py"
     signed_output = ROOT / "SIGNED" / "PC" / "OUTPUT"
 
     # Read version
@@ -91,7 +91,7 @@ def main() -> int:
     for path, label in [(vst3_build, "VST3"), (standalone_build, "Standalone")]:
         if not path.exists():
             print(f"ERROR: {label} build not found: {path}")
-            print("Run: python HELPER_SCRIPTS/rebuild_all.py --config Release")
+            print("Run: python SUBMODULES/PLUGIN_SCRIPTS/HELPER_SCRIPTS/rebuild_all.py --config Release")
             return 1
     print("OK: Release builds found.")
 

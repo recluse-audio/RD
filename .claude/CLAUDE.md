@@ -44,7 +44,7 @@ If RD lives inside another project's `SUBMODULES/` directory, CMake will **fatal
 
 ### Helper Scripts
 
-Python automation in `HELPER_SCRIPTS/`:
+Python automation in `SUBMODULES/PLUGIN_SCRIPTS/HELPER_SCRIPTS/` (git submodule from `recluse-audio/PLUGIN_SCRIPTS`):
 - `build_vst3.py`, `build_tests.py`, `rebuild_all.py` — build drivers
 - `build_installer.py`, `sign_builds.py`, `sign_installers.py` — packaging/signing
 - `release_workflow.py`, `build_and_release_workflow.py` — end-to-end release

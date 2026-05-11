@@ -4,7 +4,7 @@ How to enable AU (Audio Unit) builds for an RD-style JUCE plugin on macOS, and h
 
 ## Background: the problem
 
-`HELPER_SCRIPTS/rebuild_all.py` builds every plugin format target in sequence. On macOS its `get_targets()` always appends `RD_AU` to the build list:
+`SUBMODULES/PLUGIN_SCRIPTS/HELPER_SCRIPTS/rebuild_all.py` builds every plugin format target in sequence. On macOS its `get_targets()` always appends `RD_AU` to the build list:
 
 ```python
 # rebuild_all.py
