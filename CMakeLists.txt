@@ -98,6 +98,7 @@ target_sources("${PROJECT_NAME}" PRIVATE ${SOURCES})
 
 target_include_directories("${PROJECT_NAME}" PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}/SOURCE
+    ${CMAKE_CURRENT_SOURCE_DIR}/SUBMODULES/RD_DSP/SOURCE
 )
 
 target_compile_features("${PROJECT_NAME}" PRIVATE cxx_std_20)
@@ -233,6 +234,7 @@ if(BUILD_TESTS)
     target_include_directories(Tests PRIVATE
         ${CMAKE_CURRENT_SOURCE_DIR}
         ${CMAKE_CURRENT_SOURCE_DIR}/SOURCE
+        ${CMAKE_CURRENT_SOURCE_DIR}/SUBMODULES/RD_DSP/SOURCE
         ${CMAKE_CURRENT_SOURCE_DIR}/TESTS
     )
 

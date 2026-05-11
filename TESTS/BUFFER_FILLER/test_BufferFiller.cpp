@@ -6,6 +6,7 @@
 #include "../SOURCE/BUFFER_FILLER/BufferFiller.h"
 #include "../SOURCE/BufferHelper.h"
 #include "../SOURCE/RelativeFilePath.h"
+#include "RD_BUFFER/RD_Buffer.h"
 
 
 TEST_CASE("Can make a Hanning Window", "[BufferFiller]")
@@ -526,5 +527,95 @@ TEST_CASE("Load juce::Array into buffer", "[BufferFiller]")
     }
 
 
+}
+
+TEST_CASE("BufferFiller::convert juce->rd copies shape and samples", "[BufferFiller][Conversion]")
+{
+    const int numChannels = 2;
+    const int numSamples  = 64;
+
+    juce::AudioBuffer<float> juceBuffer(numChannels, numSamples);
+    for (int ch = 0; ch < numChannels; ++ch)
+    {
+        for (int i = 0; i < numSamples; ++i)
+        {
+            juceBuffer.setSample(ch, i, static_cast<float>(ch * 1000 + i));
+        }
+    }
+
+    rd_dsp::RD_Buffer rdBuffer;
+    BufferFiller::convert(juceBuffer, rdBuffer);
+
+    REQUIRE(rdBuffer.getNumChannels() == numChannels);
+    REQUIRE(rdBuffer.getNumSamples()  == numSamples);
+
+    for (int ch = 0; ch < numChannels; ++ch)
+    {
+        for (int i = 0; i < numSamples; ++i)
+        {
+            REQUIRE(rdBuffer.getSample(ch, i) == juceBuffer.getSample(ch, i));
+        }
+    }
+}
+
+TEST_CASE("BufferFiller::convert rd->juce copies shape and samples", "[BufferFiller][Conversion]")
+{
+    const int numChannels = 3;
+    const int numSamples  = 128;
+
+    rd_dsp::RD_Buffer rdBuffer(numChannels, numSamples);
+    for (int ch = 0; ch < numChannels; ++ch)
+    {
+        for (int i = 0; i < numSamples; ++i)
+        {
+            rdBuffer.setSample(ch, i, static_cast<float>(ch * 100 + i) * 0.5f);
+        }
+    }
+
+    juce::AudioBuffer<float> juceBuffer;
+    BufferFiller::convert(rdBuffer, juceBuffer);
+
+    REQUIRE(juceBuffer.getNumChannels() == numChannels);
+    REQUIRE(juceBuffer.getNumSamples()  == numSamples);
+
+    for (int ch = 0; ch < numChannels; ++ch)
+    {
+        for (int i = 0; i < numSamples; ++i)
+        {
+            REQUIRE(juceBuffer.getSample(ch, i) == rdBuffer.getSample(ch, i));
+        }
+    }
+}
+
+TEST_CASE("BufferFiller::convert round-trip juce->rd->juce preserves data", "[BufferFiller][Conversion]")
+{
+    const int numChannels = 2;
+    const int numSamples  = 256;
+
+    juce::AudioBuffer<float> original(numChannels, numSamples);
+    for (int ch = 0; ch < numChannels; ++ch)
+    {
+        for (int i = 0; i < numSamples; ++i)
+        {
+            original.setSample(ch, i, std::sin(static_cast<float>(i) * 0.1f) * (ch == 0 ? 1.0f : -1.0f));
+        }
+    }
+
+    rd_dsp::RD_Buffer mid;
+    BufferFiller::convert(original, mid);
+
+    juce::AudioBuffer<float> roundTrip;
+    BufferFiller::convert(mid, roundTrip);
+
+    REQUIRE(roundTrip.getNumChannels() == numChannels);
+    REQUIRE(roundTrip.getNumSamples()  == numSamples);
+
+    for (int ch = 0; ch < numChannels; ++ch)
+    {
+        for (int i = 0; i < numSamples; ++i)
+        {
+            REQUIRE(roundTrip.getSample(ch, i) == original.getSample(ch, i));
+        }
+    }
 }
 

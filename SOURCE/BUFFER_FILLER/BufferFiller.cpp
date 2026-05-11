@@ -1,6 +1,8 @@
 #include "BufferFiller.h"
+#include "RD_BUFFER/RD_Buffer.h"
 #define _USE_MATH_DEFINES
 #include <cmath>
+#include <cstring>
 
 #ifndef M_PI
 #define M_PI 3.14159265358979323846
@@ -12,6 +14,36 @@ juce::String BufferFiller::getGoldenFilePath(juce::String fileName)
     juce::String relativePath = "/SUBMODULES//RD/TESTS/GOLDEN/";
 
     return currentDir.getFullPathName() + relativePath + fileName;
+}
+
+void BufferFiller::convert(const juce::AudioBuffer<float>& src, rd_dsp::RD_Buffer& dst)
+{
+    const int numChannels = src.getNumChannels();
+    const int numSamples  = src.getNumSamples();
+
+    dst.setSize(numChannels, numSamples);
+
+    for (int ch = 0; ch < numChannels; ++ch)
+    {
+        std::memcpy(dst.getWritePointer(ch),
+                    src.getReadPointer(ch),
+                    static_cast<std::size_t>(numSamples) * sizeof(float));
+    }
+}
+
+void BufferFiller::convert(const rd_dsp::RD_Buffer& src, juce::AudioBuffer<float>& dst)
+{
+    const int numChannels = src.getNumChannels();
+    const int numSamples  = src.getNumSamples();
+
+    dst.setSize(numChannels, numSamples);
+
+    for (int ch = 0; ch < numChannels; ++ch)
+    {
+        std::memcpy(dst.getWritePointer(ch),
+                    src.getReadPointer(ch),
+                    static_cast<std::size_t>(numSamples) * sizeof(float));
+    }
 }
 
 void BufferFiller::fillFromArray(juce::AudioBuffer<float>& buffer, const std::vector<float>& array)

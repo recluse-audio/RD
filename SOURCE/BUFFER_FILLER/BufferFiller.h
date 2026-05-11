@@ -3,6 +3,8 @@
 #include <functional>
 #include <vector>
 
+namespace rd_dsp { class RD_Buffer; }
+
 /**
  * @brief An assortment of functions for filling buffers with amplitude values in various patterns
  */
@@ -10,6 +12,9 @@ class BufferFiller
 {
 public:
     static juce::String getGoldenFilePath(juce::String fileName);
+
+    static void convert(const juce::AudioBuffer<float>& src, rd_dsp::RD_Buffer& dst);
+    static void convert(const rd_dsp::RD_Buffer& src, juce::AudioBuffer<float>& dst);
 
     static void fillFromArray(juce::AudioBuffer<float>& buffer, const std::vector<float>& array);
 
