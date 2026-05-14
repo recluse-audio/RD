@@ -25,6 +25,7 @@ set(TEST_SOURCES
     TESTS/PROCESSORS/RD_PROCESSOR_SWAPPER/test_RDProcessorSwapper.cpp
     TESTS/PROCESSORS/RD_PROCESSOR_SWAPPER/test_RDProcessorSwapperEditor.cpp
     TESTS/PROCESSORS/RD_PROCESSOR_SWAPPER/test_RDProcessorSwapper_DataLogger.cpp
+    TESTS/PROCESSORS/SYNTH_PROCESSOR/test_SynthProcessor.cpp
     TESTS/TEST_UTILS/BufferGenerator.h
     TESTS/TEST_UTILS/TestUtils.cpp
     TESTS/TEST_UTILS/TestUtils.h

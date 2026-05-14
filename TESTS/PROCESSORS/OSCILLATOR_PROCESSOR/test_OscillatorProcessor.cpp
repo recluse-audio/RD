@@ -2,6 +2,7 @@
 #include "../../TEST_UTILS/TestUtils.h"
 #include "../../../SOURCE/PROCESSORS/OSCILLATOR/OscillatorProcessor.h"
 #include "OSCILLATOR/Oscillator.h"
+#include "WAVEFORM/Wavetable.h"
 
 TEST_CASE("OscillatorProcessor reports its name", "[OscillatorProcessor]")
 {
@@ -15,7 +16,9 @@ TEST_CASE("OscillatorProcessor processes sine wave", "[OscillatorProcessor]")
 {
     TestUtils::SetupAndTeardown setup;
     OscillatorProcessor processor;
-    rd_dsp::Oscillator oscillator;
+    rd_dsp::Wavetable  wavetable;
+    wavetable.fillWithBasicShapes (2048);
+    rd_dsp::Oscillator oscillator (wavetable);
 
     int blockSize = 512;
     int numChannels = 2;
@@ -39,6 +42,7 @@ TEST_CASE("OscillatorProcessor processes sine wave", "[OscillatorProcessor]")
     auto& apvts = processor.getAPVTS();
     *dynamic_cast<juce::AudioParameterFloat*> (apvts.getParameter(OscillatorParams::kFrequencyID)) = freq;
     *dynamic_cast<juce::AudioParameterBool*>  (apvts.getParameter(OscillatorParams::kOnOffID))     = true;
+    *dynamic_cast<juce::AudioParameterFloat*> (apvts.getParameter(OscillatorParams::kGainID))      = 1.f;
 
     // APVTS listener callbacks dispatch via AsyncUpdater — pump message loop
     // so parameterChanged() fires before processBlock runs.

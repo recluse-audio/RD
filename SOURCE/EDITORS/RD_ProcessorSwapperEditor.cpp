@@ -10,7 +10,7 @@ RD_ProcessorSwapperEditor::RD_ProcessorSwapperEditor (RD_ProcessorSwapper& p)
     _addChildEditors();
     updateActiveEditor();
 
-    setSize (400, 300);
+    setSize (400, 500);
 }
 
 //==============================================================================
@@ -23,7 +23,8 @@ void RD_ProcessorSwapperEditor::updateActiveEditor()
     const int activeIndex = static_cast<int> (processorRef.getActiveProcessorIndex());
 
     for (int i = 0; i < static_cast<int> (mChildEditors.size()); ++i)
-        mChildEditors[i]->setVisible (i == activeIndex);
+        if (auto* editor = mChildEditors[i].get())
+            editor->setVisible (i == activeIndex);
 
     resized();
 }
@@ -40,7 +41,13 @@ void RD_ProcessorSwapperEditor::_addChildEditors()
         mProcessorSelector.addItem (processor->getName(), i + 1);
 
         auto* editor = processor->createEditor();
-        if (editor == nullptr) continue;
+        if (editor == nullptr)
+        {
+            // Preserve index alignment with ProcessorIndex — null slot for
+            // processors that don't expose an editor.
+            mChildEditors.emplace_back (nullptr);
+            continue;
+        }
 
         addChildComponent (*editor);
         mChildEditors.emplace_back (editor);
@@ -72,5 +79,6 @@ void RD_ProcessorSwapperEditor::resized()
     area.removeFromTop (8);
 
     for (auto& editor : mChildEditors)
-        editor->setBounds (area);
+        if (editor != nullptr)
+            editor->setBounds (area);
 }

@@ -78,7 +78,7 @@ bool RD_Processor::hasEditor() const
 
 bool RD_Processor::acceptsMidi() const
 {
-    return false;
+    return true;
 }
 
 bool RD_Processor::producesMidi() const

@@ -81,11 +81,12 @@ if(BUILD_AS_PLUGIN)
         FORMATS "${FORMATS}"
         PRODUCT_NAME "${PROJECT_NAME}"
         COPY_PLUGIN_AFTER_BUILD FALSE
-        VST3_CATEGORIES Fx
-        NEEDS_MIDI_INPUT FALSE
+        VST3_CATEGORIES Instrument Synth
+        IS_SYNTH TRUE
+        NEEDS_MIDI_INPUT TRUE
         NEEDS_MIDI_OUTPUT FALSE
         IS_MIDI_EFFECT FALSE
-        EDITOR_WANTS_KEYBOARD_FOCUS FALSE
+        EDITOR_WANTS_KEYBOARD_FOCUS TRUE
     )
 else()
     # Static library target for use as a submodule
@@ -94,7 +95,8 @@ endif()
 
 # Source files
 include(CMAKE/SOURCES.cmake)
-target_sources("${PROJECT_NAME}" PRIVATE ${SOURCES})
+include(CMAKE/RD_DSP_SOURCES.cmake)
+target_sources("${PROJECT_NAME}" PRIVATE ${SOURCES} ${RD_DSP_SOURCES})
 
 target_include_directories("${PROJECT_NAME}" PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}/SOURCE
@@ -219,7 +221,7 @@ if(BUILD_TESTS)
 
     add_executable(Tests)
     include(CMAKE/TESTS.cmake)
-    target_sources(Tests PRIVATE ${TEST_SOURCES} ${SOURCES})
+    target_sources(Tests PRIVATE ${TEST_SOURCES} ${SOURCES} ${RD_DSP_SOURCES})
 
     target_compile_features(Tests PRIVATE cxx_std_20)
 
@@ -247,7 +249,8 @@ if(BUILD_TESTS)
 
     target_compile_definitions(Tests PRIVATE
         JucePlugin_Name="RD"
-        JucePlugin_WantsMidiInput=0
+        JucePlugin_IsSynth=1
+        JucePlugin_WantsMidiInput=1
         JucePlugin_ProducesMidiOutput=0
         JucePlugin_IsMidiEffect=0
         JUCE_WEB_BROWSER=0

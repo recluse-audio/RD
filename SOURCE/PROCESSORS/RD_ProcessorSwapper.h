@@ -4,6 +4,8 @@
 #include "GAIN/GainProcessor.h"
 #include "GRAIN/GrainShifterProcessor.h"
 #include "OSCILLATOR/OscillatorProcessor.h"
+#include "SYNTH/SynthProcessor.h"
+#include "PULSAR/PulsarProcessor.h"
 #include "FX/Fade.h"
 
 class RD_ProcessorSwapper : public RD_Processor
@@ -14,6 +16,8 @@ public:
         kGain         = 0,
         kGrainShifter = 1,
         kOscillator   = 2,
+        kSynth        = 3,
+        kPulsar       = 4,
         kCount
     };
 
@@ -48,6 +52,8 @@ private:
     juce::AudioProcessorGraph::NodeID mGainNodeID;
     juce::AudioProcessorGraph::NodeID mGrainShifterNodeID;
     juce::AudioProcessorGraph::NodeID mOscillatorNodeID;
+    juce::AudioProcessorGraph::NodeID mSynthNodeID;
+    juce::AudioProcessorGraph::NodeID mPulsarNodeID;
 
     ProcessorIndex mActiveProcessorIndex { ProcessorIndex::kGain };
 

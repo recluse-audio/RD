@@ -40,6 +40,8 @@ void RD_ProcessorSwapper::_buildGraph()
     mGainNodeID         = mGraph.addNode (std::make_unique<GainProcessor>())->nodeID;
     mGrainShifterNodeID = mGraph.addNode (std::make_unique<GrainShifterProcessor>())->nodeID;
     mOscillatorNodeID   = mGraph.addNode (std::make_unique<OscillatorProcessor>())->nodeID;
+    mSynthNodeID        = mGraph.addNode (std::make_unique<SynthProcessor>())->nodeID;
+    mPulsarNodeID       = mGraph.addNode (std::make_unique<PulsarProcessor>())->nodeID;
 
     _applyProcessorSwap();
 }
@@ -63,6 +65,18 @@ juce::AudioProcessor* RD_ProcessorSwapper::getProcessorByIndex (ProcessorIndex i
     {
         for (auto* node : mGraph.getNodes())
             if (auto* p = dynamic_cast<OscillatorProcessor*> (node->getProcessor()))
+                return p;
+    }
+    else if (index == ProcessorIndex::kSynth)
+    {
+        for (auto* node : mGraph.getNodes())
+            if (auto* p = dynamic_cast<SynthProcessor*> (node->getProcessor()))
+                return p;
+    }
+    else if (index == ProcessorIndex::kPulsar)
+    {
+        for (auto* node : mGraph.getNodes())
+            if (auto* p = dynamic_cast<PulsarProcessor*> (node->getProcessor()))
                 return p;
     }
     return nullptr;
@@ -159,9 +173,13 @@ void RD_ProcessorSwapper::_applyProcessorSwap()
         mGraph.removeConnection ({{ mAudioInputNodeID,    ch }, { mGainNodeID,         ch }});
         mGraph.removeConnection ({{ mAudioInputNodeID,    ch }, { mGrainShifterNodeID, ch }});
         mGraph.removeConnection ({{ mAudioInputNodeID,    ch }, { mOscillatorNodeID,   ch }});
+        mGraph.removeConnection ({{ mAudioInputNodeID,    ch }, { mSynthNodeID,        ch }});
+        mGraph.removeConnection ({{ mAudioInputNodeID,    ch }, { mPulsarNodeID,       ch }});
         mGraph.removeConnection ({{ mGainNodeID,          ch }, { mAudioOutputNodeID,  ch }});
         mGraph.removeConnection ({{ mGrainShifterNodeID,  ch }, { mAudioOutputNodeID,  ch }});
         mGraph.removeConnection ({{ mOscillatorNodeID,    ch }, { mAudioOutputNodeID,  ch }});
+        mGraph.removeConnection ({{ mSynthNodeID,         ch }, { mAudioOutputNodeID,  ch }});
+        mGraph.removeConnection ({{ mPulsarNodeID,        ch }, { mAudioOutputNodeID,  ch }});
     }
 
     juce::AudioProcessorGraph::NodeID activeNodeID;
@@ -170,8 +188,18 @@ void RD_ProcessorSwapper::_applyProcessorSwap()
         case ProcessorIndex::kGain:         activeNodeID = mGainNodeID;         break;
         case ProcessorIndex::kGrainShifter: activeNodeID = mGrainShifterNodeID; break;
         case ProcessorIndex::kOscillator:   activeNodeID = mOscillatorNodeID;   break;
+        case ProcessorIndex::kSynth:        activeNodeID = mSynthNodeID;        break;
+        case ProcessorIndex::kPulsar:       activeNodeID = mPulsarNodeID;       break;
         default:                            activeNodeID = mGainNodeID;         break;
     }
+
+    // Bypass every non-active node so AudioProcessorGraph's buffer-aliasing
+    // can't let a disconnected processor's output leak into the output bus.
+    for (auto* node : mGraph.getNodes())
+        if (node != nullptr)
+            node->setBypassed (node->nodeID != activeNodeID
+                            && node->nodeID != mAudioInputNodeID
+                            && node->nodeID != mAudioOutputNodeID);
 
     for (int ch = 0; ch < 2; ++ch)
     {

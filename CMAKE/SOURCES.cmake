@@ -18,6 +18,10 @@ set(SOURCES
     SOURCE/EDITORS/GrainShifterEditor.h
     SOURCE/EDITORS/RD_ProcessorSwapperEditor.cpp
     SOURCE/EDITORS/RD_ProcessorSwapperEditor.h
+    SOURCE/EDITORS/PulsarEditor.cpp
+    SOURCE/EDITORS/PulsarEditor.h
+    SOURCE/EDITORS/SynthEditor.cpp
+    SOURCE/EDITORS/SynthEditor.h
     SOURCE/FX/Fade.cpp
     SOURCE/FX/Fade.h
     SOURCE/Interpolator.h
@@ -54,6 +58,10 @@ set(SOURCES
     SOURCE/PROCESSORS/SANNAWAG/Sannawag_TDPSOLA_Processor.h
     SOURCE/PROCESSORS/SANNAWAG/TD_PSOLA.cpp
     SOURCE/PROCESSORS/SANNAWAG/TD_PSOLA.h
+    SOURCE/PROCESSORS/PULSAR/PulsarProcessor.cpp
+    SOURCE/PROCESSORS/PULSAR/PulsarProcessor.h
+    SOURCE/PROCESSORS/SYNTH/SynthProcessor.cpp
+    SOURCE/PROCESSORS/SYNTH/SynthProcessor.h
     SOURCE/ParamHelper.h
     SOURCE/RelativeFilePath.h
     SOURCE/Util/DebugLog.h
@@ -63,13 +71,4 @@ set(SOURCES
     SOURCE/Util/Version.h
     SOURCE/Window.cpp
     SOURCE/Window.h
-    SUBMODULES/RD_DSP/SOURCE/INTERPOLATOR/Interpolator.h
-    SUBMODULES/RD_DSP/SOURCE/OSCILLATOR/Oscillator.cpp
-    SUBMODULES/RD_DSP/SOURCE/OSCILLATOR/Oscillator.h
-    SUBMODULES/RD_DSP/SOURCE/RD_BUFFER/BufferFiller.cpp
-    SUBMODULES/RD_DSP/SOURCE/RD_BUFFER/BufferFiller.h
-    SUBMODULES/RD_DSP/SOURCE/RD_BUFFER/RD_Buffer.cpp
-    SUBMODULES/RD_DSP/SOURCE/RD_BUFFER/RD_Buffer.h
-    SUBMODULES/RD_DSP/SOURCE/WAVEFORM/Waveform.cpp
-    SUBMODULES/RD_DSP/SOURCE/WAVEFORM/Waveform.h
 )

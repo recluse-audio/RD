@@ -7,12 +7,13 @@
 #include "PROCESSORS/BASE/RD_Processor.h"
 #include <memory>
 
-namespace rd_dsp { class Oscillator; }
+namespace rd_dsp { class Oscillator; class Wavetable; }
 
 namespace OscillatorParams
 {
     static const juce::String kOnOffID     = "oscillator_on_off";
     static const juce::String kFrequencyID = "oscillator_frequency";
+    static const juce::String kGainID      = "oscillator_gain";
 }
 
 class OscillatorProcessor : public RD_Processor
@@ -33,10 +34,13 @@ public:
     static juce::AudioProcessorValueTreeState::ParameterLayout createParameterLayout();
 
 private:
+    std::unique_ptr<rd_dsp::Wavetable>  mWavetable;
     std::unique_ptr<rd_dsp::Oscillator> mOscillator;
 
     // Owned APVTS for this processor (separate from RD_Processor::mBaseAPVTS).
     juce::AudioProcessorValueTreeState mAPVTS;
+
+    juce::Atomic<float> mGain { 0.3f };
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (OscillatorProcessor)
 };
