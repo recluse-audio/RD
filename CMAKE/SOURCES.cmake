@@ -16,10 +16,10 @@ set(SOURCES
     SOURCE/EDITORS/GainEditor.h
     SOURCE/EDITORS/GrainShifterEditor.cpp
     SOURCE/EDITORS/GrainShifterEditor.h
-    SOURCE/EDITORS/RD_ProcessorSwapperEditor.cpp
-    SOURCE/EDITORS/RD_ProcessorSwapperEditor.h
     SOURCE/EDITORS/PulsarEditor.cpp
     SOURCE/EDITORS/PulsarEditor.h
+    SOURCE/EDITORS/RD_ProcessorSwapperEditor.cpp
+    SOURCE/EDITORS/RD_ProcessorSwapperEditor.h
     SOURCE/EDITORS/SynthEditor.cpp
     SOURCE/EDITORS/SynthEditor.h
     SOURCE/FX/Fade.cpp
@@ -51,6 +51,8 @@ set(SOURCES
     SOURCE/PROCESSORS/GRAIN/Granulator.h
     SOURCE/PROCESSORS/OSCILLATOR/OscillatorProcessor.cpp
     SOURCE/PROCESSORS/OSCILLATOR/OscillatorProcessor.h
+    SOURCE/PROCESSORS/PULSAR/PulsarProcessor.cpp
+    SOURCE/PROCESSORS/PULSAR/PulsarProcessor.h
     SOURCE/PROCESSORS/RD_ProcessorSwapper.cpp
     SOURCE/PROCESSORS/RD_ProcessorSwapper.h
     SOURCE/PROCESSORS/SANNAWAG/GrainExport.h
@@ -58,8 +60,6 @@ set(SOURCES
     SOURCE/PROCESSORS/SANNAWAG/Sannawag_TDPSOLA_Processor.h
     SOURCE/PROCESSORS/SANNAWAG/TD_PSOLA.cpp
     SOURCE/PROCESSORS/SANNAWAG/TD_PSOLA.h
-    SOURCE/PROCESSORS/PULSAR/PulsarProcessor.cpp
-    SOURCE/PROCESSORS/PULSAR/PulsarProcessor.h
     SOURCE/PROCESSORS/SYNTH/SynthProcessor.cpp
     SOURCE/PROCESSORS/SYNTH/SynthProcessor.h
     SOURCE/ParamHelper.h

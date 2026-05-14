@@ -7,16 +7,15 @@
 #include "PROCESSORS/BASE/RD_Processor.h"
 #include <memory>
 
-namespace rd_dsp { class PulsarSynth; }
+namespace rd_dsp { class PulsarTrain; }
 
 namespace PulsarParams
 {
-    static const juce::String kRateID            = "pulsar_rate";
-    static const juce::String kGrainFrequencyID  = "pulsar_grain_frequency";
-    static const juce::String kGrainCyclesID     = "pulsar_grain_cycles";
+    static const juce::String kFundamentalFreqID = "pulsar_fundamental_frequency";
+    static const juce::String kFormantFreqID     = "pulsar_formant_frequency";
     static const juce::String kWavePositionID    = "pulsar_wave_position";
     static const juce::String kGainID            = "pulsar_gain";
-    static constexpr int      kDefaultNumVoices  = 8;
+    static const juce::String kOnOffID           = "pulsar_on_off";
 }
 
 class PulsarProcessor : public RD_Processor
@@ -40,7 +39,7 @@ public:
     static juce::AudioProcessorValueTreeState::ParameterLayout createParameterLayout();
 
 private:
-    std::unique_ptr<rd_dsp::PulsarSynth> mPulsar;
+    std::unique_ptr<rd_dsp::PulsarTrain> mPulsarTrain;
 
     juce::AudioProcessorValueTreeState mAPVTS;
 

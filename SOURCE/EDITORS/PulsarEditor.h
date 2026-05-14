@@ -14,25 +14,24 @@ public:
 private:
     PulsarProcessor& mProcessor;
 
-    juce::Slider mRateSlider           { juce::Slider::LinearHorizontal, juce::Slider::TextBoxBelow };
-    juce::Label  mRateLabel;
-    juce::AudioProcessorValueTreeState::SliderAttachment mRateAttachment;
+    juce::Slider mFundamentalFreqSlider { juce::Slider::LinearHorizontal, juce::Slider::TextBoxBelow };
+    juce::Label  mFundamentalFreqLabel;
+    juce::AudioProcessorValueTreeState::SliderAttachment mFundamentalFreqAttachment;
 
-    juce::Slider mGrainFrequencySlider { juce::Slider::LinearHorizontal, juce::Slider::TextBoxBelow };
-    juce::Label  mGrainFrequencyLabel;
-    juce::AudioProcessorValueTreeState::SliderAttachment mGrainFrequencyAttachment;
+    juce::Slider mFormantFreqSlider     { juce::Slider::LinearHorizontal, juce::Slider::TextBoxBelow };
+    juce::Label  mFormantFreqLabel;
+    juce::AudioProcessorValueTreeState::SliderAttachment mFormantFreqAttachment;
 
-    juce::Slider mGrainCyclesSlider    { juce::Slider::LinearHorizontal, juce::Slider::TextBoxBelow };
-    juce::Label  mGrainCyclesLabel;
-    juce::AudioProcessorValueTreeState::SliderAttachment mGrainCyclesAttachment;
-
-    juce::Slider mWavePositionSlider   { juce::Slider::LinearHorizontal, juce::Slider::TextBoxBelow };
+    juce::Slider mWavePositionSlider    { juce::Slider::LinearHorizontal, juce::Slider::TextBoxBelow };
     juce::Label  mWavePositionLabel;
     juce::AudioProcessorValueTreeState::SliderAttachment mWavePositionAttachment;
 
-    juce::Slider mGainSlider           { juce::Slider::LinearHorizontal, juce::Slider::TextBoxBelow };
+    juce::Slider mGainSlider            { juce::Slider::LinearHorizontal, juce::Slider::TextBoxBelow };
     juce::Label  mGainLabel;
     juce::AudioProcessorValueTreeState::SliderAttachment mGainAttachment;
+
+    juce::ToggleButton mOnOffButton { "Pulsar On/Off" };
+    juce::AudioProcessorValueTreeState::ButtonAttachment mOnOffAttachment;
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (PulsarEditor)
 };
