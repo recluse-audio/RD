@@ -149,13 +149,6 @@ juce::AudioProcessorEditor* RD_ProcessorSwapper::createEditor()
     return new RD_ProcessorSwapperEditor (*this);
 }
 
-#if BUILD_AS_PLUGIN
-juce::AudioProcessor* JUCE_CALLTYPE createPluginFilter()
-{
-    return new RD_ProcessorSwapper();
-}
-#endif
-
 //==============================================================================
 void RD_ProcessorSwapper::setActiveProcessor (ProcessorIndex index)
 {
