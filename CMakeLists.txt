@@ -59,6 +59,13 @@ endif()
 # JUCE submodule
 add_subdirectory(SUBMODULES/JUCE)
 
+# rd_dsp submodule — provides the RD_DSP static library target.
+# Guarded so a parent project that already added rd_dsp wins (RD's wrapper
+# sources then compile against the parent's RD_DSP target).
+if(NOT TARGET RD_DSP)
+    add_subdirectory(SUBMODULES/RD_DSP)
+endif()
+
 # Auto-detect top-level vs submodule context
 if(CMAKE_SOURCE_DIR STREQUAL CMAKE_CURRENT_SOURCE_DIR)
     set(_RD_PLUGIN_DEFAULT ON)
@@ -95,13 +102,12 @@ endif()
 
 # Source files
 include(CMAKE/SOURCES.cmake)
-include(CMAKE/RD_DSP_SOURCES.cmake)
-target_sources("${PROJECT_NAME}" PRIVATE ${SOURCES} ${RD_DSP_SOURCES})
+target_sources("${PROJECT_NAME}" PRIVATE ${SOURCES})
 
 target_include_directories("${PROJECT_NAME}" PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}/SOURCE
-    ${CMAKE_CURRENT_SOURCE_DIR}/SUBMODULES/RD_DSP/SOURCE
 )
+# rd_dsp's SOURCE include dir propagates via the RD_DSP target's PUBLIC include.
 
 target_compile_features("${PROJECT_NAME}" PRIVATE cxx_std_20)
 
@@ -147,6 +153,7 @@ set(JUCE_DEPENDENCIES
 target_link_libraries("${PROJECT_NAME}"
     PRIVATE
         ${JUCE_DEPENDENCIES}
+        RD_DSP
     PUBLIC
         juce::juce_recommended_config_flags
         juce::juce_recommended_lto_flags
@@ -221,7 +228,7 @@ if(BUILD_TESTS)
 
     add_executable(Tests)
     include(CMAKE/TESTS.cmake)
-    target_sources(Tests PRIVATE ${TEST_SOURCES} ${SOURCES} ${RD_DSP_SOURCES})
+    target_sources(Tests PRIVATE ${TEST_SOURCES} ${SOURCES})
 
     target_compile_features(Tests PRIVATE cxx_std_20)
 
@@ -236,12 +243,12 @@ if(BUILD_TESTS)
     target_include_directories(Tests PRIVATE
         ${CMAKE_CURRENT_SOURCE_DIR}
         ${CMAKE_CURRENT_SOURCE_DIR}/SOURCE
-        ${CMAKE_CURRENT_SOURCE_DIR}/SUBMODULES/RD_DSP/SOURCE
         ${CMAKE_CURRENT_SOURCE_DIR}/TESTS
     )
 
     target_link_libraries(Tests PRIVATE
         Catch2::Catch2WithMain
+        RD_DSP
         juce::juce_audio_utils
         juce::juce_audio_processors
         juce::juce_dsp
