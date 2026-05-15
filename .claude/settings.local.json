@@ -20,7 +20,8 @@
       "Bash(git -C C:/REPOS/PLUGIN_PROJECTS/RD ls-files TESTS/GOLDEN/)",
       "Bash(git mv *)",
       "Bash(git -C C:/REPOS/PLUGIN_PROJECTS/RD status --short)",
-      "Bash(git *)"
+      "Bash(git *)",
+      "Bash(cd *)"
     ]
   }
 }

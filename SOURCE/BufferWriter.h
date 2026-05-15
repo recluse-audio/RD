@@ -50,7 +50,7 @@ public:
     {
         // Define the directory and output file path
         juce::File currentDir = juce::File::getCurrentWorkingDirectory(); // this works when called from root dir of repo
-        juce::String relativePath = "/SUBMODULES//RD/TESTS/OUTPUT/"; 
+        juce::String relativePath = "/TESTS/OUTPUT/";
 
         return currentDir.getFullPathName() + relativePath + fileName;
     }
